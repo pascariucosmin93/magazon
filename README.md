@@ -62,8 +62,8 @@ helm upgrade --install kafka bitnami/kafka \
 GitHub Actions is used only for CI and image publishing.
 
 - `.github/workflows/ci-cd.yaml`
-  - on pull requests: validates Python code and builds all container images without pushing
-  - on push to `main`: creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values.yaml` to that version, and pushes all images to GHCR with that exact tag
+  - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, OWASP Dependency-Check, and builds all container images without pushing
+  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values.yaml` to that version, and pushes all images to GHCR with that exact tag
 
 Argo CD should handle deployment by syncing this repo or a separate GitOps repo after images are published.
 

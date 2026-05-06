@@ -12,10 +12,11 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository }}
+  PYTHON_VERSION: "3.12"
 
 jobs:
   validate:
-    name: Validate Python Services
+    name: Validate, Test, and Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,13 +25,62 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install test and security tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest bandit pip-audit
+          find services -name requirements.txt -print0 | xargs -0 -n1 pip install -r
+
+      - name: Run pytest
+        env:
+          PYTHONPATH: .
+        run: pytest tests -q
 
       - name: Compile Python code
         run: python -m compileall shared services
 
       - name: Lint deploy script
         run: bash -n deploy.sh
+
+      - name: Run Bandit
+        run: bandit -r shared services -ll
+
+      - name: Run pip-audit
+        run: |
+          find services -name requirements.txt -print0 | while IFS= read -r -d '' file; do
+            echo "Auditing ${file}"
+            pip-audit -r "${file}"
+          done
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: 1
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: microshop-platform
+          path: .
+          format: HTML
+          out: reports
+          args: >
+            --enableRetired
+            --failOnCVSS 7
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check-report
+          path: reports
 
   determine-version:
     name: Determine Release Version
