@@ -9,11 +9,23 @@ config:
   REDIS_URL: redis://redis:6379/0
   KAFKA_BOOTSTRAP_SERVERS: kafka.kafka.svc.cluster.local:9092
 
-# Secret values must be supplied at deploy time — never commit real values here.
-# Example: helm upgrade --install microshop ./helm/microshop \
-#   --set secret.postgresPassword=<password> \
-#   --set secret.jwtSecret=<secret>
+# Secret management strategy:
+#
+# manage: false (default) — ArgoCD/GitOps mode.
+#   The chart does NOT create the Secret. You must pre-create it:
+#   kubectl create secret generic microshop-secret -n microshop \
+#     --from-literal=POSTGRES_PASSWORD='...' \
+#     --from-literal=JWT_SECRET='...'
+#   For automated injection use External Secrets Operator or Sealed Secrets.
+#
+# manage: true — manual/CI mode.
+#   Helm creates the Secret. Supply values at deploy time (never in this file):
+#   helm upgrade --install microshop ./helm/microshop \
+#     --set secret.manage=true \
+#     --set secret.postgresPassword='...' \
+#     --set secret.jwtSecret='...'
 secret:
+  manage: false
   postgresPassword: ""
   jwtSecret: ""
 

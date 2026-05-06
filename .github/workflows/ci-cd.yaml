@@ -18,6 +18,9 @@ jobs:
   validate:
     name: Validate, Test, and Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,7 +50,7 @@ jobs:
         run: flake8 shared services --max-line-length=120 --extend-ignore=E501
 
       - name: Run mypy
-        run: mypy shared services --ignore-missing-imports --no-strict-optional
+        run: mypy shared services --ignore-missing-imports --no-strict-optional --explicit-package-bases
         continue-on-error: true
 
       - name: Lint deploy script
@@ -75,7 +78,7 @@ jobs:
         continue-on-error: true
 
       - name: Upload Trivy SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results.sarif
@@ -274,7 +277,7 @@ jobs:
 
       - name: Upload image scan results
         if: github.event_name != 'pull_request'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-image-${{ matrix.name }}.sarif
         continue-on-error: true

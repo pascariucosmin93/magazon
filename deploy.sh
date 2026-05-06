@@ -6,6 +6,17 @@ RELEASE="${RELEASE:-microshop}"
 TIMEOUT="${TIMEOUT:-5m}"
 KEY_SERVICES="auth-service frontend"
 
+# ── Secret pre-flight check ───────────────────────────────────────────────────
+# deploy.sh manages secrets directly (secret.manage=true).
+# For ArgoCD/GitOps, pre-create the secret manually and leave secret.manage=false.
+
+if [[ -z "${POSTGRES_PASSWORD:-}" || -z "${JWT_SECRET:-}" ]]; then
+  echo "ERROR: POSTGRES_PASSWORD and JWT_SECRET must be set as environment variables." >&2
+  echo "  export POSTGRES_PASSWORD='...'" >&2
+  echo "  export JWT_SECRET='...'" >&2
+  exit 1
+fi
+
 # ── Tool version checks ──────────────────────────────────────────────────────
 
 check_tool() {
@@ -31,6 +42,9 @@ kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1 || kubectl create namespace
 echo "Running Helm dry-run..."
 helm upgrade --install "${RELEASE}" ./helm/microshop \
   --namespace "${NAMESPACE}" \
+  --set secret.manage=true \
+  --set "secret.postgresPassword=${POSTGRES_PASSWORD}" \
+  --set "secret.jwtSecret=${JWT_SECRET}" \
   --dry-run \
   "$@" \
   >/dev/null
@@ -41,6 +55,9 @@ echo "Dry-run passed."
 echo "Deploying release ${RELEASE} into namespace ${NAMESPACE}..."
 helm upgrade --install "${RELEASE}" ./helm/microshop \
   --namespace "${NAMESPACE}" \
+  --set secret.manage=true \
+  --set "secret.postgresPassword=${POSTGRES_PASSWORD}" \
+  --set "secret.jwtSecret=${JWT_SECRET}" \
   --timeout "${TIMEOUT}" \
   --wait \
   "$@"
