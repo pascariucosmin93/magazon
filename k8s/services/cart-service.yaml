@@ -22,6 +22,8 @@ spec:
           env:
             - name: SERVICE_NAME
               value: cart-service
+            - name: PRODUCT_SERVICE_URL
+              value: http://product-service:8000
           envFrom:
             - configMapRef:
                 name: microshop-config

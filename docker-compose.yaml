@@ -75,9 +75,12 @@ services:
       dockerfile: services/cart-service/Dockerfile
     environment:
       <<: *common-env
+      PRODUCT_SERVICE_URL: http://product-service:8000
     depends_on:
       redis:
         condition: service_healthy
+      product-service:
+        condition: service_started
     ports:
       - "8003:8000"
 

@@ -232,7 +232,21 @@
           return;
         }
         const result = await request(`${endpoints.cart}/cart/${state.userId}`);
-        document.getElementById("cart-output").innerText = JSON.stringify(result, null, 2);
+        const lines = [];
+        lines.push(`User: ${result.user_id}`);
+        lines.push("");
+        if (!result.items.length) {
+          lines.push("Cart is empty.");
+        } else {
+          result.items.forEach((item) => {
+            lines.push(
+              `- ${item.name} | qty ${item.quantity} | ${item.price} EUR | subtotal ${item.subtotal} EUR`
+            );
+          });
+          lines.push("");
+          lines.push(`Total: ${result.total} EUR`);
+        }
+        document.getElementById("cart-output").innerText = lines.join("\n");
         return result;
       }
 
