@@ -19,56 +19,56 @@ redis:
 services:
   auth-service:
     repository: ghcr.io/pascariucosmin93/magazon/auth-service
-    tag: 0.0.1
+    tag: 0.0.2
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   product-service:
     repository: ghcr.io/pascariucosmin93/magazon/product-service
-    tag: 0.0.1
+    tag: 0.0.2
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   cart-service:
     repository: ghcr.io/pascariucosmin93/magazon/cart-service
-    tag: 0.0.1
+    tag: 0.0.2
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   order-service:
     repository: ghcr.io/pascariucosmin93/magazon/order-service
-    tag: 0.0.1
+    tag: 0.0.2
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   inventory-service:
     repository: ghcr.io/pascariucosmin93/magazon/inventory-service
-    tag: 0.0.1
+    tag: 0.0.2
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   payment-service:
     repository: ghcr.io/pascariucosmin93/magazon/payment-service
-    tag: 0.0.1
+    tag: 0.0.2
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   notification-service:
     repository: ghcr.io/pascariucosmin93/magazon/notification-service
-    tag: 0.0.1
+    tag: 0.0.2
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   frontend:
     repository: ghcr.io/pascariucosmin93/magazon/frontend
-    tag: 0.0.1
+    tag: 0.0.2
     containerPort: 80
     servicePort: 80
     serviceType: NodePort
