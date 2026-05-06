@@ -71,6 +71,5 @@ services:
     tag: 0.0.2
     containerPort: 80
     servicePort: 80
-    serviceType: NodePort
-    nodePort: 30080
+    serviceType: LoadBalancer
     replicas: 1
