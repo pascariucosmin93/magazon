@@ -1,9 +1,11 @@
+import os
 import json
 from datetime import datetime
 
-from fastapi import Depends, HTTPException
+import requests
+from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, inspect, text
 from sqlalchemy.orm import Session
 
 from shared.db import Base, SessionLocal, engine, get_db
@@ -12,6 +14,16 @@ from shared.service_app import create_base_app
 
 
 PRODUCT_CACHE_KEY = "products:all"
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth-service:8000")
+
+
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=False, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class Product(Base):
@@ -21,6 +33,7 @@ class Product(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     price = Column(Float, nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -28,17 +41,58 @@ class ProductRequest(BaseModel):
     name: str
     description: str
     price: float
+    category_id: int | None = None
+
+
+class CategoryRequest(BaseModel):
+    name: str
+    description: str
+
+
+def ensure_schema():
+    inspector = inspect(engine)
+    columns = {column["name"] for column in inspector.get_columns("products")}
+    if "category_id" not in columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE products ADD COLUMN category_id INTEGER"))
 
 
 async def startup():
     Base.metadata.create_all(bind=engine)
+    ensure_schema()
     with SessionLocal() as db:
+        if db.query(Category).count() == 0:
+            db.add_all(
+                [
+                    Category(name="Keyboards", description="Mechanical and productivity keyboards"),
+                    Category(name="Mice", description="Gaming and office mice"),
+                    Category(name="Accessories", description="Docks, cables and desk accessories"),
+                ]
+            )
+            db.commit()
+
+        categories = {category.name: category.id for category in db.query(Category).all()}
         if db.query(Product).count() == 0:
             db.add_all(
                 [
-                    Product(name="Mechanical Keyboard", description="Tactile RGB keyboard", price=119.0),
-                    Product(name="Gaming Mouse", description="Lightweight wireless mouse", price=79.0),
-                    Product(name="USB-C Dock", description="Dock with HDMI and ethernet", price=149.0),
+                    Product(
+                        name="Mechanical Keyboard",
+                        description="Tactile RGB keyboard",
+                        price=119.0,
+                        category_id=categories.get("Keyboards"),
+                    ),
+                    Product(
+                        name="Gaming Mouse",
+                        description="Lightweight wireless mouse",
+                        price=79.0,
+                        category_id=categories.get("Mice"),
+                    ),
+                    Product(
+                        name="USB-C Dock",
+                        description="Dock with HDMI and ethernet",
+                        price=149.0,
+                        category_id=categories.get("Accessories"),
+                    ),
                 ]
             )
             db.commit()
@@ -47,13 +101,44 @@ async def startup():
 app = create_base_app("product-service", startup_hook=startup)
 
 
-def serialize_product(product: Product) -> dict:
+def get_auth_context(token: str | None) -> dict:
+    if not token:
+        raise HTTPException(status_code=401, detail="Admin token required")
+    try:
+        response = requests.get(f"{AUTH_SERVICE_URL}/validate/{token}", timeout=3)
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=503, detail="Auth service unavailable") from exc
+    if response.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid admin token")
+    return response.json()
+
+
+def require_admin(x_auth_token: str | None = Header(default=None)):
+    context = get_auth_context(x_auth_token)
+    if context.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return context
+
+
+def serialize_product(product: Product, categories_by_id: dict[int, Category]) -> dict:
+    category = categories_by_id.get(product.category_id)
     return {
         "id": product.id,
         "name": product.name,
         "description": product.description,
         "price": product.price,
+        "category_id": product.category_id,
+        "category_name": category.name if category else None,
     }
+
+
+def serialize_category(category: Category) -> dict:
+    return {"id": category.id, "name": category.name, "description": category.description}
+
+
+@app.get("/categories")
+def list_categories(db: Session = Depends(get_db)):
+    return {"items": [serialize_category(category) for category in db.query(Category).order_by(Category.name).all()]}
 
 
 @app.get("/products")
@@ -62,7 +147,8 @@ def list_products(db: Session = Depends(get_db)):
     if cached:
         return {"source": "cache", "items": json.loads(cached)}
 
-    products = [serialize_product(product) for product in db.query(Product).all()]
+    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    products = [serialize_product(product, categories_by_id) for product in db.query(Product).all()]
     redis_client.setex(PRODUCT_CACHE_KEY, 120, json.dumps(products))
     return {"source": "database", "items": products}
 
@@ -72,14 +158,41 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return serialize_product(product)
+    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    return serialize_product(product, categories_by_id)
 
 
 @app.post("/products")
-def create_product(payload: ProductRequest, db: Session = Depends(get_db)):
+def create_product(
+    payload: ProductRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    if payload.category_id is not None:
+        category = db.query(Category).filter(Category.id == payload.category_id).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
     product = Product(**payload.model_dump())
     db.add(product)
     db.commit()
     db.refresh(product)
     redis_client.delete(PRODUCT_CACHE_KEY)
-    return serialize_product(product)
+    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    return serialize_product(product, categories_by_id)
+
+
+@app.post("/categories")
+def create_category(
+    payload: CategoryRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    existing = db.query(Category).filter(Category.name == payload.name).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Category already exists")
+    category = Category(**payload.model_dump())
+    db.add(category)
+    db.commit()
+    db.refresh(category)
+    redis_client.delete(PRODUCT_CACHE_KEY)
+    return serialize_category(category)

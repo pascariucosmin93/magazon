@@ -28,6 +28,10 @@ spec:
             - name: PRODUCT_SERVICE_URL
               value: "http://product-service:8000"
             {{- end }}
+            {{- if eq $name "product-service" }}
+            - name: AUTH_SERVICE_URL
+              value: "http://auth-service:8000"
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: microshop-config

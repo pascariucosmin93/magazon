@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import Session
 
-from shared.db import Base, engine, get_db
+from shared.db import Base, SessionLocal, engine, get_db
 from shared.kafka import publish_event
 from shared.redis_client import redis_client
 from shared.service_app import create_base_app
@@ -19,6 +19,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password = Column(String(255), nullable=False)
+    role = Column(String(50), nullable=False, default="customer")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -34,6 +35,17 @@ class LoginRequest(BaseModel):
 
 async def startup():
     Base.metadata.create_all(bind=engine)
+    with SessionLocal() as db:
+        admin = db.query(User).filter(User.email == "admin@microshop.local").first()
+        if not admin:
+            db.add(
+                User(
+                    email="admin@microshop.local",
+                    password=hash_password("admin123"),
+                    role="admin",
+                )
+            )
+            db.commit()
 
 
 app = create_base_app("auth-service", startup_hook=startup, enable_kafka=True)
@@ -49,13 +61,13 @@ async def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="User already exists")
 
-    user = User(email=payload.email, password=hash_password(payload.password))
+    user = User(email=payload.email, password=hash_password(payload.password), role="customer")
     db.add(user)
     db.commit()
     db.refresh(user)
 
     await publish_event("user.created", {"user_id": user.id, "email": user.email})
-    return {"id": user.id, "email": user.email}
+    return {"id": user.id, "email": user.email, "role": user.role}
 
 
 @app.post("/login")
@@ -69,13 +81,14 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = secrets.token_hex(16)
-    redis_client.setex(f"session:{token}", 3600, str(user.id))
-    return {"token": token, "user_id": user.id, "email": user.email}
+    redis_client.setex(f"session:{token}", 3600, f"{user.id}:{user.role}:{user.email}")
+    return {"token": token, "user_id": user.id, "email": user.email, "role": user.role}
 
 
 @app.get("/validate/{token}")
 def validate_token(token: str):
-    user_id = redis_client.get(f"session:{token}")
-    if not user_id:
+    session_data = redis_client.get(f"session:{token}")
+    if not session_data:
         raise HTTPException(status_code=401, detail="Invalid token")
-    return {"valid": True, "user_id": int(user_id)}
+    user_id, role, email = session_data.split(":", 2)
+    return {"valid": True, "user_id": int(user_id), "role": role, "email": email}

@@ -22,6 +22,8 @@ spec:
           env:
             - name: SERVICE_NAME
               value: product-service
+            - name: AUTH_SERVICE_URL
+              value: http://auth-service:8000
           envFrom:
             - configMapRef:
                 name: microshop-config

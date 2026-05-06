@@ -61,7 +61,10 @@ services:
       dockerfile: services/product-service/Dockerfile
     environment:
       <<: *common-env
+      AUTH_SERVICE_URL: http://auth-service:8000
     depends_on:
+      auth-service:
+        condition: service_started
       redis:
         condition: service_healthy
       kafka:
