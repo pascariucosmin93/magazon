@@ -63,7 +63,7 @@ GitHub Actions is used only for CI and image publishing.
 
 - `.github/workflows/ci-cd.yaml`
   - on pull requests: validates Python code and builds all container images without pushing
-  - on push to `main`: validates, builds and pushes all images to GHCR
+  - on push to `main`: creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...) and pushes all images to GHCR with that exact version tag
 
 Argo CD should handle deployment by syncing this repo or a separate GitOps repo after images are published.
 
@@ -76,8 +76,8 @@ ghcr.io/<github-owner>/<repo>/<service>:<tag>
 Examples:
 
 ```text
-ghcr.io/pascariucosmin93/magazon/auth-service:latest
-ghcr.io/pascariucosmin93/magazon/frontend:sha-<commit>
+ghcr.io/pascariucosmin93/magazon/auth-service:0.0.1
+ghcr.io/pascariucosmin93/magazon/frontend:0.0.2
 ```
 
 ### Argo CD Flow
@@ -87,7 +87,7 @@ ghcr.io/pascariucosmin93/magazon/frontend:sha-<commit>
 3. Kafka is installed separately with Helm.
 4. Argo CD syncs the Helm chart and pulls images from GHCR into the cluster.
 
-If you want immutable releases, point Argo CD to SHA tags instead of `latest`.
+The version sequence is driven by Git tags already present in the repository. The first release becomes `0.0.1`, then `0.0.2`, and so on.
 
 ### Required GitHub setup
 

@@ -32,10 +32,53 @@ jobs:
       - name: Lint deploy script
         run: bash -n deploy.sh
 
+  determine-version:
+    name: Determine Release Version
+    runs-on: ubuntu-latest
+    needs: validate
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next semantic version
+        id: version
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo "version=pr-${{ github.event.number }}" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          git fetch --tags --force
+          latest_tag="$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | head -n 1)"
+          if [[ -z "${latest_tag}" ]]; then
+            next_version="0.0.1"
+          else
+            IFS='.' read -r major minor patch <<< "${latest_tag}"
+            next_version="${major}.${minor}.$((patch + 1))"
+          fi
+          echo "version=${next_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create git tag
+        if: github.event_name != 'pull_request'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${VERSION}"
+          git push origin "${VERSION}"
+
   build-images:
     name: Build and Publish Images
     runs-on: ubuntu-latest
-    needs: validate
+    needs:
+      - validate
+      - determine-version
     strategy:
       fail-fast: false
       matrix:
@@ -80,8 +123,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
           tags: |
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.determine-version.outputs.version }},enable=${{ github.event_name != 'pull_request' }}
 
       - name: Build and optionally push image
         uses: docker/build-push-action@v6
