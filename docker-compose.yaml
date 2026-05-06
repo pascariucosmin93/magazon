@@ -1,23 +1,6 @@
 version: "3.9"
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: microshop-postgres
-    environment:
-      POSTGRES_DB: microshop
-      POSTGRES_USER: microshop
-      POSTGRES_PASSWORD: microshop
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U microshop -d microshop"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     container_name: microshop-redis
@@ -56,7 +39,7 @@ services:
       context: .
       dockerfile: services/auth-service/Dockerfile
     environment: &common-env
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: 192.168.1.16
       POSTGRES_PORT: 5432
       POSTGRES_DB: microshop
       POSTGRES_USER: microshop
@@ -65,8 +48,6 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       JWT_SECRET: supersecret
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       kafka:
@@ -81,8 +62,6 @@ services:
     environment:
       <<: *common-env
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       kafka:
@@ -109,8 +88,6 @@ services:
     environment:
       <<: *common-env
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
         condition: service_healthy
     ports:
@@ -123,8 +100,6 @@ services:
     environment:
       <<: *common-env
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
         condition: service_healthy
     ports:
@@ -137,8 +112,6 @@ services:
     environment:
       <<: *common-env
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka:
         condition: service_healthy
     ports:
@@ -169,6 +142,3 @@ services:
       - order-service
     ports:
       - "8080:80"
-
-volumes:
-  postgres_data:

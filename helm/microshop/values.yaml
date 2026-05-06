@@ -2,7 +2,7 @@ namespaceOverride: microshop
 createNamespace: false
 
 config:
-  POSTGRES_HOST: postgres
+  POSTGRES_HOST: 192.168.1.16
   POSTGRES_PORT: "5432"
   POSTGRES_DB: microshop
   POSTGRES_USER: microshop
@@ -13,10 +13,6 @@ secret:
   POSTGRES_PASSWORD: microshop
   JWT_SECRET: supersecret
 
-postgres:
-  image: postgres:16-alpine
-  storage: 2Gi
-
 redis:
   image: redis:7-alpine
 
@@ -26,49 +22,49 @@ kafka:
 
 services:
   auth-service:
-    image: microshop/auth-service:latest
+    image: ghcr.io/pascariucosmin93/magazon/auth-service:latest
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   product-service:
-    image: microshop/product-service:latest
+    image: ghcr.io/pascariucosmin93/magazon/product-service:latest
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   cart-service:
-    image: microshop/cart-service:latest
+    image: ghcr.io/pascariucosmin93/magazon/cart-service:latest
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   order-service:
-    image: microshop/order-service:latest
+    image: ghcr.io/pascariucosmin93/magazon/order-service:latest
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   inventory-service:
-    image: microshop/inventory-service:latest
+    image: ghcr.io/pascariucosmin93/magazon/inventory-service:latest
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   payment-service:
-    image: microshop/payment-service:latest
+    image: ghcr.io/pascariucosmin93/magazon/payment-service:latest
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   notification-service:
-    image: microshop/notification-service:latest
+    image: ghcr.io/pascariucosmin93/magazon/notification-service:latest
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   frontend:
-    image: microshop/frontend:latest
+    image: ghcr.io/pascariucosmin93/magazon/frontend:latest
     containerPort: 80
     servicePort: 80
     serviceType: NodePort

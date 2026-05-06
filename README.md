@@ -15,7 +15,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 
 ## Infrastructure
 
-- PostgreSQL: persistent data
+- PostgreSQL: external persistent data source at `192.168.1.16`
 - Redis: cart storage, product cache, token cache
 - Kafka: event bus
 - Docker Compose: local development stack
@@ -32,11 +32,49 @@ docker compose up --build
 
 Frontend: `http://localhost:8080`
 
+Note: local startup expects PostgreSQL to already be reachable at `192.168.1.16:5432`.
+
 ### Kubernetes with Helm
 
 ```bash
 ./deploy.sh
 ```
+
+## CI/CD
+
+GitHub Actions is used only for CI and image publishing.
+
+- `.github/workflows/ci-cd.yaml`
+  - on pull requests: validates Python code and builds all container images without pushing
+  - on push to `main`: validates, builds and pushes all images to GHCR
+
+Argo CD should handle deployment by syncing this repo or a separate GitOps repo after images are published.
+
+Published image format:
+
+```text
+ghcr.io/<github-owner>/<repo>/<service>:<tag>
+```
+
+Examples:
+
+```text
+ghcr.io/pascariucosmin93/magazon/auth-service:latest
+ghcr.io/pascariucosmin93/magazon/frontend:sha-<commit>
+```
+
+### Argo CD Flow
+
+1. GitHub Actions builds and pushes images to GHCR.
+2. Helm values point to those published images.
+3. Argo CD syncs the Helm chart and pulls images from GHCR into the cluster.
+
+If you want immutable releases, point Argo CD to SHA tags instead of `latest`.
+
+### Required GitHub setup
+
+- enable GitHub Actions for the repository
+- allow `GITHUB_TOKEN` to write packages
 
 ### Kubernetes with raw manifests
 
@@ -56,3 +94,4 @@ Frontend: `http://localhost:8080`
 
 - The project is intentionally simple but follows realistic microservice boundaries.
 - The Helm chart is ready for future GitOps adoption with Argo CD.
+- PostgreSQL is not deployed by this repo; Redis and Kafka are deployed, while PostgreSQL is consumed externally.

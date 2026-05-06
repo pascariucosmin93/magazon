@@ -4,7 +4,7 @@ import os
 class Settings:
     service_name = os.getenv("SERVICE_NAME", "service")
     service_port = int(os.getenv("SERVICE_PORT", "8000"))
-    postgres_host = os.getenv("POSTGRES_HOST", "postgres")
+    postgres_host = os.getenv("POSTGRES_HOST", "192.168.1.16")
     postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
     postgres_db = os.getenv("POSTGRES_DB", "microshop")
     postgres_user = os.getenv("POSTGRES_USER", "microshop")
