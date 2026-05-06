@@ -262,7 +262,27 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
         run: |
-          cosign sign --yes "${IMAGE}@${DIGEST}"
+          if [[ -z "${DIGEST}" ]]; then
+            echo "Build did not produce an image digest for ${IMAGE}" >&2
+            exit 1
+          fi
+
+          image_ref="${IMAGE}@${DIGEST}"
+          for attempt in 1 2 3 4 5; do
+            echo "Signing ${image_ref} (attempt ${attempt}/5)"
+            if cosign sign --yes "${image_ref}"; then
+              exit 0
+            fi
+
+            if [[ "${attempt}" -eq 5 ]]; then
+              echo "Cosign signing failed after ${attempt} attempts for ${image_ref}" >&2
+              exit 1
+            fi
+
+            sleep_seconds=$((attempt * 20))
+            echo "Cosign signing failed; retrying in ${sleep_seconds}s..."
+            sleep "${sleep_seconds}"
+          done
 
       - name: Scan image with Trivy
         if: github.event_name != 'pull_request'
