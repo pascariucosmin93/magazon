@@ -109,32 +109,6 @@
         line-height: 1.7;
       }
 
-      .hero-stats {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .stat {
-        padding: 16px;
-        border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.72);
-        border: 1px solid rgba(27, 36, 48, 0.08);
-      }
-
-      .stat-label {
-        color: var(--muted);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-
-      .stat-value {
-        margin-top: 10px;
-        font-size: 1.35rem;
-        font-weight: 700;
-      }
-
       .side-card {
         padding: 24px;
       }
@@ -401,9 +375,6 @@
           grid-template-columns: 1fr;
         }
 
-        .hero-stats {
-          grid-template-columns: 1fr;
-        }
       }
     </style>
   </head>
@@ -417,20 +388,6 @@
             Browse products, build a cart, create orders, and manage catalog data through a
             cleaner UI on top of the same FastAPI, Redis, PostgreSQL, and Kafka workflow.
           </p>
-          <div class="hero-stats">
-            <div class="stat">
-              <div class="stat-label">Runtime</div>
-              <div class="stat-value">FastAPI</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Events</div>
-              <div class="stat-value">Kafka</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Cart Cache</div>
-              <div class="stat-value">Redis</div>
-            </div>
-          </div>
         </article>
 
         <aside class="panel side-card">
