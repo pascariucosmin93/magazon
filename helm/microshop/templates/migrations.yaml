@@ -1,0 +1,46 @@
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.runMigrations }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}-migration
+  namespace: {{ include "microshop.namespace" $ }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: migrate
+          image: "{{ $svc.repository }}:{{ $svc.tag }}"
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - /app/services/{{ $name }}/migrate.py
+          envFrom:
+            - configMapRef:
+                name: microshop-config
+            - secretRef:
+                name: microshop-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+{{- end }}
+{{- end }}

@@ -2,13 +2,16 @@ import os
 import json
 from datetime import datetime
 
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
 import requests
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text, inspect, text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Session
 
-from shared.db import Base, SessionLocal, engine, get_db
+from shared.config import settings
+from shared.db import Base, SessionLocal, get_db
 from shared.redis_client import redis_client
 from shared.service_app import create_base_app
 
@@ -49,17 +52,16 @@ class CategoryRequest(BaseModel):
     description: str
 
 
-def ensure_schema():
-    inspector = inspect(engine)
-    columns = {column["name"] for column in inspector.get_columns("products")}
-    if "category_id" not in columns:
-        with engine.begin() as connection:
-            connection.execute(text("ALTER TABLE products ADD COLUMN category_id INTEGER"))
+def _run_migrations() -> None:
+    service_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cfg = AlembicConfig()
+    cfg.set_main_option("script_location", os.path.join(service_dir, "migrations"))
+    cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    alembic_command.upgrade(cfg, "head")
 
 
 async def startup():
-    Base.metadata.create_all(bind=engine)
-    ensure_schema()
+    _run_migrations()
     with SessionLocal() as db:
         if db.query(Category).count() == 0:
             db.add_all(
@@ -98,7 +100,7 @@ async def startup():
             db.commit()
 
 
-app = create_base_app("product-service", startup_hook=startup)
+app = create_base_app("product-service", startup_hook=startup, check_db=True, check_redis=True)
 
 
 def get_auth_context(token: str | None) -> dict:

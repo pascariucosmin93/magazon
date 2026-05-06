@@ -9,12 +9,22 @@ config:
   REDIS_URL: redis://redis:6379/0
   KAFKA_BOOTSTRAP_SERVERS: kafka.kafka.svc.cluster.local:9092
 
+# Secret values must be supplied at deploy time — never commit real values here.
+# Example: helm upgrade --install microshop ./helm/microshop \
+#   --set secret.postgresPassword=<password> \
+#   --set secret.jwtSecret=<secret>
 secret:
-  POSTGRES_PASSWORD: microshop
-  JWT_SECRET: supersecret
+  postgresPassword: ""
+  jwtSecret: ""
 
 redis:
   image: redis:7-alpine
+
+networkPolicies:
+  enabled: true
+  # Set to the namespace where Prometheus is deployed to allow scraping.
+  # Leave empty to skip the monitoring allow rule.
+  monitoringNamespace: monitoring
 
 services:
   auth-service:
@@ -24,6 +34,7 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    runMigrations: true
   product-service:
     repository: ghcr.io/pascariucosmin93/magazon/product-service
     tag: 0.0.9
@@ -31,6 +42,7 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    runMigrations: true
   cart-service:
     repository: ghcr.io/pascariucosmin93/magazon/cart-service
     tag: 0.0.9
@@ -45,6 +57,7 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    runMigrations: true
   inventory-service:
     repository: ghcr.io/pascariucosmin93/magazon/inventory-service
     tag: 0.0.9
@@ -52,6 +65,7 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    runMigrations: true
   payment-service:
     repository: ghcr.io/pascariucosmin93/magazon/payment-service
     tag: 0.0.9

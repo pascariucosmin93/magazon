@@ -9,7 +9,7 @@ from shared.redis_client import redis_client
 from shared.service_app import create_base_app
 
 
-app = create_base_app("cart-service")
+app = create_base_app("cart-service", check_redis=True)
 PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
 
 

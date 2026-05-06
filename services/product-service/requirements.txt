@@ -7,3 +7,5 @@ requests==2.33.1
 aiokafka==0.11.0
 prometheus-client==0.21.0
 pydantic==2.9.2
+pydantic-settings==2.6.1
+alembic==1.14.1

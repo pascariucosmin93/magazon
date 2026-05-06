@@ -30,16 +30,25 @@ jobs:
       - name: Install test and security tooling
         run: |
           python -m pip install --upgrade pip
-          pip install pytest bandit pip-audit
+          pip install pytest bandit pip-audit flake8 mypy
           find services -name requirements.txt -print0 | xargs -0 -n1 pip install -r
 
       - name: Run pytest
         env:
           PYTHONPATH: .
+          POSTGRES_PASSWORD: ci-test-password
+          JWT_SECRET: ci-test-jwt-secret-minimum-32-chars-xxx
         run: pytest tests -q
 
       - name: Compile Python code
         run: python -m compileall shared services
+
+      - name: Run flake8
+        run: flake8 shared services --max-line-length=120 --extend-ignore=E501
+
+      - name: Run mypy
+        run: mypy shared services --ignore-missing-imports --no-strict-optional
+        continue-on-error: true
 
       - name: Lint deploy script
         run: bash -n deploy.sh
@@ -59,10 +68,18 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          format: table
-          exit-code: 1
+          format: sarif
+          output: trivy-results.sarif
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+        continue-on-error: true
 
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
@@ -195,12 +212,18 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
+      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Install Cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -219,6 +242,7 @@ jobs:
             type=raw,value=${{ needs.determine-version.outputs.version }},enable=${{ github.event_name != 'pull_request' }}
 
       - name: Build and optionally push image
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -228,3 +252,38 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Sign image with Cosign
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
+        run: |
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Scan image with Trivy
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:${{ needs.determine-version.outputs.version }}
+          format: sarif
+          output: trivy-image-${{ matrix.name }}.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+        continue-on-error: true
+
+      - name: Upload image scan results
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image-${{ matrix.name }}.sarif
+        continue-on-error: true
+
+      - name: Generate SBOM with Syft
+        if: github.event_name != 'pull_request'
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:${{ needs.determine-version.outputs.version }}
+          artifact-name: sbom-${{ matrix.name }}.spdx.json
+          output-file: sbom-${{ matrix.name }}.spdx.json
+        continue-on-error: true

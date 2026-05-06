@@ -1,18 +1,27 @@
-import os
+from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings:
-    service_name = os.getenv("SERVICE_NAME", "service")
-    service_port = int(os.getenv("SERVICE_PORT", "8000"))
-    postgres_host = os.getenv("POSTGRES_HOST", "192.168.1.16")
-    postgres_port = int(os.getenv("POSTGRES_PORT", "5432"))
-    postgres_db = os.getenv("POSTGRES_DB", "microshop")
-    postgres_user = os.getenv("POSTGRES_USER", "microshop")
-    postgres_password = os.getenv("POSTGRES_PASSWORD", "microshop")
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    kafka_bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
-    jwt_secret = os.getenv("JWT_SECRET", "supersecret")
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
+    service_name: str = "service"
+    service_port: int = 8000
+    postgres_host: str = "192.168.1.16"
+    postgres_port: int = 5432
+    postgres_db: str = "microshop"
+    postgres_user: str = "microshop"
+    # Required — no defaults; service fails fast at startup if missing
+    postgres_password: str
+    redis_url: str = "redis://redis:6379/0"
+    kafka_bootstrap_servers: str = "kafka:9092"
+    jwt_secret: str  # Required
+
+    @computed_field
     @property
     def database_url(self) -> str:
         return (

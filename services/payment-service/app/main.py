@@ -63,6 +63,7 @@ app = create_base_app(
     startup_hook=startup,
     shutdown_hook=shutdown,
     enable_kafka=True,
+    check_db=True,
 )
 
 

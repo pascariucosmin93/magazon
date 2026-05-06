@@ -1,13 +1,17 @@
+import os
 import secrets
 from hashlib import sha256
 from datetime import datetime
 
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import Session
 
-from shared.db import Base, SessionLocal, engine, get_db
+from shared.config import settings
+from shared.db import Base, SessionLocal, get_db
 from shared.kafka import publish_event
 from shared.redis_client import redis_client
 from shared.service_app import create_base_app
@@ -33,8 +37,16 @@ class LoginRequest(BaseModel):
     password: str
 
 
+def _run_migrations() -> None:
+    service_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cfg = AlembicConfig()
+    cfg.set_main_option("script_location", os.path.join(service_dir, "migrations"))
+    cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    alembic_command.upgrade(cfg, "head")
+
+
 async def startup():
-    Base.metadata.create_all(bind=engine)
+    _run_migrations()
     with SessionLocal() as db:
         admin = db.query(User).filter(User.email == "admin@microshop.local").first()
         if not admin:
@@ -48,7 +60,7 @@ async def startup():
             db.commit()
 
 
-app = create_base_app("auth-service", startup_hook=startup, enable_kafka=True)
+app = create_base_app("auth-service", startup_hook=startup, enable_kafka=True, check_db=True, check_redis=True)
 
 
 def hash_password(value: str) -> str:

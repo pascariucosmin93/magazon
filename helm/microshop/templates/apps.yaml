@@ -1,4 +1,11 @@
 {{- range $name, $svc := .Values.services }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "microshop.namespace" $ }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,13 +20,44 @@ spec:
     metadata:
       labels:
         app: {{ $name }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: {{ $svc.containerPort | quote }}
     spec:
+      serviceAccountName: {{ $name }}
+      securityContext:
+        {{- if ne $name "frontend" }}
+        runAsNonRoot: true
+        runAsUser: 1000
+        {{- end }}
+        fsGroup: 1000
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: {{ $name }}
+                topologyKey: kubernetes.io/hostname
       containers:
         - name: {{ $name }}
           image: "{{ $svc.repository }}:{{ $svc.tag }}"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{ $svc.containerPort }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           {{- if ne $name "frontend" }}
           env:
             - name: SERVICE_NAME
@@ -37,31 +75,49 @@ spec:
                 name: microshop-config
             - secretRef:
                 name: microshop-secret
+          startupProbe:
+            httpGet:
+              path: /health
+              port: {{ $svc.containerPort }}
+            failureThreshold: 30
+            periodSeconds: 5
           readinessProbe:
             httpGet:
               path: /ready
               port: {{ $svc.containerPort }}
-            initialDelaySeconds: 10
+            initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
           livenessProbe:
             httpGet:
               path: /health
               port: {{ $svc.containerPort }}
-            initialDelaySeconds: 20
+            initialDelaySeconds: 15
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           {{- else }}
+          startupProbe:
+            httpGet:
+              path: /
+              port: {{ $svc.containerPort }}
+            failureThreshold: 10
+            periodSeconds: 3
           readinessProbe:
             httpGet:
               path: /
               port: {{ $svc.containerPort }}
-            initialDelaySeconds: 5
+            initialDelaySeconds: 3
             periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /
               port: {{ $svc.containerPort }}
-            initialDelaySeconds: 15
+            initialDelaySeconds: 10
             periodSeconds: 20
+            timeoutSeconds: 5
           {{- end }}
 ---
 apiVersion: v1
@@ -84,4 +140,42 @@ spec:
       nodePort: {{ $svc.nodePort }}
       {{- end }}
 ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "microshop.namespace" $ }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ $svc.replicas }}
+  maxReplicas: {{ mul 3 (int $svc.replicas) }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+{{- if gt (int $svc.replicas) 1 }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "microshop.namespace" $ }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: {{ $name }}
+{{- end }}
 {{- end }}

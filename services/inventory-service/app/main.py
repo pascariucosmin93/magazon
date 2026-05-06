@@ -1,12 +1,16 @@
 import asyncio
+import os
 from datetime import datetime
 
+from alembic.config import Config as AlembicConfig
+from alembic import command as alembic_command
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer
 from sqlalchemy.orm import Session
 
-from shared.db import Base, SessionLocal, engine, get_db
+from shared.config import settings
+from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, publish_event
 from shared.service_app import create_base_app
 
@@ -56,9 +60,17 @@ async def handle_order_created(topic: str, payload: dict):
         db.close()
 
 
+def _run_migrations() -> None:
+    service_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cfg = AlembicConfig()
+    cfg.set_main_option("script_location", os.path.join(service_dir, "migrations"))
+    cfg.set_main_option("sqlalchemy.url", settings.database_url)
+    alembic_command.upgrade(cfg, "head")
+
+
 async def startup():
     global consumer_task
-    Base.metadata.create_all(bind=engine)
+    _run_migrations()
     with SessionLocal() as db:
         if db.query(Inventory).count() == 0:
             db.add_all(
@@ -88,6 +100,7 @@ app = create_base_app(
     startup_hook=startup,
     shutdown_hook=shutdown,
     enable_kafka=True,
+    check_db=True,
 )
 
 
