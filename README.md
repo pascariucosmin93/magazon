@@ -63,7 +63,7 @@ GitHub Actions is used only for CI and image publishing.
 
 - `.github/workflows/ci-cd.yaml`
   - on pull requests: validates Python code and builds all container images without pushing
-  - on push to `main`: creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...) and pushes all images to GHCR with that exact version tag
+  - on push to `main`: creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values.yaml` to that version, and pushes all images to GHCR with that exact tag
 
 Argo CD should handle deployment by syncing this repo or a separate GitOps repo after images are published.
 
@@ -89,7 +89,7 @@ ghcr.io/pascariucosmin93/magazon/frontend:0.0.2
 
 The version sequence is driven by Git tags already present in the repository. The first release becomes `0.0.1`, then `0.0.2`, and so on.
 
-Helm image values use explicit `repository` + `tag` pairs, so Argo CD deploys a concrete version instead of `latest`.
+Helm image values use explicit `repository` + `tag` pairs, and the CI pipeline automatically bumps all image tags in `helm/microshop/values.yaml` to the new release version so Argo CD deploys that exact version instead of `latest`.
 
 ### Required GitHub setup
 

@@ -73,12 +73,55 @@ jobs:
           git tag "${VERSION}"
           git push origin "${VERSION}"
 
+  update-helm-values:
+    name: Update Helm Image Tags
+    runs-on: ubuntu-latest
+    needs: determine-version
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update service tags in values.yaml
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          version = os.environ["VERSION"]
+          path = Path("helm/microshop/values.yaml")
+          lines = path.read_text().splitlines()
+          updated = []
+          for line in lines:
+              if line.strip().startswith("tag: "):
+                  indent = line[:len(line) - len(line.lstrip())]
+                  updated.append(f"{indent}tag: {version}")
+              else:
+                  updated.append(line)
+          path.write_text("\n".join(updated) + "\n")
+          PY
+
+      - name: Commit updated Helm tags
+        env:
+          VERSION: ${{ needs.determine-version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add helm/microshop/values.yaml
+          git commit -m "Update Helm image tags to ${VERSION} [skip ci]" || exit 0
+          git push origin HEAD:main
+
   build-images:
     name: Build and Publish Images
     runs-on: ubuntu-latest
     needs:
       - validate
       - determine-version
+      - update-helm-values
     strategy:
       fail-fast: false
       matrix:
