@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: frontend
   namespace: microshop
+  annotations:
+    lbipam.cilium.io/ips: 10.10.2.50
 spec:
   replicas: 1
   selector:

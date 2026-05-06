@@ -61,6 +61,10 @@ kind: Service
 metadata:
   name: {{ $name }}
   namespace: {{ include "microshop.namespace" $ }}
+  {{- if and (eq $name "frontend") ($svc.loadBalancerIP) }}
+  annotations:
+    lbipam.cilium.io/ips: {{ $svc.loadBalancerIP | quote }}
+  {{- end }}
 spec:
   type: {{ $svc.serviceType }}
   selector:
