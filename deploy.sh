@@ -17,6 +17,12 @@ if [[ -z "${POSTGRES_PASSWORD:-}" || -z "${JWT_SECRET:-}" ]]; then
   exit 1
 fi
 
+AUTH_POSTGRES_PASSWORD="${AUTH_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD}}"
+PRODUCT_POSTGRES_PASSWORD="${PRODUCT_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD}}"
+ORDER_POSTGRES_PASSWORD="${ORDER_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD}}"
+INVENTORY_POSTGRES_PASSWORD="${INVENTORY_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD}}"
+PAYMENT_POSTGRES_PASSWORD="${PAYMENT_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD}}"
+
 # ── Tool version checks ──────────────────────────────────────────────────────
 
 check_tool() {
@@ -44,6 +50,11 @@ helm upgrade --install "${RELEASE}" ./helm/microshop \
   --namespace "${NAMESPACE}" \
   --set secret.manage=true \
   --set "secret.postgresPassword=${POSTGRES_PASSWORD}" \
+  --set "secret.authPostgresPassword=${AUTH_POSTGRES_PASSWORD}" \
+  --set "secret.productPostgresPassword=${PRODUCT_POSTGRES_PASSWORD}" \
+  --set "secret.orderPostgresPassword=${ORDER_POSTGRES_PASSWORD}" \
+  --set "secret.inventoryPostgresPassword=${INVENTORY_POSTGRES_PASSWORD}" \
+  --set "secret.paymentPostgresPassword=${PAYMENT_POSTGRES_PASSWORD}" \
   --set "secret.jwtSecret=${JWT_SECRET}" \
   --dry-run \
   "$@" \
@@ -57,6 +68,11 @@ helm upgrade --install "${RELEASE}" ./helm/microshop \
   --namespace "${NAMESPACE}" \
   --set secret.manage=true \
   --set "secret.postgresPassword=${POSTGRES_PASSWORD}" \
+  --set "secret.authPostgresPassword=${AUTH_POSTGRES_PASSWORD}" \
+  --set "secret.productPostgresPassword=${PRODUCT_POSTGRES_PASSWORD}" \
+  --set "secret.orderPostgresPassword=${ORDER_POSTGRES_PASSWORD}" \
+  --set "secret.inventoryPostgresPassword=${INVENTORY_POSTGRES_PASSWORD}" \
+  --set "secret.paymentPostgresPassword=${PAYMENT_POSTGRES_PASSWORD}" \
   --set "secret.jwtSecret=${JWT_SECRET}" \
   --timeout "${TIMEOUT}" \
   --wait \

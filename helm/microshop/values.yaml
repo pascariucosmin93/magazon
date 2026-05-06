@@ -15,6 +15,11 @@ config:
 #   The chart does NOT create the Secret. You must pre-create it:
 #   kubectl create secret generic microshop-secret -n microshop \
 #     --from-literal=POSTGRES_PASSWORD='...' \
+#     --from-literal=AUTH_POSTGRES_PASSWORD='...' \
+#     --from-literal=PRODUCT_POSTGRES_PASSWORD='...' \
+#     --from-literal=ORDER_POSTGRES_PASSWORD='...' \
+#     --from-literal=INVENTORY_POSTGRES_PASSWORD='...' \
+#     --from-literal=PAYMENT_POSTGRES_PASSWORD='...' \
 #     --from-literal=JWT_SECRET='...'
 #   For automated injection use External Secrets Operator or Sealed Secrets.
 #
@@ -26,7 +31,13 @@ config:
 #     --set secret.jwtSecret='...'
 secret:
   manage: false
+  # Legacy fallback used by non-DB services because shared settings still load it.
   postgresPassword: ""
+  authPostgresPassword: ""
+  productPostgresPassword: ""
+  orderPostgresPassword: ""
+  inventoryPostgresPassword: ""
+  paymentPostgresPassword: ""
   jwtSecret: ""
 
 redis:
@@ -47,6 +58,10 @@ services:
     serviceType: ClusterIP
     replicas: 1
     runMigrations: true
+    database:
+      name: microshop_auth
+      user: microshop_auth
+      passwordSecretKey: AUTH_POSTGRES_PASSWORD
   product-service:
     repository: ghcr.io/pascariucosmin93/magazon/product-service
     tag: 0.0.15
@@ -55,6 +70,10 @@ services:
     serviceType: ClusterIP
     replicas: 1
     runMigrations: true
+    database:
+      name: microshop_product
+      user: microshop_product
+      passwordSecretKey: PRODUCT_POSTGRES_PASSWORD
   cart-service:
     repository: ghcr.io/pascariucosmin93/magazon/cart-service
     tag: 0.0.15
@@ -70,6 +89,10 @@ services:
     serviceType: ClusterIP
     replicas: 1
     runMigrations: true
+    database:
+      name: microshop_order
+      user: microshop_order
+      passwordSecretKey: ORDER_POSTGRES_PASSWORD
   inventory-service:
     repository: ghcr.io/pascariucosmin93/magazon/inventory-service
     tag: 0.0.15
@@ -78,6 +101,10 @@ services:
     serviceType: ClusterIP
     replicas: 1
     runMigrations: true
+    database:
+      name: microshop_inventory
+      user: microshop_inventory
+      passwordSecretKey: INVENTORY_POSTGRES_PASSWORD
   payment-service:
     repository: ghcr.io/pascariucosmin93/magazon/payment-service
     tag: 0.0.15
@@ -85,6 +112,11 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    runMigrations: true
+    database:
+      name: microshop_payment
+      user: microshop_payment
+      passwordSecretKey: PAYMENT_POSTGRES_PASSWORD
   notification-service:
     repository: ghcr.io/pascariucosmin93/magazon/notification-service
     tag: 0.0.15

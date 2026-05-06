@@ -26,6 +26,8 @@ spec:
           command:
             - python
             - /app/services/{{ $name }}/migrate.py
+          env:
+            {{- include "microshop.databaseEnv" (dict "service" $svc) | nindent 12 }}
           envFrom:
             - configMapRef:
                 name: microshop-config

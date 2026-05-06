@@ -5,7 +5,7 @@ from fastapi import Depends
 from sqlalchemy import Column, DateTime, Float, Integer, String
 from sqlalchemy.orm import Session
 
-from shared.db import Base, SessionLocal, engine, get_db
+from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, publish_event
 from shared.service_app import create_base_app
 
@@ -43,7 +43,6 @@ async def handle_inventory(topic: str, payload: dict):
 
 async def startup():
     global consumer_task
-    Base.metadata.create_all(bind=engine)
     consumer_task = asyncio.create_task(
         consume_topics("payment-service", ["inventory.reserved"], handle_inventory)
     )

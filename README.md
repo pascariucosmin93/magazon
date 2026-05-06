@@ -15,7 +15,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 
 ## Infrastructure
 
-- PostgreSQL: external persistent data source at `192.168.1.16`
+- PostgreSQL: external persistent data source at `192.168.1.16`, with one database/user per persistent service
 - Redis: cart storage, product cache, token cache
 - Kafka: external event bus installed separately with Helm
 - Docker Compose: local development stack
@@ -33,6 +33,51 @@ docker compose up --build
 Frontend: `http://localhost:8080`
 
 Note: local startup expects PostgreSQL to already be reachable at `192.168.1.16:5432`.
+
+### PostgreSQL service databases
+
+Persistent services are configured with separate PostgreSQL databases and users:
+
+```text
+auth-service      -> microshop_auth / microshop_auth
+product-service   -> microshop_product / microshop_product
+order-service     -> microshop_order / microshop_order
+inventory-service -> microshop_inventory / microshop_inventory
+payment-service   -> microshop_payment / microshop_payment
+```
+
+Create them before deploying the Helm chart:
+
+```sql
+CREATE USER microshop_auth WITH PASSWORD '<auth-password>';
+CREATE DATABASE microshop_auth OWNER microshop_auth;
+
+CREATE USER microshop_product WITH PASSWORD '<product-password>';
+CREATE DATABASE microshop_product OWNER microshop_product;
+
+CREATE USER microshop_order WITH PASSWORD '<order-password>';
+CREATE DATABASE microshop_order OWNER microshop_order;
+
+CREATE USER microshop_inventory WITH PASSWORD '<inventory-password>';
+CREATE DATABASE microshop_inventory OWNER microshop_inventory;
+
+CREATE USER microshop_payment WITH PASSWORD '<payment-password>';
+CREATE DATABASE microshop_payment OWNER microshop_payment;
+```
+
+For GitOps mode, pre-create the Kubernetes Secret with the service passwords:
+
+```bash
+kubectl create secret generic microshop-secret \
+  --namespace microshop \
+  --from-literal=POSTGRES_PASSWORD='<legacy-fallback-password>' \
+  --from-literal=AUTH_POSTGRES_PASSWORD='<auth-password>' \
+  --from-literal=PRODUCT_POSTGRES_PASSWORD='<product-password>' \
+  --from-literal=ORDER_POSTGRES_PASSWORD='<order-password>' \
+  --from-literal=INVENTORY_POSTGRES_PASSWORD='<inventory-password>' \
+  --from-literal=PAYMENT_POSTGRES_PASSWORD='<payment-password>' \
+  --from-literal=JWT_SECRET='<jwt-secret>'
+```
 
 ### Kubernetes with Helm
 
