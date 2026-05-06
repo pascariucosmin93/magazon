@@ -521,6 +521,31 @@
         products: []
       };
 
+      function roleLabel(role) {
+        return role ? role : "customer";
+      }
+
+      function renderUserState(prefix, email, userId, role) {
+        const suffix = role ? ` · ${role}` : "";
+        document.getElementById("user-state").innerText =
+          `${prefix} ${email} (#${userId})${suffix}`;
+      }
+
+      async function resolveRole(token, fallbackRole = null) {
+        if (fallbackRole) {
+          return fallbackRole;
+        }
+        if (!token) {
+          return null;
+        }
+        try {
+          const session = await request(`${endpoints.auth}/validate/${token}`);
+          return session.role || fallbackRole;
+        } catch (_error) {
+          return fallbackRole;
+        }
+      }
+
       async function request(url, options = {}) {
         const response = await fetch(url, {
           headers: { "Content-Type": "application/json", ...(options.headers || {}) },
@@ -544,9 +569,8 @@
             body: JSON.stringify(body)
           });
           state.userId = result.id;
-          state.role = result.role;
-          document.getElementById("user-state").innerText =
-            `Registered as ${result.email} (#${result.id}) · ${result.role}`;
+          state.role = roleLabel(result.role);
+          renderUserState("Registered as", result.email, result.id, state.role);
           updateAdminPanel();
         } catch (error) {
           alert(`Register failed: ${error.message}`);
@@ -565,9 +589,8 @@
           });
           state.userId = result.user_id;
           state.token = result.token;
-          state.role = result.role;
-          document.getElementById("user-state").innerText =
-            `Signed in as ${result.email} (#${result.user_id}) · ${result.role}`;
+          state.role = await resolveRole(result.token, result.role);
+          renderUserState("Signed in as", result.email, result.user_id, state.role);
           updateAdminPanel();
           await loadCart();
         } catch (error) {
