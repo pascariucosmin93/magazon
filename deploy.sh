@@ -10,7 +10,6 @@ if [[ "${MODE}" == "--manifests" ]]; then
   kubectl apply -f k8s/base/configmap.yaml
   kubectl apply -f k8s/base/secret.yaml
   kubectl apply -f k8s/base/redis.yaml
-  kubectl apply -f k8s/base/kafka.yaml
   kubectl apply -f k8s/services/
   echo "Applied raw manifests into namespace ${NAMESPACE}"
   exit 0

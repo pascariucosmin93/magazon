@@ -17,7 +17,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 
 - PostgreSQL: external persistent data source at `192.168.1.16`
 - Redis: cart storage, product cache, token cache
-- Kafka: event bus
+- Kafka: external event bus installed separately with Helm
 - Docker Compose: local development stack
 - Kubernetes manifests: raw `kubectl` deployment
 - Helm chart: reusable deployment into namespace `microshop`
@@ -38,6 +38,23 @@ Note: local startup expects PostgreSQL to already be reachable at `192.168.1.16:
 
 ```bash
 ./deploy.sh
+```
+
+This chart does not deploy Kafka. Install Kafka separately and expose it as:
+
+```text
+kafka.kafka.svc.cluster.local:9092
+```
+
+Example separate install:
+
+```bash
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+kubectl create namespace kafka --dry-run=client -o yaml | kubectl apply -f -
+helm upgrade --install kafka bitnami/kafka \
+  --namespace kafka \
+  --set listeners.client.protocol=PLAINTEXT
 ```
 
 ## CI/CD
@@ -67,7 +84,8 @@ ghcr.io/pascariucosmin93/magazon/frontend:sha-<commit>
 
 1. GitHub Actions builds and pushes images to GHCR.
 2. Helm values point to those published images.
-3. Argo CD syncs the Helm chart and pulls images from GHCR into the cluster.
+3. Kafka is installed separately with Helm.
+4. Argo CD syncs the Helm chart and pulls images from GHCR into the cluster.
 
 If you want immutable releases, point Argo CD to SHA tags instead of `latest`.
 
@@ -94,4 +112,4 @@ If you want immutable releases, point Argo CD to SHA tags instead of `latest`.
 
 - The project is intentionally simple but follows realistic microservice boundaries.
 - The Helm chart is ready for future GitOps adoption with Argo CD.
-- PostgreSQL is not deployed by this repo; Redis and Kafka are deployed, while PostgreSQL is consumed externally.
+- PostgreSQL and Kafka are not deployed by this repo; PostgreSQL is consumed externally and Kafka should be installed separately with Helm.
