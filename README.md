@@ -43,7 +43,7 @@ Note: local startup expects PostgreSQL to already be reachable at `192.168.1.16:
 This chart does not deploy Kafka. Install Kafka separately and expose it as:
 
 ```text
-kafka.kafka.svc.cluster.local:9092
+kafka-broker-0.kafka-broker-headless.kafka.svc.cluster.local:9092
 ```
 
 Example separate install:
