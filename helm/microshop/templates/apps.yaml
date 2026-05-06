@@ -54,10 +54,12 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          {{- if ne $name "frontend" }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+          {{- end }}
           {{- if ne $name "frontend" }}
           env:
             - name: SERVICE_NAME
