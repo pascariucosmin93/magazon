@@ -41,7 +41,7 @@ networkPolicies:
 services:
   auth-service:
     repository: ghcr.io/pascariucosmin93/magazon/auth-service
-    tag: 0.0.14
+    tag: 0.0.15
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
@@ -49,7 +49,7 @@ services:
     runMigrations: true
   product-service:
     repository: ghcr.io/pascariucosmin93/magazon/product-service
-    tag: 0.0.14
+    tag: 0.0.15
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
@@ -57,14 +57,14 @@ services:
     runMigrations: true
   cart-service:
     repository: ghcr.io/pascariucosmin93/magazon/cart-service
-    tag: 0.0.14
+    tag: 0.0.15
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   order-service:
     repository: ghcr.io/pascariucosmin93/magazon/order-service
-    tag: 0.0.14
+    tag: 0.0.15
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
@@ -72,7 +72,7 @@ services:
     runMigrations: true
   inventory-service:
     repository: ghcr.io/pascariucosmin93/magazon/inventory-service
-    tag: 0.0.14
+    tag: 0.0.15
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
@@ -80,21 +80,21 @@ services:
     runMigrations: true
   payment-service:
     repository: ghcr.io/pascariucosmin93/magazon/payment-service
-    tag: 0.0.14
+    tag: 0.0.15
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   notification-service:
     repository: ghcr.io/pascariucosmin93/magazon/notification-service
-    tag: 0.0.14
+    tag: 0.0.15
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
   frontend:
     repository: ghcr.io/pascariucosmin93/magazon/frontend
-    tag: 0.0.14
+    tag: 0.0.15
     loadBalancerIP: 10.10.2.50
     containerPort: 80
     servicePort: 80
