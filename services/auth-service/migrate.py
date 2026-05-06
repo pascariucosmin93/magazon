@@ -4,10 +4,10 @@ import sys
 
 sys.path.insert(0, "/app")
 
-from alembic.config import Config
-from alembic import command
+from alembic.config import Config  # noqa: E402
+from alembic import command  # noqa: E402
 
-from shared.config import settings
+from shared.config import settings  # noqa: E402
 
 
 def main() -> None:

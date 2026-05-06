@@ -8,9 +8,9 @@ from alembic import context
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")))
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 
-from shared.config import settings
-from shared.db import Base
-import app.main  # noqa: F401
+from shared.config import settings  # noqa: E402
+from shared.db import Base  # noqa: E402
+import app.main  # noqa: F401,E402
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
