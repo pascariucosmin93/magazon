@@ -1,0 +1,75 @@
+{{- range $name, $svc := .Values.services }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "microshop.namespace" $ }}
+spec:
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: {{ $svc.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ $svc.containerPort }}
+          {{- if ne $name "frontend" }}
+          env:
+            - name: SERVICE_NAME
+              value: {{ $name | quote }}
+          envFrom:
+            - configMapRef:
+                name: microshop-config
+            - secretRef:
+                name: microshop-secret
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: {{ $svc.containerPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ $svc.containerPort }}
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          {{- else }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ $svc.containerPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ $svc.containerPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "microshop.namespace" $ }}
+spec:
+  type: {{ $svc.serviceType }}
+  selector:
+    app: {{ $name }}
+  ports:
+    - port: {{ $svc.servicePort }}
+      targetPort: {{ $svc.containerPort }}
+      {{- if hasKey $svc "nodePort" }}
+      nodePort: {{ $svc.nodePort }}
+      {{- end }}
+---
+{{- end }}
