@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: {{ $name }}
-          image: {{ $svc.image }}
+          image: "{{ $svc.repository }}:{{ $svc.tag }}"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{ $svc.containerPort }}

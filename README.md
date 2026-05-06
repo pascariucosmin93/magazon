@@ -89,6 +89,8 @@ ghcr.io/pascariucosmin93/magazon/frontend:0.0.2
 
 The version sequence is driven by Git tags already present in the repository. The first release becomes `0.0.1`, then `0.0.2`, and so on.
 
+Helm image values use explicit `repository` + `tag` pairs, so Argo CD deploys a concrete version instead of `latest`.
+
 ### Required GitHub setup
 
 - enable GitHub Actions for the repository
