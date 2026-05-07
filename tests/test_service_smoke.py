@@ -77,7 +77,7 @@ def test_cart_response_includes_totals(monkeypatch):
     monkeypatch.setattr(cart_module, "redis_client", FakeRedis())
     monkeypatch.setattr(cart_module, "fetch_product", fake_fetch_product)
 
-    result = cart_module.get_cart(1)
+    result = cart_module.get_cart(1, {"sub": "1"})
 
     assert result["user_id"] == 1
     assert result["total"] == 387.0

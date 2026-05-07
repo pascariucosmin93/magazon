@@ -6,3 +6,5 @@ aiokafka==0.11.0
 prometheus-client==0.21.0
 pydantic==2.9.2
 pydantic-settings==2.6.1
+python-jose[cryptography]==3.4.0
+pyasn1==0.6.3

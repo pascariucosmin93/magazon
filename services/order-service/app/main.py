@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Session, relationship
 
+from shared.auth import current_user_claims, require_user_id
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, publish_event
@@ -103,7 +104,12 @@ app = create_base_app(
 
 
 @app.post("/orders")
-async def create_order(payload: OrderRequest, db: Session = Depends(get_db)):
+async def create_order(
+    payload: OrderRequest,
+    db: Session = Depends(get_db),
+    claims: dict = Depends(current_user_claims),
+):
+    require_user_id(payload.user_id, claims)
     if not payload.items:
         raise HTTPException(status_code=400, detail="Order requires at least one item")
 
@@ -141,10 +147,15 @@ async def create_order(payload: OrderRequest, db: Session = Depends(get_db)):
 
 
 @app.get("/orders/{order_id}")
-def get_order(order_id: int, db: Session = Depends(get_db)):
+def get_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    claims: dict = Depends(current_user_claims),
+):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    require_user_id(order.user_id, claims)
     return {
         "order_id": order.id,
         "user_id": order.user_id,

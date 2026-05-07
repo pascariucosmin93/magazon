@@ -976,6 +976,7 @@
         }
         await request(`${endpoints.cart}/cart/add`, {
           method: "POST",
+          headers: { Authorization: `Bearer ${state.token}` },
           body: JSON.stringify({ user_id: state.userId, product_id: productId, quantity: 1 })
         });
         await loadCart();
@@ -987,7 +988,9 @@
           renderCart({ items: [], total: 0 });
           return { items: [], total: 0 };
         }
-        const result = await request(`${endpoints.cart}/cart/${state.userId}`);
+        const result = await request(`${endpoints.cart}/cart/${state.userId}`, {
+          headers: { Authorization: `Bearer ${state.token}` }
+        });
         state.cart = result;
         renderCart(result);
         return result;
@@ -1036,6 +1039,7 @@
         }));
         const result = await request(`${endpoints.orders}/orders`, {
           method: "POST",
+          headers: { Authorization: `Bearer ${state.token}` },
           body: JSON.stringify({ user_id: state.userId, items })
         });
         state.lastOrderId = result.order_id;
@@ -1048,7 +1052,9 @@
           toast("Nu exista o comanda recenta in sesiune.");
           return;
         }
-        const result = await request(`${endpoints.orders}/orders/${state.lastOrderId}`);
+        const result = await request(`${endpoints.orders}/orders/${state.lastOrderId}`, {
+          headers: { Authorization: `Bearer ${state.token}` }
+        });
         renderOrder(result);
       }
 
