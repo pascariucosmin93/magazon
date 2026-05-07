@@ -6,7 +6,7 @@ from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, Integer
+from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import Session
 
 from shared.config import settings
@@ -29,12 +29,33 @@ class InventorySeedRequest(BaseModel):
     stock: int
 
 
+class InventoryReservation(Base):
+    __tablename__ = "inventory_reservations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, unique=True, nullable=False, index=True)
+    status = Column(String(50), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 consumer_task = None
 
 
 async def handle_order_created(topic: str, payload: dict):
     db = SessionLocal()
     try:
+        existing = (
+            db.query(InventoryReservation)
+            .filter(InventoryReservation.order_id == payload["order_id"])
+            .first()
+        )
+        if existing:
+            await publish_event(
+                "inventory.reserved",
+                {"order_id": payload["order_id"], "status": existing.status, "items": payload["items"]},
+            )
+            return
+
         ok = True
         for item in payload.get("items", []):
             record = db.query(Inventory).filter(Inventory.product_id == item["product_id"]).first()
@@ -46,12 +67,15 @@ async def handle_order_created(topic: str, payload: dict):
             for item in payload.get("items", []):
                 record = db.query(Inventory).filter(Inventory.product_id == item["product_id"]).first()
                 record.stock -= item["quantity"]
+            db.add(InventoryReservation(order_id=payload["order_id"], status="reserved"))
             db.commit()
             await publish_event(
                 "inventory.reserved",
                 {"order_id": payload["order_id"], "status": "reserved", "items": payload["items"]},
             )
         else:
+            db.add(InventoryReservation(order_id=payload["order_id"], status="failed"))
+            db.commit()
             await publish_event(
                 "inventory.reserved",
                 {"order_id": payload["order_id"], "status": "failed", "items": payload["items"]},

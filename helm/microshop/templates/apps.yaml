@@ -72,6 +72,10 @@ spec:
             - name: AUTH_SERVICE_URL
               value: "http://auth-service:8000"
             {{- end }}
+            {{- if eq $name "order-service" }}
+            - name: PRODUCT_SERVICE_URL
+              value: "http://product-service:8000"
+            {{- end }}
             {{- include "microshop.databaseEnv" (dict "service" $svc) | nindent 12 }}
           envFrom:
             - configMapRef:

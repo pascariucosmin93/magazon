@@ -1068,24 +1068,33 @@
           toast("Autentifica-te pentru a trimite comanda.");
           return;
         }
-        const cart = await loadCart();
-        if (!cart.items.length) {
-          toast("Cosul este gol.");
-          return;
+        try {
+          const cart = await loadCart();
+          if (!cart.items.length) {
+            toast("Cosul este gol.");
+            return;
+          }
+          document.getElementById("catalog-status").innerText = "Trimitem comanda...";
+          const items = cart.items.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity
+          }));
+          const result = await request(`${endpoints.orders}/orders`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${state.token}` },
+            body: JSON.stringify({ items })
+          });
+          state.lastOrderId = result.order_id;
+          renderOrder(result);
+          await clearCart(true);
+          toast(`Comanda #${result.order_id} a fost plasata.`);
+          window.setTimeout(() => {
+            loadOrder().catch(() => {});
+          }, 1500);
+        } catch (error) {
+          document.getElementById("catalog-status").innerText = "Eroare la comanda";
+          toast(`Comanda nu a fost trimisa: ${error.message}`);
         }
-        const items = cart.items.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          price: item.price
-        }));
-        const result = await request(`${endpoints.orders}/orders`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${state.token}` },
-          body: JSON.stringify({ user_id: state.userId, items })
-        });
-        state.lastOrderId = result.order_id;
-        renderOrder(result);
-        toast(`Comanda #${result.order_id} a fost plasata.`);
       }
 
       async function changeCartQuantity(productId, quantity) {
@@ -1118,7 +1127,7 @@
         toast("Produs scos din cos.");
       }
 
-      async function clearCart() {
+      async function clearCart(silent = false) {
         if (!state.userId) {
           toast("Autentifica-te mai intai.");
           return;
@@ -1128,7 +1137,9 @@
           headers: { Authorization: `Bearer ${state.token}` }
         });
         await loadCart();
-        toast("Cos golit.");
+        if (!silent) {
+          toast("Cos golit.");
+        }
       }
 
       async function loadOrder() {
@@ -1140,6 +1151,15 @@
           headers: { Authorization: `Bearer ${state.token}` }
         });
         renderOrder(result);
+        if (result.status === "paid") {
+          document.getElementById("catalog-status").innerText = "Plata finalizata";
+        } else if (result.status === "inventory_failed") {
+          document.getElementById("catalog-status").innerText = "Stoc insuficient";
+        } else if (result.status === "payment_failed") {
+          document.getElementById("catalog-status").innerText = "Plata esuata";
+        } else {
+          document.getElementById("catalog-status").innerText = "Comanda in procesare";
+        }
       }
 
       function renderOrder(order) {

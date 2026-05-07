@@ -83,3 +83,20 @@ def test_cart_response_includes_totals(monkeypatch):
     assert result["total"] == 387.0
     assert result["items"][0]["name"] == "Mechanical Keyboard"
     assert result["items"][0]["subtotal"] == 238.0
+
+
+def test_order_serialize_includes_items():
+    order_module = load_module("order_main", "services/order-service/app/main.py")
+
+    order = order_module.Order(id=12, user_id=7, status="created", total=298.0)
+    order.items = [
+        order_module.OrderItem(product_id=1, quantity=2, price=149.0),
+    ]
+
+    serialized = order_module.serialize_order(order)
+
+    assert serialized["order_id"] == 12
+    assert serialized["user_id"] == 7
+    assert serialized["items"][0]["product_id"] == 1
+    assert serialized["items"][0]["quantity"] == 2
+    assert serialized["items"][0]["price"] == 149.0

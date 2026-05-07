@@ -33,6 +33,7 @@ docker compose up --build
 Frontend: `http://localhost:8080`
 
 Note: local startup expects PostgreSQL to already be reachable at `192.168.1.16:5432`.
+Admin demo account is seeded from environment variables and defaults to `admin@microshop.local / admin123` in the provided local manifests.
 
 ### PostgreSQL service databases
 

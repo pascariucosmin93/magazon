@@ -4,6 +4,7 @@ from datetime import datetime
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
+import requests
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
@@ -14,6 +15,8 @@ from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, publish_event
 from shared.service_app import create_base_app
+
+PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
 
 
 class Order(Base):
@@ -41,11 +44,9 @@ class OrderItem(Base):
 class OrderItemRequest(BaseModel):
     product_id: int
     quantity: int
-    price: float
 
 
 class OrderRequest(BaseModel):
-    user_id: int
     items: list[OrderItemRequest]
 
 
@@ -103,59 +104,19 @@ app = create_base_app(
 )
 
 
-@app.post("/orders")
-async def create_order(
-    payload: OrderRequest,
-    db: Session = Depends(get_db),
-    claims: dict = Depends(current_user_claims),
-):
-    require_user_id(payload.user_id, claims)
-    if not payload.items:
-        raise HTTPException(status_code=400, detail="Order requires at least one item")
-
-    order = Order(
-        user_id=payload.user_id,
-        status="created",
-        total=sum(item.price * item.quantity for item in payload.items),
-    )
-    db.add(order)
-    db.flush()
-
-    for item in payload.items:
-        db.add(
-            OrderItem(
-                order_id=order.id,
-                product_id=item.product_id,
-                quantity=item.quantity,
-                price=item.price,
-            )
-        )
-
-    db.commit()
-    db.refresh(order)
-
-    await publish_event(
-        "order.created",
-        {
-            "order_id": order.id,
-            "user_id": order.user_id,
-            "total": order.total,
-            "items": [item.model_dump() for item in payload.items],
-        },
-    )
-    return {"order_id": order.id, "status": order.status, "total": order.total}
+def fetch_product(product_id: int) -> dict:
+    try:
+        response = requests.get(f"{PRODUCT_SERVICE_URL}/products/{product_id}", timeout=3)
+    except requests.RequestException as exc:
+        raise HTTPException(status_code=503, detail="Product service unavailable") from exc
+    if response.status_code == 404:
+        raise HTTPException(status_code=404, detail=f"Product {product_id} not found")
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="Product service returned an error")
+    return response.json()
 
 
-@app.get("/orders/{order_id}")
-def get_order(
-    order_id: int,
-    db: Session = Depends(get_db),
-    claims: dict = Depends(current_user_claims),
-):
-    order = db.query(Order).filter(Order.id == order_id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    require_user_id(order.user_id, claims)
+def serialize_order(order: Order) -> dict:
     return {
         "order_id": order.id,
         "user_id": order.user_id,
@@ -170,3 +131,80 @@ def get_order(
             for item in order.items
         ],
     }
+
+
+@app.post("/orders")
+async def create_order(
+    payload: OrderRequest,
+    db: Session = Depends(get_db),
+    claims: dict = Depends(current_user_claims),
+):
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="Order requires at least one item")
+
+    subject = claims.get("sub")
+    if not subject:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    try:
+        user_id = int(subject)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
+
+    normalized_items = []
+    for item in payload.items:
+        if item.quantity < 1:
+            raise HTTPException(status_code=400, detail="Quantity must be >= 1")
+        product = fetch_product(item.product_id)
+        normalized_items.append(
+            {
+                "product_id": item.product_id,
+                "quantity": item.quantity,
+                "price": float(product["price"]),
+            }
+        )
+
+    order = Order(
+        user_id=user_id,
+        status="created",
+        total=sum(item["price"] * item["quantity"] for item in normalized_items),
+    )
+    db.add(order)
+    db.flush()
+
+    for item in normalized_items:
+        db.add(
+            OrderItem(
+                order_id=order.id,
+                product_id=item["product_id"],
+                quantity=item["quantity"],
+                price=item["price"],
+            )
+        )
+
+    db.commit()
+    db.refresh(order)
+
+    await publish_event(
+        "order.created",
+        {
+            "order_id": order.id,
+            "user_id": order.user_id,
+            "total": order.total,
+            "items": normalized_items,
+        },
+    )
+    db.refresh(order)
+    return serialize_order(order)
+
+
+@app.get("/orders/{order_id}")
+def get_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    claims: dict = Depends(current_user_claims),
+):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    require_user_id(order.user_id, claims)
+    return serialize_order(order)
