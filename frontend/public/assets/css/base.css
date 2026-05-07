@@ -1,0 +1,181 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+
+:root {
+  --page: #f6f1e8;
+  --page-deep: #efe5d6;
+  --surface: rgba(255, 252, 247, 0.9);
+  --surface-strong: #fffdf8;
+  --surface-contrast: #1f2937;
+  --ink: #172033;
+  --muted: #657083;
+  --line: rgba(23, 32, 51, 0.12);
+  --line-strong: rgba(23, 32, 51, 0.2);
+  --brand: #b8571b;
+  --brand-dark: #843d11;
+  --accent: #0f766e;
+  --accent-soft: rgba(15, 118, 110, 0.12);
+  --danger: #b42318;
+  --success: #166534;
+  --shadow: 0 18px 60px rgba(38, 34, 28, 0.09);
+  --shadow-soft: 0 10px 28px rgba(38, 34, 28, 0.06);
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Manrope", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(184, 87, 27, 0.16), transparent 24%),
+    radial-gradient(circle at 88% 18%, rgba(15, 118, 110, 0.1), transparent 20%),
+    linear-gradient(180deg, var(--page) 0%, var(--page-deep) 100%);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 800;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-strong);
+  color: var(--ink);
+}
+
+input,
+select {
+  height: 46px;
+  padding: 0 14px;
+}
+
+textarea {
+  min-height: 96px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(184, 87, 27, 0.45);
+  box-shadow: 0 0 0 4px rgba(184, 87, 27, 0.08);
+  outline: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.logo-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: #fff7ef;
+  background: linear-gradient(135deg, var(--brand) 0%, #dc7a2c 100%);
+  box-shadow: 0 14px 30px rgba(184, 87, 27, 0.26);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(184, 87, 27, 0.12);
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.primary,
+.buy-button {
+  height: 44px;
+  padding: 0 18px;
+  background: linear-gradient(135deg, var(--brand) 0%, #cf6c1f 100%);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(184, 87, 27, 0.2);
+}
+
+.primary:hover,
+.buy-button:hover {
+  background: linear-gradient(135deg, var(--brand-dark) 0%, #bb5d17 100%);
+}
+
+.secondary {
+  height: 44px;
+  padding: 0 18px;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid rgba(23, 32, 51, 0.12);
+}
+
+.secondary:hover {
+  border-color: rgba(23, 32, 51, 0.22);
+}
+
+.toast {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  max-width: 360px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(23, 32, 51, 0.96);
+  color: #fff;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 60;
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
