@@ -434,6 +434,174 @@
         margin-bottom: 8px;
       }
 
+      .category-showcase {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .category-tile {
+        padding: 20px;
+        border-radius: var(--radius-lg);
+        background:
+          linear-gradient(160deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 238, 226, 0.92) 100%);
+        border: 1px solid rgba(23, 32, 51, 0.08);
+        box-shadow: var(--shadow-soft);
+        text-align: left;
+      }
+
+      .category-tile strong {
+        display: block;
+        margin: 8px 0 6px;
+        font-size: 18px;
+      }
+
+      .category-tile span {
+        display: block;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .category-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(184, 87, 27, 0.12);
+        color: var(--brand-dark);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .promo-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 16px;
+        margin-top: 22px;
+      }
+
+      .promo-main,
+      .promo-stack article {
+        overflow: hidden;
+        position: relative;
+        border-radius: var(--radius-xl);
+        border: 1px solid rgba(23, 32, 51, 0.08);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .promo-main {
+        padding: 28px;
+        min-height: 270px;
+        background:
+          radial-gradient(circle at right top, rgba(15, 118, 110, 0.15), transparent 24%),
+          linear-gradient(135deg, #202c3f 0%, #131d2d 100%);
+        color: #f7f2e9;
+      }
+
+      .promo-main::after {
+        content: "";
+        position: absolute;
+        right: -54px;
+        bottom: -78px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(184, 87, 27, 0.32), transparent 62%);
+      }
+
+      .promo-main h2,
+      .featured-head h2 {
+        margin: 0;
+        font-family: "Space Grotesk", sans-serif;
+        letter-spacing: -0.05em;
+      }
+
+      .promo-main h2 {
+        margin-top: 10px;
+        max-width: 12ch;
+        font-size: clamp(2rem, 4vw, 3.4rem);
+        line-height: 0.95;
+      }
+
+      .promo-main p {
+        position: relative;
+        z-index: 1;
+        margin: 14px 0 0;
+        max-width: 56ch;
+        color: rgba(247, 242, 233, 0.74);
+        line-height: 1.75;
+      }
+
+      .promo-points {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .promo-points span {
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .promo-stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .promo-stack article {
+        padding: 22px;
+        background:
+          linear-gradient(135deg, rgba(255, 253, 248, 0.98) 0%, rgba(240, 232, 221, 0.98) 100%);
+      }
+
+      .promo-stack strong {
+        display: block;
+        margin: 8px 0 6px;
+        font-size: 1.2rem;
+      }
+
+      .promo-stack p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .featured-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .featured-head p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        max-width: 64ch;
+        line-height: 1.7;
+      }
+
+      .featured-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .featured-product .product-media {
+        height: 180px;
+      }
+
       .section {
         margin-top: 22px;
       }
@@ -656,6 +824,27 @@
         gap: 12px;
       }
 
+      .account-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .guest-checkout {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(23, 32, 51, 0.08);
+      }
+
+      .guest-checkout.hidden,
+      .guest-note.hidden {
+        display: none;
+      }
+
       .workspace-panel .panel-head,
       .order-panel .panel-head,
       .admin-panel .panel-head {
@@ -834,7 +1023,8 @@
         .hero,
         .workspace-grid,
         .catalog-layout,
-        .footer-grid {
+        .footer-grid,
+        .promo-grid {
           grid-template-columns: 1fr;
         }
 
@@ -852,6 +1042,8 @@
 
         .header-actions,
         .strip,
+        .category-showcase,
+        .featured-grid,
         .admin-grid,
         .dual-actions {
           grid-template-columns: 1fr;
@@ -870,7 +1062,7 @@
   <body>
     <div class="topbar">
       <div class="topbar-inner">
-        <span>Livrare rapidă, stoc live și workflow complet din cluster</span>
+        <span>Livrare rapidă, stoc actualizat și oferte pentru setup-ul tău</span>
         <span>Suport clienți: Luni - Vineri, 09:00 - 18:00</span>
       </div>
     </div>
@@ -886,17 +1078,17 @@
           <button onclick="renderProducts()">Caută</button>
         </div>
         <div class="header-actions">
-          <button class="icon-button" onclick="focusAccount()">Contul meu</button>
+          <button class="icon-button" id="account-button" onclick="openAccount()">Login / Cont</button>
           <button class="icon-button cart-button" onclick="focusCart()">Coș <span id="cart-count">0</span></button>
         </div>
       </div>
       <nav class="nav">
         <div class="nav-inner">
           <a href="#catalog">Catalog</a>
-          <a href="#workspace">Workspace client</a>
+          <a href="#workspace">Cont și coș</a>
           <a href="#orders">Comenzi</a>
-          <a href="#account">Autentificare</a>
-          <a href="#admin-panel" id="admin-nav" style="display:none;">Studio admin</a>
+          <a href="/login.html">Autentificare</a>
+          <a href="#admin-panel" id="admin-nav" style="display:none;">Panou admin</a>
         </div>
       </nav>
     </header>
@@ -904,15 +1096,16 @@
     <div class="shell">
       <section class="hero" id="hero">
         <article class="hero-card">
-          <span class="eyebrow">Storefront orchestrat pe microservicii</span>
-          <h1>Periferice premium într-un flow de comandă clar.</h1>
+          <span class="eyebrow">Periferice, componente și accesorii pentru birou și gaming</span>
+          <h1>Produse bune, stoc clar și comandă simplă.</h1>
           <p>
-            Magazon combină catalogul, coșul, autentificarea și procesarea comenzilor într-o
-            experiență mai apropiată de un storefront real, nu de un simplu dashboard tehnic.
+            Găsești rapid ce cauți, compari produsele din catalog și finalizezi comanda fără să te
+            lovești de o interfață încărcată. Accentul este pe browsing, checkout și informații
+            utile pentru client.
           </p>
           <div class="hero-actions">
-            <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Vezi catalogul</button>
-            <button class="secondary" onclick="focusAccount()">Creează cont</button>
+            <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Vezi ofertele</button>
+            <button class="secondary" onclick="goToLogin()">Creează cont</button>
             <button class="secondary" onclick="focusCart()">Deschide coșul</button>
           </div>
           <div class="hero-metrics">
@@ -921,55 +1114,121 @@
               <span>produse disponibile</span>
             </div>
             <div class="metric">
-              <strong>Redis</strong>
-              <span>coș persistent și cache rapid</span>
+              <strong>Livrare</strong>
+              <span>rapidă pentru comenzile confirmate</span>
             </div>
             <div class="metric">
-              <strong>Kafka</strong>
-              <span>order → inventory → payment</span>
+              <strong>Plată</strong>
+              <span>checkout clar și status vizibil</span>
             </div>
           </div>
         </article>
 
         <aside class="hero-side">
-          <h2>Ce vezi pe pagină</h2>
+          <h2>De ce e mai ușor de folosit</h2>
           <p>
-            Pagina este împărțită în zone distincte pentru browsing, cont, checkout și administrare,
-            astfel încât flow-ul să fie mai natural pentru utilizator.
+            Pagina e construită ca un magazin online: intri în catalog, alegi produsele, vezi coșul,
+            finalizezi comanda și urmărești statusul fără să cauți printre zone tehnice.
           </p>
           <div class="bullet-list">
             <div class="bullet-item">
-              <strong>Catalog separat</strong>
-              <span class="footer-note">Filtrare, sortare și explorare vizuală fără să te lovești direct de formularele tehnice.</span>
+              <strong>Categorii și căutare rapidă</strong>
+              <span class="footer-note">Ajungi repede la produsele relevante, cu filtre și sortare simple.</span>
             </div>
             <div class="bullet-item">
-              <strong>Workspace client</strong>
-              <span class="footer-note">Cont, coș și checkout grupate clar într-o zonă dedicată operațiunilor clientului.</span>
+              <strong>Checkout mai clar</strong>
+              <span class="footer-note">Coșul, totalul și acțiunile de comandă sunt grupate într-o singură zonă logică.</span>
             </div>
             <div class="bullet-item">
-              <strong>Studio admin</strong>
-              <span class="footer-note">Panoul de administrare rămâne separat și apare doar când userul este admin.</span>
+              <strong>Administrare separată</strong>
+              <span class="footer-note">Panoul de management apare doar pentru admin și nu încurcă experiența clientului.</span>
             </div>
           </div>
         </aside>
       </section>
 
+      <section class="category-showcase" id="featured-categories">
+        <article class="category-tile">
+          <span class="category-badge">Top</span>
+          <strong>Tastaturi</strong>
+          <span>Modele pentru birou, gaming și setup-uri minimaliste.</span>
+        </article>
+        <article class="category-tile">
+          <span class="category-badge">Hot</span>
+          <strong>Mouse & control</strong>
+          <span>Precizie, ergonomie și răspuns rapid pentru sesiuni lungi.</span>
+        </article>
+        <article class="category-tile">
+          <span class="category-badge">Nou</span>
+          <strong>Audio & desk</strong>
+          <span>Căști, microfoane și accesorii pentru un spațiu mai curat.</span>
+        </article>
+        <article class="category-tile">
+          <span class="category-badge">Setup</span>
+          <strong>Upgrade rapid</strong>
+          <span>Componente și periferice alese pentru schimbări simple și rapide.</span>
+        </article>
+      </section>
+
+      <section class="promo-grid">
+        <article class="promo-main">
+          <span class="eyebrow">Selectate pentru birou și gaming</span>
+          <h2>Produse populare și oferte gata de adăugat în coș.</h2>
+          <p>
+            În loc să intri direct în catalogul complet, ai mai întâi o zonă de orientare cu
+            categorii mari, highlight-uri și produse recomandate, exact cum te-ai aștepta de la
+            un magazin online real.
+          </p>
+          <div class="promo-points">
+            <span>Stoc vizibil</span>
+            <span>Căutare rapidă</span>
+            <span>Checkout simplu</span>
+          </div>
+        </article>
+        <div class="promo-stack">
+          <article>
+            <span class="category-badge">Oferte</span>
+            <strong>Intră direct în catalogul complet</strong>
+            <p>Vezi toate produsele disponibile și filtrează rapid după categorie sau preț.</p>
+            <div class="hero-actions" style="margin-top: 16px;">
+              <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Deschide catalogul</button>
+            </div>
+          </article>
+          <article>
+            <span class="category-badge">Comenzi</span>
+            <strong>Poți comanda și fără cont</strong>
+            <p>Adaugi în coș, completezi datele de livrare și trimiți comanda chiar și ca guest.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="featured-head">
+          <div>
+            <h2>Produse recomandate</h2>
+            <p>O selecție rapidă din catalog, afișată sus pe pagină pentru browsing mai natural.</p>
+          </div>
+          <button class="secondary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Vezi tot catalogul</button>
+        </div>
+        <div class="featured-grid" id="featured-products"></div>
+      </section>
+
       <section class="strip">
         <article class="strip-card">
-          <strong>Selecție curată</strong>
-          <span class="muted">Produse organizate pe categorii și căutare rapidă direct din header.</span>
+          <strong>Oferte și categorii clare</strong>
+          <span class="muted">Produsele sunt organizate simplu, astfel încât să ajungi rapid la ce te interesează.</span>
         </article>
         <article class="strip-card">
-          <strong>Checkout mai explicit</strong>
-          <span class="muted">Statusul comenzii și al plății se propagă clar după plasarea comenzii.</span>
+          <strong>Branding mai comercial</strong>
+          <span class="muted">Tonul paginii e orientat spre cumpărare, nu spre explicații interne sau texte de demo.</span>
         </article>
         <article class="strip-card">
-          <strong>Cont mai complet</strong>
-          <span class="muted">Signup cu user, email, parolă și adresă, nu doar două câmpuri minimale.</span>
+          <strong>Cont complet</strong>
+          <span class="muted">Înregistrarea include datele de bază necesare pentru o comandă reală.</span>
         </article>
         <article class="strip-card">
-          <strong>Admin izolat</strong>
-          <span class="muted">Zona de management al catalogului nu mai aglomerează experiența clientului.</span>
+          <strong>Panou admin separat</strong>
+          <span class="muted">Clientul vede magazinul, iar adminul gestionează catalogul într-o zonă izolată.</span>
         </article>
       </section>
 
@@ -978,7 +1237,7 @@
           <div>
             <h2>Catalog</h2>
             <p class="section-subtitle">
-              Explorează perifericele disponibile și filtrează rapid după categorie sau după termenul căutat.
+              Explorează produsele disponibile, filtrează pe categorii și sortează rapid după ce te interesează.
             </p>
           </div>
           <span class="status-badge" id="catalog-status">Se încarcă</span>
@@ -997,22 +1256,22 @@
 
             <section class="mini-stack">
               <article class="mini-card">
-                <strong>Stack tehnic</strong>
-                <p>Catalogul vine din `product-service`, coșul din Redis, iar comenzile merg mai departe prin `order-service`.</p>
+                <strong>Cumpără după nevoie</strong>
+                <p>Folosește categoriile din stânga și căutarea din header ca să ajungi mai repede la produsul potrivit.</p>
               </article>
               <article class="mini-card">
-                <strong>Status operațional</strong>
-                <p>După checkout, fluxul trece prin rezervare de stoc și procesarea plății înainte de confirmare.</p>
+                <strong>Verificare după comandă</strong>
+                <p>După checkout poți urmări imediat statusul comenzii și confirmarea plății direct din pagină.</p>
               </article>
             </section>
           </aside>
 
           <div class="catalog-main">
             <article class="catalog-banner">
-              <h1>Componente și periferice IT pentru setup-uri curate.</h1>
+              <h1>Promoții, periferice și componente pentru upgrade-ul următor.</h1>
               <p>
-                Interfața păstrează catalogul într-o zonă de browsing clară, separată de workspace-ul de cont,
-                astfel încât utilizatorul să nu simtă că este într-un formular tehnic continuu.
+                Catalogul este gândit pentru browsing real: vezi produsele, cauți, sortezi și alegi fără să fii
+                împins direct în formulare administrative sau explicații tehnice inutile.
               </p>
             </article>
 
@@ -1034,9 +1293,9 @@
       <section class="section" id="workspace">
         <div class="workspace-head">
           <div>
-            <h2>Workspace client</h2>
+            <h2>Cont, coș și checkout</h2>
             <p>
-              Zona asta grupează autentificarea, coșul și checkout-ul, fără să te oblige să sari între panouri mici.
+              Tot ce ține de autentificare și finalizarea comenzii este grupat aici, într-un flux mai apropiat de un magazin real.
             </p>
           </div>
         </div>
@@ -1045,25 +1304,19 @@
           <section class="panel workspace-panel" id="account">
             <div class="panel-head">
               <h3 class="panel-title">Cont client</h3>
-              <button class="secondary" onclick="logout()">Logout</button>
+              <button class="secondary" id="logout-button" onclick="logout()">Logout</button>
             </div>
             <div class="account-content">
               <p class="workspace-copy">
-                Creează un cont nou sau autentifică-te ca să poți adăuga produse în coș și să trimiți comenzi.
+                Dacă vrei istoric și acces mai rapid, intră în cont din pagina dedicată. Dacă nu, poți comanda direct ca guest.
               </p>
-              <div class="auth-grid">
-                <input id="username" placeholder="User" autocomplete="username" />
-                <input id="email" placeholder="Email" autocomplete="email" />
-                <input id="password" placeholder="Parolă" type="password" autocomplete="new-password" />
-                <input id="address" placeholder="Adresă livrare" autocomplete="street-address" />
-                <div class="dual-actions">
-                  <button class="primary" onclick="login()">Login</button>
-                  <button class="secondary" onclick="register()">Creează cont</button>
-                </div>
+              <div class="account-actions">
+                <button class="primary" onclick="goToLogin()">Login / Creează cont</button>
+                <button class="secondary" onclick="focusCart()">Continuă ca guest</button>
               </div>
               <div class="user-box" style="margin-top: 14px;">
                 <strong id="user-state">Neautentificat</strong>
-                <span class="muted" id="user-role">Loghează-te pentru coș și comenzi.</span>
+                <span class="muted" id="user-role">Poți cumpăra ca guest sau te poți autentifica pentru un flux mai rapid.</span>
               </div>
             </div>
           </section>
@@ -1078,10 +1331,18 @@
             </div>
             <div class="cart-content">
               <p class="workspace-copy">
-                Produsele adăugate apar aici, împreună cu totalul și comenzile rapide de modificare a cantității.
+                Aici vezi produsele selectate, totalul actualizat și acțiunile rapide pentru modificarea cantității.
               </p>
               <div id="cart-output">
                 <div class="empty">Coșul este gol.</div>
+              </div>
+              <p class="workspace-copy guest-note" id="guest-note">
+                Pentru comandă fără cont, completează datele de livrare de mai jos.
+              </p>
+              <div class="guest-checkout" id="guest-checkout-fields">
+                <input id="guest-name" placeholder="Nume complet" autocomplete="name" />
+                <input id="guest-email" placeholder="Email" autocomplete="email" />
+                <input id="guest-address" placeholder="Adresă livrare" autocomplete="street-address" />
               </div>
               <button class="primary" style="width:100%; margin-top: 16px;" onclick="placeOrder()">Trimite comanda</button>
             </div>
@@ -1092,11 +1353,11 @@
       <section class="section">
         <section class="panel order-panel" id="orders">
           <div class="panel-head">
-            <h3 class="panel-title">Ultima comandă</h3>
+            <h3 class="panel-title">Status comandă</h3>
             <button class="secondary" onclick="loadOrder()">Verifică statusul</button>
           </div>
           <div class="order-content" id="order-output">
-            <div class="empty">Nu există comenzi în sesiunea curentă.</div>
+            <div class="empty">Nu există încă o comandă trimisă din sesiunea curentă.</div>
           </div>
         </section>
       </section>
@@ -1104,8 +1365,8 @@
       <section class="section panel admin-panel" id="admin-panel">
         <div class="panel-head">
           <div>
-            <h3 class="panel-title">Studio admin</h3>
-            <p class="section-subtitle">Gestionarea categoriilor și produselor rămâne izolată de experiența clientului.</p>
+            <h3 class="panel-title">Panou admin</h3>
+            <p class="section-subtitle">Gestionarea categoriilor și produselor rămâne separată de experiența clientului.</p>
           </div>
           <span class="status-badge">Admin only</span>
         </div>
@@ -1136,17 +1397,16 @@
           <div>
             <h3>Magazon</h3>
             <p class="footer-note">
-              Storefront demonstrativ pentru un stack cu microservicii, PostgreSQL, Redis și Kafka,
-              dar prezentat într-o interfață mai apropiată de un magazin online real.
+              Magazin online demo orientat spre o experiență mai clară de browsing, coș și checkout.
             </p>
           </div>
           <div>
             <strong>Zone rapide</strong>
-            <p class="footer-note">Catalog, cont client, coș, comenzi și studio admin într-o structură pe secțiuni clare.</p>
+            <p class="footer-note">Catalog, cont client, coș, comenzi și panou admin într-o structură clară.</p>
           </div>
           <div>
-            <strong>Flux backend</strong>
-            <p class="footer-note">Auth → Cart → Order → Inventory → Payment, cu statusurile vizibile în frontend.</p>
+            <strong>Ajutor cumpărături</strong>
+            <p class="footer-note">Caută produse, urmărește coșul și verifică rapid starea ultimei comenzi.</p>
           </div>
         </div>
       </footer>
@@ -1162,17 +1422,97 @@
         orders: "/api/orders"
       };
 
+      const AUTH_STORAGE_KEY = "magazon.auth";
+      const GUEST_CART_STORAGE_KEY = "magazon.guest-cart";
+      const LAST_ORDER_STORAGE_KEY = "magazon.last-order";
+
       const state = {
         userId: null,
         email: null,
         token: null,
         role: null,
         lastOrderId: null,
+        lastOrderToken: null,
         products: [],
         categories: [],
         selectedCategoryId: null,
         cart: null
       };
+
+      function saveAuth() {
+        if (!state.token || !state.userId) {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+          return;
+        }
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+          userId: state.userId,
+          email: state.email,
+          token: state.token,
+          role: state.role
+        }));
+      }
+
+      function loadAuth() {
+        try {
+          const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+          if (!raw) {
+            return;
+          }
+          const parsed = JSON.parse(raw);
+          state.userId = parsed.userId || null;
+          state.email = parsed.email || null;
+          state.token = parsed.token || null;
+          state.role = parsed.role || null;
+        } catch (_error) {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+        }
+      }
+
+      function guestCartPayload() {
+        try {
+          const raw = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+          if (!raw) {
+            return {};
+          }
+          return JSON.parse(raw) || {};
+        } catch (_error) {
+          localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+          return {};
+        }
+      }
+
+      function saveGuestCartPayload(payload) {
+        localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(payload));
+      }
+
+      function clearGuestCartPayload() {
+        localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+      }
+
+      function saveLastOrderContext() {
+        if (!state.lastOrderId) {
+          localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
+          return;
+        }
+        localStorage.setItem(LAST_ORDER_STORAGE_KEY, JSON.stringify({
+          orderId: state.lastOrderId,
+          guestToken: state.lastOrderToken || null
+        }));
+      }
+
+      function loadLastOrderContext() {
+        try {
+          const raw = localStorage.getItem(LAST_ORDER_STORAGE_KEY);
+          if (!raw) {
+            return;
+          }
+          const parsed = JSON.parse(raw);
+          state.lastOrderId = parsed.orderId || null;
+          state.lastOrderToken = parsed.guestToken || null;
+        } catch (_error) {
+          localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
+        }
+      }
 
       function formatPrice(value) {
         return `${Number(value || 0).toFixed(2)} EUR`;
@@ -1226,20 +1566,88 @@
         `;
       }
 
+      function goToLogin() {
+        window.location.href = `/login.html?next=${encodeURIComponent(window.location.pathname || "/")}`;
+      }
+
       function focusAccount() {
         document.getElementById("account").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function openAccount() {
+        if (state.userId) {
+          focusAccount();
+          return;
+        }
+        goToLogin();
       }
 
       function focusCart() {
         document.getElementById("cart").scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
+      function toggleGuestCheckout() {
+        const showGuest = !state.userId;
+        document.getElementById("guest-checkout-fields").classList.toggle("hidden", !showGuest);
+        document.getElementById("guest-note").classList.toggle("hidden", !showGuest);
+      }
+
       function updateUserState() {
-        document.getElementById("user-state").innerText = state.email ? state.email : "Neautentificat";
-        document.getElementById("user-role").innerText = state.role ? `Rol: ${state.role}` : "Loghează-te pentru coș și comenzi.";
+        document.getElementById("user-state").innerText = state.email ? state.email : "Vizitator";
+        document.getElementById("user-role").innerText = state.role
+          ? `Rol: ${state.role}`
+          : "Poți cumpăra ca guest sau te poți autentifica pentru un flux mai rapid.";
+        document.getElementById("account-button").innerText = state.email ? "Contul meu" : "Login / Cont";
+        document.getElementById("logout-button").style.display = state.userId ? "inline-flex" : "none";
         const isAdmin = state.role === "admin";
         document.getElementById("admin-panel").classList.toggle("visible", isAdmin);
         document.getElementById("admin-nav").style.display = isAdmin ? "inline" : "none";
+        toggleGuestCheckout();
+      }
+
+      function guestCartFromStorage() {
+        const payload = guestCartPayload();
+        const entries = Object.entries(payload);
+        const items = entries.map(([productId, quantity]) => {
+          const productIdInt = Number(productId);
+          const quantityInt = Number(quantity);
+          const product = state.products.find((candidate) => candidate.id === productIdInt);
+          const price = product ? Number(product.price) : 0;
+          return {
+            product_id: productIdInt,
+            quantity: quantityInt,
+            price,
+            name: product ? product.name : `Produs ${productIdInt}`,
+            subtotal: price * quantityInt
+          };
+        }).filter((item) => item.quantity > 0);
+        return {
+          items,
+          total: items.reduce((sum, item) => sum + item.subtotal, 0)
+        };
+      }
+
+      async function syncGuestCartToServer() {
+        if (!state.userId) {
+          return;
+        }
+        const payload = guestCartPayload();
+        const entries = Object.entries(payload);
+        if (!entries.length) {
+          return;
+        }
+        for (const [productId, quantity] of entries) {
+          await request(`${endpoints.cart}/cart/add`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${state.token}` },
+            body: JSON.stringify({
+              user_id: state.userId,
+              product_id: Number(productId),
+              quantity: Number(quantity)
+            })
+          });
+        }
+        clearGuestCartPayload();
       }
 
       function logout() {
@@ -1248,13 +1656,12 @@
         state.token = null;
         state.role = null;
         state.lastOrderId = null;
+        state.lastOrderToken = null;
         state.cart = null;
-        document.getElementById("username").value = "";
-        document.getElementById("email").value = "";
-        document.getElementById("password").value = "";
-        document.getElementById("address").value = "";
-        document.getElementById("order-output").innerHTML = `<div class="empty">Nu există comenzi în sesiunea curentă.</div>`;
-        renderCart({ items: [], total: 0 });
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
+        document.getElementById("order-output").innerHTML = `<div class="empty">Nu există încă o comandă trimisă din sesiunea curentă.</div>`;
+        renderCart(guestCartFromStorage());
         updateUserState();
         toast("Deconectat.");
       }
@@ -1320,6 +1727,43 @@
         return items;
       }
 
+      function productCardMarkup(product) {
+        return `
+          <div class="product-media">${productSvg(product)}</div>
+          <div class="product-body">
+            <div class="product-category">${product.category_name || "Necategorizat"}</div>
+            <h3 class="product-name">${product.name}</h3>
+            <p class="product-description">${product.description}</p>
+            <div class="price-row">
+              <span class="price">${formatPrice(product.price)}</span>
+              <button class="buy-button">Adaugă</button>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderFeaturedProducts() {
+        const root = document.getElementById("featured-products");
+        if (!root) {
+          return;
+        }
+        const items = [...state.products]
+          .sort((a, b) => a.price - b.price)
+          .slice(0, 4);
+        root.innerHTML = "";
+        if (!items.length) {
+          root.innerHTML = `<div class="panel" style="padding:18px;"><div class="empty">Produsele recomandate vor apărea după încărcarea catalogului.</div></div>`;
+          return;
+        }
+        items.forEach((product) => {
+          const node = document.createElement("article");
+          node.className = "panel product-card featured-product";
+          node.innerHTML = productCardMarkup(product);
+          node.querySelector("button").onclick = () => addToCart(product.id);
+          root.appendChild(node);
+        });
+      }
+
       function renderProducts() {
         const root = document.getElementById("products");
         const items = filteredProducts();
@@ -1332,18 +1776,7 @@
         items.forEach((product) => {
           const node = document.createElement("article");
           node.className = "panel product-card";
-          node.innerHTML = `
-            <div class="product-media">${productSvg(product)}</div>
-            <div class="product-body">
-              <div class="product-category">${product.category_name || "Necategorizat"}</div>
-              <h3 class="product-name">${product.name}</h3>
-              <p class="product-description">${product.description}</p>
-              <div class="price-row">
-                <span class="price">${formatPrice(product.price)}</span>
-                <button class="buy-button">Adaugă</button>
-              </div>
-            </div>
-          `;
+          node.innerHTML = productCardMarkup(product);
           node.querySelector("button").onclick = () => addToCart(product.id);
           root.appendChild(node);
         });
@@ -1361,7 +1794,9 @@
           const result = await request(`${endpoints.products}/products`);
           state.products = result.items || [];
           renderCategories();
+          renderFeaturedProducts();
           renderProducts();
+          renderCart(state.userId ? (state.cart || { items: [], total: 0 }) : guestCartFromStorage());
         } catch (error) {
           toast(`Nu pot încărca produsele: ${error.message}`);
           document.getElementById("catalog-status").innerText = "Eroare";
@@ -1383,65 +1818,13 @@
         }
       }
 
-      async function register() {
-        try {
-          const username = document.getElementById("username").value.trim();
-          const email = document.getElementById("email").value.trim();
-          const password = document.getElementById("password").value;
-          const address = document.getElementById("address").value.trim();
-
-          if (!username || !email || !password || !address) {
-            toast("Completează user, email, parolă și adresă.");
-            return;
-          }
-
-          const body = { username, email, password, address };
-          const result = await request(`${endpoints.auth}/register`, {
-            method: "POST",
-            body: JSON.stringify(body)
-          });
-          state.userId = result.id;
-          state.email = result.email;
-          state.role = result.role || "customer";
-          document.getElementById("password").value = "";
-          updateUserState();
-          toast(`Cont creat pentru ${result.username}.`);
-        } catch (error) {
-          toast(`Crearea contului a eșuat: ${error.message}`);
-        }
-      }
-
-      async function login() {
-        try {
-          const body = {
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
-          };
-          const result = await request(`${endpoints.auth}/login`, {
-            method: "POST",
-            body: JSON.stringify(body)
-          });
-          state.userId = result.user_id;
-          state.email = result.email;
-          state.token = result.token;
-          state.role = await resolveRole(result.token, result.role);
-          document.getElementById("password").value = "";
-          updateUserState();
-          toast("Autentificare reușită.");
-          try {
-            await loadCart();
-          } catch (cartError) {
-            toast(`Autentificat, dar coșul nu a putut fi încărcat: ${cartError.message}`);
-          }
-        } catch (error) {
-          toast(`Login eșuat: ${error.message}`);
-        }
-      }
-
       async function addToCart(productId) {
         if (!state.userId) {
-          toast("Autentifică-te pentru a adăuga produse în coș.");
-          focusAccount();
+          const payload = guestCartPayload();
+          payload[productId] = Number(payload[productId] || 0) + 1;
+          saveGuestCartPayload(payload);
+          renderCart(guestCartFromStorage());
+          toast("Produs adăugat în coșul de guest.");
           return;
         }
         await request(`${endpoints.cart}/cart/add`, {
@@ -1455,8 +1838,9 @@
 
       async function loadCart() {
         if (!state.userId) {
-          renderCart({ items: [], total: 0 });
-          return { items: [], total: 0 };
+          const guestCart = guestCartFromStorage();
+          renderCart(guestCart);
+          return guestCart;
         }
         const result = await request(`${endpoints.cart}/cart/${state.userId}`, {
           headers: { Authorization: `Bearer ${state.token}` }
@@ -1498,10 +1882,6 @@
       }
 
       async function placeOrder() {
-        if (!state.userId) {
-          toast("Autentifică-te pentru a trimite comanda.");
-          return;
-        }
         try {
           const cart = await loadCart();
           if (!cart.items.length) {
@@ -1513,14 +1893,37 @@
             product_id: item.product_id,
             quantity: item.quantity
           }));
-          const result = await request(`${endpoints.orders}/orders`, {
+          const body = { items };
+          const requestOptions = {
             method: "POST",
-            headers: { Authorization: `Bearer ${state.token}` },
-            body: JSON.stringify({ items })
-          });
+            body: JSON.stringify(body)
+          };
+          if (state.userId) {
+            requestOptions.headers = { Authorization: `Bearer ${state.token}` };
+          } else {
+            const customerName = document.getElementById("guest-name").value.trim();
+            const customerEmail = document.getElementById("guest-email").value.trim();
+            const shippingAddress = document.getElementById("guest-address").value.trim();
+            if (!customerName || !customerEmail || !shippingAddress) {
+              toast("Completează nume, email și adresă pentru comanda ca guest.");
+              return;
+            }
+            body.customer_name = customerName;
+            body.customer_email = customerEmail;
+            body.shipping_address = shippingAddress;
+            requestOptions.body = JSON.stringify(body);
+          }
+          const result = await request(`${endpoints.orders}/orders`, requestOptions);
           state.lastOrderId = result.order_id;
+          state.lastOrderToken = result.guest_token || null;
+          saveLastOrderContext();
           renderOrder(result);
           await clearCart(true);
+          if (!state.userId) {
+            document.getElementById("guest-name").value = "";
+            document.getElementById("guest-email").value = "";
+            document.getElementById("guest-address").value = "";
+          }
           toast(`Comanda #${result.order_id} a fost plasată.`);
           window.setTimeout(() => {
             loadOrder().catch(() => {});
@@ -1533,7 +1936,14 @@
 
       async function changeCartQuantity(productId, quantity) {
         if (!state.userId) {
-          toast("Autentifică-te mai întâi.");
+          const payload = guestCartPayload();
+          if (quantity < 1) {
+            delete payload[productId];
+          } else {
+            payload[productId] = quantity;
+          }
+          saveGuestCartPayload(payload);
+          renderCart(guestCartFromStorage());
           return;
         }
         await request(`${endpoints.cart}/cart/replace`, {
@@ -1550,7 +1960,11 @@
 
       async function removeFromCart(productId) {
         if (!state.userId) {
-          toast("Autentifică-te mai întâi.");
+          const payload = guestCartPayload();
+          delete payload[productId];
+          saveGuestCartPayload(payload);
+          renderCart(guestCartFromStorage());
+          toast("Produs scos din coș.");
           return;
         }
         await request(`${endpoints.cart}/cart/${state.userId}/items/${productId}`, {
@@ -1563,7 +1977,11 @@
 
       async function clearCart(silent = false) {
         if (!state.userId) {
-          toast("Autentifică-te mai întâi.");
+          clearGuestCartPayload();
+          renderCart(guestCartFromStorage());
+          if (!silent) {
+            toast("Coș golit.");
+          }
           return;
         }
         await request(`${endpoints.cart}/cart/${state.userId}`, {
@@ -1581,9 +1999,13 @@
           toast("Nu există o comandă recentă în sesiune.");
           return;
         }
-        const result = await request(`${endpoints.orders}/orders/${state.lastOrderId}`, {
-          headers: { Authorization: `Bearer ${state.token}` }
-        });
+        const url = !state.userId && state.lastOrderToken
+          ? `${endpoints.orders}/orders/${state.lastOrderId}?guest_token=${encodeURIComponent(state.lastOrderToken)}`
+          : `${endpoints.orders}/orders/${state.lastOrderId}`;
+        const options = state.userId
+          ? { headers: { Authorization: `Bearer ${state.token}` } }
+          : {};
+        const result = await request(url, options);
         renderOrder(result);
         if (result.status === "paid") {
           document.getElementById("catalog-status").innerText = "Plata finalizată";
@@ -1679,8 +2101,27 @@
         }
       }
 
-      updateUserState();
-      loadProducts();
+      async function bootstrap() {
+        loadAuth();
+        loadLastOrderContext();
+        updateUserState();
+        await loadProducts();
+        if (state.userId) {
+          try {
+            state.role = await resolveRole(state.token, state.role);
+            saveAuth();
+            updateUserState();
+            await syncGuestCartToServer();
+            await loadCart();
+          } catch (_error) {
+            logout();
+          }
+        } else {
+          renderCart(guestCartFromStorage());
+        }
+      }
+
+      bootstrap();
     </script>
   </body>
 </html>

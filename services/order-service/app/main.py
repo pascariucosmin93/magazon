@@ -1,16 +1,17 @@
 import asyncio
 import os
+import secrets
 from datetime import datetime
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 import requests
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Session, relationship
 
-from shared.auth import current_user_claims, require_user_id
+from shared.auth import optional_user_claims, require_user_id
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, publish_event
@@ -23,7 +24,11 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False, index=True)
+    user_id = Column(Integer, nullable=True, index=True)
+    customer_name = Column(String(120), nullable=True)
+    customer_email = Column(String(255), nullable=True)
+    shipping_address = Column(String(255), nullable=True)
+    guest_token = Column(String(120), nullable=True, unique=True, index=True)
     status = Column(String(50), default="created", nullable=False)
     total = Column(Float, default=0, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -48,6 +53,9 @@ class OrderItemRequest(BaseModel):
 
 class OrderRequest(BaseModel):
     items: list[OrderItemRequest]
+    customer_name: str | None = None
+    customer_email: str | None = None
+    shipping_address: str | None = None
 
 
 consumer_task = None
@@ -117,9 +125,13 @@ def fetch_product(product_id: int) -> dict:
 
 
 def serialize_order(order: Order) -> dict:
-    return {
+    payload = {
         "order_id": order.id,
         "user_id": order.user_id,
+        "customer_name": order.customer_name,
+        "customer_email": order.customer_email,
+        "shipping_address": order.shipping_address,
+        "guest": order.user_id is None,
         "status": order.status,
         "total": order.total,
         "items": [
@@ -131,24 +143,41 @@ def serialize_order(order: Order) -> dict:
             for item in order.items
         ],
     }
+    if order.user_id is None and order.guest_token:
+        payload["guest_token"] = order.guest_token
+    return payload
 
 
 @app.post("/orders")
 async def create_order(
     payload: OrderRequest,
     db: Session = Depends(get_db),
-    claims: dict = Depends(current_user_claims),
+    claims: dict | None = Depends(optional_user_claims),
 ):
     if not payload.items:
         raise HTTPException(status_code=400, detail="Order requires at least one item")
 
-    subject = claims.get("sub")
-    if not subject:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    try:
-        user_id = int(subject)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=401, detail="Invalid token") from exc
+    user_id = None
+    guest_token = None
+    customer_name = payload.customer_name.strip() if payload.customer_name else None
+    customer_email = payload.customer_email.strip().lower() if payload.customer_email else None
+    shipping_address = payload.shipping_address.strip() if payload.shipping_address else None
+
+    if claims:
+        subject = claims.get("sub")
+        if not subject:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        try:
+            user_id = int(subject)
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=401, detail="Invalid token") from exc
+    else:
+        if not customer_name or not customer_email or not shipping_address:
+            raise HTTPException(
+                status_code=400,
+                detail="Guest checkout requires customer_name, customer_email and shipping_address",
+            )
+        guest_token = secrets.token_urlsafe(24)
 
     normalized_items = []
     for item in payload.items:
@@ -165,6 +194,10 @@ async def create_order(
 
     order = Order(
         user_id=user_id,
+        customer_name=customer_name,
+        customer_email=customer_email,
+        shipping_address=shipping_address,
+        guest_token=guest_token,
         status="created",
         total=sum(item["price"] * item["quantity"] for item in normalized_items),
     )
@@ -200,11 +233,18 @@ async def create_order(
 @app.get("/orders/{order_id}")
 def get_order(
     order_id: int,
+    guest_token: str | None = Query(default=None),
     db: Session = Depends(get_db),
-    claims: dict = Depends(current_user_claims),
+    claims: dict | None = Depends(optional_user_claims),
 ):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    require_user_id(order.user_id, claims)
+    if order.user_id is not None:
+        if not claims:
+            raise HTTPException(status_code=401, detail="Authorization required")
+        require_user_id(order.user_id, claims)
+    else:
+        if not guest_token or guest_token != order.guest_token:
+            raise HTTPException(status_code=401, detail="Guest token required")
     return serialize_order(order)

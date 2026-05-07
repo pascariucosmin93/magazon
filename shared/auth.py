@@ -26,6 +26,12 @@ def current_user_claims(authorization: str | None = Header(default=None)) -> dic
     return decode_access_token(bearer_token(authorization))
 
 
+def optional_user_claims(authorization: str | None = Header(default=None)) -> dict | None:
+    if not authorization:
+        return None
+    return decode_access_token(bearer_token(authorization))
+
+
 def require_user_id(user_id: int, claims: dict) -> None:
     subject = claims.get("sub")
     if not subject:
