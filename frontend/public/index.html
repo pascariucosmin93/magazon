@@ -5,31 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Magazon</title>
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+
       :root {
-        --page: #eef1f5;
-        --surface: #ffffff;
-        --surface-soft: #f7f9fc;
-        --ink: #18202b;
-        --muted: #657284;
-        --line: #d9e0ea;
-        --brand: #0b63ce;
-        --brand-dark: #084b9d;
-        --accent: #f08a24;
-        --success: #178244;
-        --danger: #c43737;
-        --shadow: 0 8px 24px rgba(24, 32, 43, 0.08);
-        --radius: 8px;
+        --page: #f6f1e8;
+        --page-deep: #efe5d6;
+        --surface: rgba(255, 252, 247, 0.9);
+        --surface-strong: #fffdf8;
+        --surface-contrast: #1f2937;
+        --ink: #172033;
+        --muted: #657083;
+        --line: rgba(23, 32, 51, 0.12);
+        --line-strong: rgba(23, 32, 51, 0.2);
+        --brand: #b8571b;
+        --brand-dark: #843d11;
+        --accent: #0f766e;
+        --accent-soft: rgba(15, 118, 110, 0.12);
+        --danger: #b42318;
+        --success: #166534;
+        --shadow: 0 18px 60px rgba(38, 34, 28, 0.09);
+        --shadow-soft: 0 10px 28px rgba(38, 34, 28, 0.06);
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+        --radius-sm: 12px;
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
         margin: 0;
         color: var(--ink);
-        font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
-        background: var(--page);
+        font-family: "Manrope", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(184, 87, 27, 0.16), transparent 24%),
+          radial-gradient(circle at 88% 18%, rgba(15, 118, 110, 0.1), transparent 20%),
+          linear-gradient(180deg, var(--page) 0%, var(--page-deep) 100%);
       }
 
       button,
@@ -41,9 +58,14 @@
 
       button {
         border: 0;
-        border-radius: 6px;
+        border-radius: 999px;
         cursor: pointer;
-        font-weight: 700;
+        font-weight: 800;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
       }
 
       input,
@@ -51,106 +73,124 @@
       textarea {
         width: 100%;
         border: 1px solid var(--line);
-        border-radius: 6px;
-        background: #fff;
+        border-radius: var(--radius-sm);
+        background: var(--surface-strong);
         color: var(--ink);
       }
 
       input,
       select {
-        height: 42px;
-        padding: 0 12px;
+        height: 46px;
+        padding: 0 14px;
       }
 
       textarea {
-        min-height: 84px;
-        padding: 10px 12px;
+        min-height: 96px;
+        padding: 12px 14px;
         resize: vertical;
       }
 
       input:focus,
       select:focus,
       textarea:focus {
-        border-color: var(--brand);
-        box-shadow: 0 0 0 3px rgba(11, 99, 206, 0.12);
+        border-color: rgba(184, 87, 27, 0.45);
+        box-shadow: 0 0 0 4px rgba(184, 87, 27, 0.08);
         outline: none;
       }
 
-      .top-strip {
-        background: #17212f;
-        color: #cbd5e1;
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .shell {
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 0 20px 64px;
+      }
+
+      .topbar {
+        background: rgba(23, 32, 51, 0.95);
+        color: #f5efe5;
+      }
+
+      .topbar-inner,
+      .header-inner,
+      .nav-inner {
+        max-width: 1380px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      .topbar-inner {
+        min-height: 40px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px 24px;
         font-size: 13px;
       }
 
-      .top-strip-inner,
-      .header-inner,
-      .nav-inner,
-      .page {
-        max-width: 1360px;
-        margin: 0 auto;
-      }
-
-      .top-strip-inner {
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        padding: 8px 18px;
-      }
-
       .header {
-        background: var(--surface);
-        border-bottom: 1px solid var(--line);
         position: sticky;
         top: 0;
-        z-index: 20;
+        z-index: 40;
+        backdrop-filter: blur(18px);
+        background: rgba(246, 241, 232, 0.84);
+        border-bottom: 1px solid rgba(23, 32, 51, 0.08);
       }
 
       .header-inner {
         display: grid;
-        grid-template-columns: 190px minmax(280px, 1fr) auto;
+        grid-template-columns: 220px minmax(280px, 1fr) auto;
         gap: 18px;
         align-items: center;
-        padding: 16px 18px;
+        min-height: 86px;
       }
 
       .logo {
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        gap: 10px;
-        font-size: 27px;
-        font-weight: 900;
-        letter-spacing: 0;
-        color: var(--brand);
+        gap: 12px;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.04em;
       }
 
       .logo-mark {
         display: grid;
         place-items: center;
-        width: 38px;
-        height: 38px;
-        border-radius: 8px;
-        background: linear-gradient(135deg, var(--brand), #29a3ff);
-        color: #fff;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        color: #fff7ef;
+        background: linear-gradient(135deg, var(--brand) 0%, #dc7a2c 100%);
+        box-shadow: 0 14px 30px rgba(184, 87, 27, 0.26);
       }
 
       .search {
         display: grid;
-        grid-template-columns: minmax(160px, 1fr) 108px;
-        border: 2px solid var(--brand);
-        border-radius: 8px;
+        grid-template-columns: minmax(180px, 1fr) 120px;
         overflow: hidden;
-        background: #fff;
+        border-radius: 999px;
+        border: 1px solid rgba(23, 32, 51, 0.12);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow-soft);
       }
 
       .search input {
-        height: 46px;
         border: 0;
         border-radius: 0;
+        background: transparent;
+        height: 52px;
+        padding: 0 18px;
       }
 
       .search button {
         border-radius: 0;
-        background: var(--brand);
+        background: linear-gradient(135deg, var(--brand) 0%, #cf6c1f 100%);
         color: #fff;
       }
 
@@ -161,52 +201,274 @@
       }
 
       .icon-button {
-        min-width: 112px;
-        height: 46px;
-        padding: 0 12px;
-        background: var(--surface-soft);
+        height: 48px;
+        min-width: 128px;
+        padding: 0 16px;
+        background: rgba(255, 255, 255, 0.85);
         color: var(--ink);
-        border: 1px solid var(--line);
+        border: 1px solid rgba(23, 32, 51, 0.1);
+        box-shadow: var(--shadow-soft);
       }
 
       .cart-button {
-        background: var(--accent);
-        border-color: var(--accent);
+        background: linear-gradient(135deg, var(--accent) 0%, #11998d 100%);
         color: #fff;
       }
 
       .nav {
-        background: var(--brand-dark);
-        color: #fff;
+        border-top: 1px solid rgba(23, 32, 51, 0.06);
       }
 
       .nav-inner {
+        min-height: 46px;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 22px;
-        padding: 0 18px;
-        min-height: 44px;
+        gap: 18px;
         font-size: 14px;
         font-weight: 700;
       }
 
-      .nav a {
-        color: inherit;
-        text-decoration: none;
+      .nav-inner a {
+        opacity: 0.8;
       }
 
-      .page {
+      .nav-inner a:hover {
+        opacity: 1;
+      }
+
+      .hero {
         display: grid;
-        grid-template-columns: 250px minmax(0, 1fr) 330px;
-        gap: 18px;
+        grid-template-columns: minmax(0, 1.2fr) 360px;
+        gap: 22px;
+        padding-top: 28px;
+      }
+
+      .hero-card,
+      .hero-side {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(23, 32, 51, 0.08);
+        border-radius: var(--radius-xl);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .hero-card {
+        padding: 34px;
+        background:
+          radial-gradient(circle at top right, rgba(15, 118, 110, 0.16), transparent 28%),
+          linear-gradient(135deg, rgba(255, 253, 248, 0.98) 0%, rgba(248, 240, 230, 0.96) 100%);
+      }
+
+      .hero-card::after {
+        content: "";
+        position: absolute;
+        inset: auto -72px -84px auto;
+        width: 240px;
+        height: 240px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(184, 87, 27, 0.18), transparent 62%);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(184, 87, 27, 0.12);
+        color: var(--brand-dark);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero h1 {
+        margin: 18px 0 14px;
+        max-width: 11ch;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: clamp(2.8rem, 6vw, 5.2rem);
+        line-height: 0.92;
+        letter-spacing: -0.06em;
+      }
+
+      .hero p {
+        margin: 0;
+        max-width: 58ch;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.75;
+      }
+
+      .hero-actions,
+      .hero-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .hero-actions {
+        margin-top: 26px;
+      }
+
+      .primary,
+      .buy-button {
+        height: 44px;
+        padding: 0 18px;
+        background: linear-gradient(135deg, var(--brand) 0%, #cf6c1f 100%);
+        color: #fff;
+        box-shadow: 0 12px 24px rgba(184, 87, 27, 0.2);
+      }
+
+      .primary:hover,
+      .buy-button:hover {
+        background: linear-gradient(135deg, var(--brand-dark) 0%, #bb5d17 100%);
+      }
+
+      .secondary {
+        height: 44px;
+        padding: 0 18px;
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid rgba(23, 32, 51, 0.12);
+      }
+
+      .secondary:hover {
+        border-color: rgba(23, 32, 51, 0.22);
+      }
+
+      .danger {
+        height: 44px;
+        padding: 0 18px;
+        background: rgba(180, 35, 24, 0.08);
+        color: var(--danger);
+        border: 1px solid rgba(180, 35, 24, 0.16);
+      }
+
+      .hero-metrics {
+        margin-top: 28px;
+      }
+
+      .metric {
+        min-width: 140px;
+        padding: 14px 16px;
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(23, 32, 51, 0.08);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 24px;
+        font-family: "Space Grotesk", sans-serif;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .hero-side {
+        padding: 26px;
+        display: grid;
+        gap: 16px;
+        align-content: start;
+        background: linear-gradient(180deg, #1f2937 0%, #162032 100%);
+        color: #f8f3ea;
+      }
+
+      .hero-side h2,
+      .section-head h2,
+      .workspace-head h2 {
+        margin: 0;
+        font-family: "Space Grotesk", sans-serif;
+        letter-spacing: -0.04em;
+      }
+
+      .hero-side p,
+      .section-subtitle,
+      .workspace-head p,
+      .mini-card p,
+      .footer-note {
+        margin: 0;
+        color: rgba(245, 239, 229, 0.74);
+        line-height: 1.7;
+      }
+
+      .bullet-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .bullet-item {
+        padding: 14px 16px;
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .bullet-item strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .strip-card {
         padding: 18px;
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(23, 32, 51, 0.08);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .strip-card strong {
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .section {
+        margin-top: 22px;
+      }
+
+      .section-head,
+      .workspace-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .section-head h2,
+      .workspace-head h2 {
+        font-size: 1.9rem;
+      }
+
+      .section-subtitle,
+      .workspace-head p {
+        color: var(--muted);
+        max-width: 64ch;
+      }
+
+      .catalog-layout {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 20px;
       }
 
       .panel {
+        border: 1px solid rgba(23, 32, 51, 0.08);
+        border-radius: var(--radius-lg);
         background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
+        box-shadow: var(--shadow-soft);
       }
 
       .panel-head {
@@ -214,92 +476,101 @@
         justify-content: space-between;
         align-items: center;
         gap: 12px;
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--line);
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(23, 32, 51, 0.08);
       }
 
       .panel-title {
         margin: 0;
-        font-size: 16px;
-      }
-
-      .muted {
-        color: var(--muted);
-      }
-
-      .sidebar {
-        align-self: start;
-        position: sticky;
-        top: 132px;
+        font-size: 1rem;
       }
 
       .category-list {
         display: grid;
+        gap: 8px;
+        padding: 14px;
       }
 
       .category-item {
         display: flex;
         justify-content: space-between;
         gap: 10px;
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--line);
+        padding: 12px 14px;
+        text-align: left;
+        border-radius: var(--radius-sm);
         background: transparent;
         color: var(--ink);
-        text-align: left;
-        border-radius: 0;
       }
 
       .category-item:hover,
       .category-item.active {
-        background: #eef6ff;
-        color: var(--brand);
+        background: rgba(184, 87, 27, 0.08);
+        color: var(--brand-dark);
       }
 
-      .promo {
-        margin-top: 18px;
+      .mini-stack {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .mini-card {
         padding: 16px;
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(23, 32, 51, 0.08);
       }
 
-      .promo strong {
+      .mini-card strong {
         display: block;
         margin-bottom: 6px;
       }
 
+      .catalog-main {
+        display: grid;
+        gap: 16px;
+      }
+
+      .catalog-banner {
+        padding: 22px;
+        border-radius: var(--radius-lg);
+        background:
+          radial-gradient(circle at right top, rgba(15, 118, 110, 0.12), transparent 22%),
+          linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 240, 230, 0.96) 100%);
+        border: 1px solid rgba(23, 32, 51, 0.08);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .catalog-banner h1 {
+        margin: 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: clamp(2rem, 4vw, 3.1rem);
+        letter-spacing: -0.05em;
+      }
+
+      .catalog-banner p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        max-width: 66ch;
+        line-height: 1.75;
+      }
+
       .toolbar {
         display: grid;
-        grid-template-columns: 1fr 160px;
+        grid-template-columns: minmax(0, 1fr) auto auto;
         gap: 12px;
-        margin-bottom: 14px;
-      }
-
-      .catalog-head {
-        margin-bottom: 14px;
-        padding: 16px;
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 14px;
         align-items: center;
-      }
-
-      .catalog-head h1 {
-        margin: 0;
-        font-size: 24px;
-        letter-spacing: 0;
-      }
-
-      .catalog-head p {
-        margin: 5px 0 0;
-        color: var(--muted);
       }
 
       .status-badge {
         display: inline-flex;
         align-items: center;
-        height: 30px;
-        padding: 0 10px;
+        justify-content: center;
+        min-height: 42px;
+        padding: 0 16px;
         border-radius: 999px;
-        background: #eaf7ef;
-        color: var(--success);
+        background: var(--accent-soft);
+        color: var(--accent);
         font-size: 13px;
         font-weight: 800;
         white-space: nowrap;
@@ -307,54 +578,56 @@
 
       .product-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 16px;
       }
 
       .product-card {
-        display: grid;
-        grid-template-rows: 132px auto;
         overflow: hidden;
+        display: grid;
+        grid-template-rows: 160px auto;
+        border-radius: var(--radius-lg);
       }
 
       .product-media {
         display: grid;
         place-items: center;
-        background: linear-gradient(180deg, #f8fafc, #e8eef6);
-        border-bottom: 1px solid var(--line);
+        background: linear-gradient(180deg, #fffdf8 0%, #ebe1d3 100%);
+        border-bottom: 1px solid rgba(23, 32, 51, 0.08);
       }
 
       .product-media svg {
-        width: 96px;
-        height: 96px;
+        width: 104px;
+        height: 104px;
       }
 
       .product-body {
         display: grid;
-        gap: 10px;
-        padding: 14px;
+        gap: 12px;
+        padding: 18px;
       }
 
       .product-category {
-        color: var(--brand);
+        color: var(--brand-dark);
         font-size: 12px;
         font-weight: 800;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
       }
 
       .product-name {
-        min-height: 42px;
         margin: 0;
-        font-size: 16px;
+        min-height: 46px;
+        font-size: 17px;
         line-height: 1.3;
       }
 
       .product-description {
-        min-height: 42px;
+        min-height: 48px;
         margin: 0;
         color: var(--muted);
         font-size: 13px;
-        line-height: 1.45;
+        line-height: 1.55;
       }
 
       .price-row {
@@ -366,85 +639,77 @@
 
       .price {
         color: var(--danger);
-        font-size: 20px;
+        font-size: 22px;
         font-weight: 900;
       }
 
-      .buy-button,
-      .primary {
-        height: 40px;
-        padding: 0 14px;
-        background: var(--accent);
-        color: #fff;
+      .workspace-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 20px;
       }
 
-      .buy-button:hover,
-      .primary:hover {
-        background: #d87513;
-      }
-
-      .secondary {
-        height: 40px;
-        padding: 0 14px;
-        background: #fff;
-        color: var(--brand);
-        border: 1px solid var(--brand);
-      }
-
-      .danger {
-        height: 40px;
-        padding: 0 14px;
-        background: #fff;
-        color: var(--danger);
-        border: 1px solid #efb7b7;
-      }
-
-      .cart-panel {
-        align-self: start;
-        position: sticky;
-        top: 132px;
-      }
-
-      .cart-content,
-      .account-content,
-      .admin-content {
-        padding: 16px;
-      }
-
+      .workspace-stack,
+      .auth-grid,
       .stack {
         display: grid;
-        gap: 10px;
+        gap: 12px;
       }
 
-      .auth-grid {
+      .workspace-panel .panel-head,
+      .order-panel .panel-head,
+      .admin-panel .panel-head {
+        padding-bottom: 16px;
+      }
+
+      .account-content,
+      .cart-content,
+      .admin-content,
+      .order-content {
+        padding: 20px;
+      }
+
+      .dual-actions {
         display: grid;
+        grid-template-columns: 1fr 1fr;
         gap: 10px;
       }
 
       .user-box {
         display: grid;
         gap: 8px;
-        padding: 12px;
-        background: var(--surface-soft);
-        border: 1px solid var(--line);
-        border-radius: var(--radius);
+        padding: 14px;
+        border-radius: var(--radius-md);
+        background: rgba(15, 118, 110, 0.08);
+        border: 1px solid rgba(15, 118, 110, 0.12);
+      }
+
+      .workspace-copy {
+        color: var(--muted);
+        line-height: 1.7;
+        margin-bottom: 12px;
+      }
+
+      .cart-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
       }
 
       .cart-items,
       .order-items {
         display: grid;
-        gap: 10px;
-        margin-top: 12px;
+        gap: 12px;
       }
 
       .line-item {
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 10px;
-        padding: 10px;
-        background: var(--surface-soft);
-        border: 1px solid var(--line);
-        border-radius: 6px;
+        gap: 12px;
+        padding: 14px;
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(23, 32, 51, 0.08);
       }
 
       .line-item strong {
@@ -457,30 +722,39 @@
         font-size: 13px;
       }
 
+      .inline-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
       .summary-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 14px;
-        padding-top: 14px;
-        border-top: 1px solid var(--line);
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(23, 32, 51, 0.08);
         font-weight: 900;
       }
 
       .cart-total {
         color: var(--danger);
-        font-size: 20px;
+        font-size: 22px;
       }
 
       .empty {
         color: var(--muted);
-        line-height: 1.5;
+        line-height: 1.7;
+      }
+
+      .order-panel .order-content {
+        min-height: 220px;
       }
 
       .admin-panel {
         display: none;
-        grid-column: 2 / 4;
-        margin-top: 0;
       }
 
       .admin-panel.visible {
@@ -490,36 +764,65 @@
       .admin-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 14px;
+        gap: 16px;
       }
 
       .admin-result {
-        margin-top: 14px;
-        min-height: 80px;
-        padding: 12px;
+        margin-top: 16px;
+        min-height: 84px;
+        padding: 14px;
+        border-radius: var(--radius-md);
         background: #101827;
         color: #dbeafe;
-        border-radius: 6px;
         overflow: auto;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
       }
 
+      .footer {
+        margin-top: 26px;
+        padding: 24px;
+        border-radius: var(--radius-xl);
+        background: rgba(23, 32, 51, 0.94);
+        color: #f8f3ea;
+        box-shadow: var(--shadow);
+      }
+
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr 0.8fr;
+        gap: 18px;
+      }
+
+      .footer h3 {
+        margin: 0 0 8px;
+        font-family: "Space Grotesk", sans-serif;
+      }
+
+      .footer strong {
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .footer-note {
+        color: rgba(245, 239, 229, 0.72);
+      }
+
       .toast {
         position: fixed;
-        right: 18px;
-        bottom: 18px;
+        right: 22px;
+        bottom: 22px;
         max-width: 360px;
-        padding: 13px 15px;
-        border-radius: 8px;
-        background: #17212f;
+        padding: 14px 16px;
+        border-radius: 16px;
+        background: rgba(23, 32, 51, 0.96);
         color: #fff;
         box-shadow: var(--shadow);
         opacity: 0;
         transform: translateY(10px);
         pointer-events: none;
         transition: opacity 0.18s ease, transform 0.18s ease;
-        z-index: 50;
+        z-index: 60;
       }
 
       .toast.visible {
@@ -527,208 +830,327 @@
         transform: translateY(0);
       }
 
-      @media (max-width: 1120px) {
-        .page {
-          grid-template-columns: 220px minmax(0, 1fr);
+      @media (max-width: 1160px) {
+        .hero,
+        .workspace-grid,
+        .catalog-layout,
+        .footer-grid {
+          grid-template-columns: 1fr;
         }
 
-        .cart-panel {
-          position: static;
-          grid-column: 1 / 3;
-        }
-
-        .admin-panel {
-          grid-column: 1 / 3;
+        .toolbar {
+          grid-template-columns: 1fr;
         }
       }
 
-      @media (max-width: 760px) {
-        .top-strip-inner,
-        .nav-inner {
-          flex-wrap: wrap;
+      @media (max-width: 820px) {
+        .header-inner {
+          grid-template-columns: 1fr;
+          padding-top: 16px;
+          padding-bottom: 16px;
         }
 
-        .header-inner {
+        .header-actions,
+        .strip,
+        .admin-grid,
+        .dual-actions {
           grid-template-columns: 1fr;
         }
 
         .header-actions {
           display: grid;
-          grid-template-columns: 1fr 1fr;
         }
 
-        .page {
-          grid-template-columns: 1fr;
-        }
-
-        .sidebar,
-        .cart-panel {
-          position: static;
-          grid-column: auto;
-        }
-
-        .catalog-head,
-        .toolbar,
-        .admin-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .admin-panel {
-          grid-column: auto;
+        .search {
+          grid-template-columns: 1fr 96px;
         }
       }
     </style>
   </head>
   <body>
-    <div class="top-strip">
-      <div class="top-strip-inner">
-        <span>Livrare rapida din stoc si ridicare din showroom</span>
-        <span>Suport clienti: Luni - Vineri, 09:00 - 18:00</span>
+    <div class="topbar">
+      <div class="topbar-inner">
+        <span>Livrare rapidă, stoc live și workflow complet din cluster</span>
+        <span>Suport clienți: Luni - Vineri, 09:00 - 18:00</span>
       </div>
     </div>
 
     <header class="header">
       <div class="header-inner">
-        <div class="logo" aria-label="Magazon">
+        <a class="logo" href="#hero" aria-label="Magazon">
           <span class="logo-mark">M</span>
           <span>Magazon</span>
-        </div>
+        </a>
         <div class="search">
-          <input id="search-input" placeholder="Cauta laptopuri, periferice, accesorii..." oninput="renderProducts()" />
-          <button onclick="renderProducts()">Cauta</button>
+          <input id="search-input" placeholder="Caută tastaturi, mouse-uri, dock-uri..." oninput="renderProducts()" />
+          <button onclick="renderProducts()">Caută</button>
         </div>
         <div class="header-actions">
           <button class="icon-button" onclick="focusAccount()">Contul meu</button>
-          <button class="icon-button cart-button" onclick="focusCart()">Cos <span id="cart-count">0</span></button>
+          <button class="icon-button cart-button" onclick="focusCart()">Coș <span id="cart-count">0</span></button>
         </div>
       </div>
       <nav class="nav">
         <div class="nav-inner">
-          <a href="#catalog">Produse</a>
-          <a href="#cart">Cos cumparaturi</a>
+          <a href="#catalog">Catalog</a>
+          <a href="#workspace">Workspace client</a>
           <a href="#orders">Comenzi</a>
-          <a href="#account">Cont client</a>
-          <a href="#admin-panel" id="admin-nav" style="display:none;">Administrare</a>
+          <a href="#account">Autentificare</a>
+          <a href="#admin-panel" id="admin-nav" style="display:none;">Studio admin</a>
         </div>
       </nav>
     </header>
 
-    <main class="page">
-      <aside class="sidebar">
-        <section class="panel">
-          <div class="panel-head">
-            <h2 class="panel-title">Categorii</h2>
+    <div class="shell">
+      <section class="hero" id="hero">
+        <article class="hero-card">
+          <span class="eyebrow">Storefront orchestrat pe microservicii</span>
+          <h1>Periferice premium într-un flow de comandă clar.</h1>
+          <p>
+            Magazon combină catalogul, coșul, autentificarea și procesarea comenzilor într-o
+            experiență mai apropiată de un storefront real, nu de un simplu dashboard tehnic.
+          </p>
+          <div class="hero-actions">
+            <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Vezi catalogul</button>
+            <button class="secondary" onclick="focusAccount()">Creează cont</button>
+            <button class="secondary" onclick="focusCart()">Deschide coșul</button>
           </div>
-          <div class="category-list" id="category-list">
-            <button class="category-item active" onclick="selectCategory(null)">Toate produsele <span id="all-count">0</span></button>
+          <div class="hero-metrics">
+            <div class="metric">
+              <strong id="all-count">0</strong>
+              <span>produse disponibile</span>
+            </div>
+            <div class="metric">
+              <strong>Redis</strong>
+              <span>coș persistent și cache rapid</span>
+            </div>
+            <div class="metric">
+              <strong>Kafka</strong>
+              <span>order → inventory → payment</span>
+            </div>
           </div>
-        </section>
+        </article>
 
-        <section class="panel promo">
-          <strong>Avantaje magazin</strong>
-          <div class="muted">Stoc live, comanda rapida, cos persistent si flux complet pana la plasarea comenzii.</div>
-        </section>
-      </aside>
-
-      <section id="catalog">
-        <div class="panel catalog-head">
-          <div>
-            <h1>Componente si periferice IT</h1>
-            <p>Catalog conectat la product-service, cos in Redis si comenzi prin order-service.</p>
+        <aside class="hero-side">
+          <h2>Ce vezi pe pagină</h2>
+          <p>
+            Pagina este împărțită în zone distincte pentru browsing, cont, checkout și administrare,
+            astfel încât flow-ul să fie mai natural pentru utilizator.
+          </p>
+          <div class="bullet-list">
+            <div class="bullet-item">
+              <strong>Catalog separat</strong>
+              <span class="footer-note">Filtrare, sortare și explorare vizuală fără să te lovești direct de formularele tehnice.</span>
+            </div>
+            <div class="bullet-item">
+              <strong>Workspace client</strong>
+              <span class="footer-note">Cont, coș și checkout grupate clar într-o zonă dedicată operațiunilor clientului.</span>
+            </div>
+            <div class="bullet-item">
+              <strong>Studio admin</strong>
+              <span class="footer-note">Panoul de administrare rămâne separat și apare doar când userul este admin.</span>
+            </div>
           </div>
-          <span class="status-badge" id="catalog-status">Se incarca</span>
-        </div>
-
-        <div class="toolbar">
-          <select id="sort-select" onchange="renderProducts()">
-            <option value="name">Sortare: nume</option>
-            <option value="price-asc">Pret crescator</option>
-            <option value="price-desc">Pret descrescator</option>
-          </select>
-          <button class="secondary" onclick="loadProducts()">Refresh stoc</button>
-        </div>
-
-        <div class="product-grid" id="products"></div>
+        </aside>
       </section>
 
-      <aside class="cart-panel">
-        <section class="panel" id="account">
-          <div class="panel-head">
-            <h2 class="panel-title">Cont client</h2>
+      <section class="strip">
+        <article class="strip-card">
+          <strong>Selecție curată</strong>
+          <span class="muted">Produse organizate pe categorii și căutare rapidă direct din header.</span>
+        </article>
+        <article class="strip-card">
+          <strong>Checkout mai explicit</strong>
+          <span class="muted">Statusul comenzii și al plății se propagă clar după plasarea comenzii.</span>
+        </article>
+        <article class="strip-card">
+          <strong>Cont mai complet</strong>
+          <span class="muted">Signup cu user, email, parolă și adresă, nu doar două câmpuri minimale.</span>
+        </article>
+        <article class="strip-card">
+          <strong>Admin izolat</strong>
+          <span class="muted">Zona de management al catalogului nu mai aglomerează experiența clientului.</span>
+        </article>
+      </section>
+
+      <section class="section" id="catalog">
+        <div class="section-head">
+          <div>
+            <h2>Catalog</h2>
+            <p class="section-subtitle">
+              Explorează perifericele disponibile și filtrează rapid după categorie sau după termenul căutat.
+            </p>
           </div>
-          <div class="account-content">
-            <div class="auth-grid">
-              <input id="username" placeholder="User" autocomplete="username" />
-              <input id="email" placeholder="Email" autocomplete="email" />
-              <input id="password" placeholder="Parola" type="password" autocomplete="new-password" />
-              <input id="address" placeholder="Adresa livrare" autocomplete="street-address" />
-              <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button class="primary" onclick="login()">Login</button>
-                <button class="secondary" onclick="register()">Creeaza cont</button>
+          <span class="status-badge" id="catalog-status">Se încarcă</span>
+        </div>
+
+        <div class="catalog-layout">
+          <aside class="catalog-side">
+            <section class="panel">
+              <div class="panel-head">
+                <h3 class="panel-title">Categorii</h3>
               </div>
-              <button class="secondary" style="width:100%;" onclick="logout()">Logout</button>
-            </div>
-            <div class="user-box" style="margin-top: 12px;">
-              <strong id="user-state">Neautentificat</strong>
-              <span class="muted" id="user-role">Logheaza-te pentru cos si comenzi.</span>
-            </div>
-          </div>
-        </section>
+              <div class="category-list" id="category-list">
+                <button class="category-item active" onclick="selectCategory(null)">Toate produsele <span>0</span></button>
+              </div>
+            </section>
 
-        <section class="panel" id="cart" style="margin-top: 18px;">
+            <section class="mini-stack">
+              <article class="mini-card">
+                <strong>Stack tehnic</strong>
+                <p>Catalogul vine din `product-service`, coșul din Redis, iar comenzile merg mai departe prin `order-service`.</p>
+              </article>
+              <article class="mini-card">
+                <strong>Status operațional</strong>
+                <p>După checkout, fluxul trece prin rezervare de stoc și procesarea plății înainte de confirmare.</p>
+              </article>
+            </section>
+          </aside>
+
+          <div class="catalog-main">
+            <article class="catalog-banner">
+              <h1>Componente și periferice IT pentru setup-uri curate.</h1>
+              <p>
+                Interfața păstrează catalogul într-o zonă de browsing clară, separată de workspace-ul de cont,
+                astfel încât utilizatorul să nu simtă că este într-un formular tehnic continuu.
+              </p>
+            </article>
+
+            <div class="toolbar">
+              <select id="sort-select" onchange="renderProducts()">
+                <option value="name">Sortare: nume</option>
+                <option value="price-asc">Preț crescător</option>
+                <option value="price-desc">Preț descrescător</option>
+              </select>
+              <button class="secondary" onclick="loadProducts()">Refresh catalog</button>
+              <button class="secondary" onclick="focusCart()">Vezi coșul</button>
+            </div>
+
+            <div class="product-grid" id="products"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="workspace">
+        <div class="workspace-head">
+          <div>
+            <h2>Workspace client</h2>
+            <p>
+              Zona asta grupează autentificarea, coșul și checkout-ul, fără să te oblige să sari între panouri mici.
+            </p>
+          </div>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="panel workspace-panel" id="account">
+            <div class="panel-head">
+              <h3 class="panel-title">Cont client</h3>
+              <button class="secondary" onclick="logout()">Logout</button>
+            </div>
+            <div class="account-content">
+              <p class="workspace-copy">
+                Creează un cont nou sau autentifică-te ca să poți adăuga produse în coș și să trimiți comenzi.
+              </p>
+              <div class="auth-grid">
+                <input id="username" placeholder="User" autocomplete="username" />
+                <input id="email" placeholder="Email" autocomplete="email" />
+                <input id="password" placeholder="Parolă" type="password" autocomplete="new-password" />
+                <input id="address" placeholder="Adresă livrare" autocomplete="street-address" />
+                <div class="dual-actions">
+                  <button class="primary" onclick="login()">Login</button>
+                  <button class="secondary" onclick="register()">Creează cont</button>
+                </div>
+              </div>
+              <div class="user-box" style="margin-top: 14px;">
+                <strong id="user-state">Neautentificat</strong>
+                <span class="muted" id="user-role">Loghează-te pentru coș și comenzi.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel workspace-panel" id="cart">
+            <div class="panel-head">
+              <h3 class="panel-title">Coș și checkout</h3>
+              <div class="cart-actions">
+                <button class="secondary" onclick="loadCart()">Refresh</button>
+                <button class="secondary" onclick="clearCart()">Golește coșul</button>
+              </div>
+            </div>
+            <div class="cart-content">
+              <p class="workspace-copy">
+                Produsele adăugate apar aici, împreună cu totalul și comenzile rapide de modificare a cantității.
+              </p>
+              <div id="cart-output">
+                <div class="empty">Coșul este gol.</div>
+              </div>
+              <button class="primary" style="width:100%; margin-top: 16px;" onclick="placeOrder()">Trimite comanda</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="section">
+        <section class="panel order-panel" id="orders">
           <div class="panel-head">
-            <h2 class="panel-title">Cos cumparaturi</h2>
-            <div style="display:flex; gap:8px;">
-              <button class="secondary" onclick="loadCart()">Refresh</button>
-              <button class="secondary" onclick="clearCart()">Goleste cos</button>
-            </div>
+            <h3 class="panel-title">Ultima comandă</h3>
+            <button class="secondary" onclick="loadOrder()">Verifică statusul</button>
           </div>
-          <div class="cart-content">
-            <div id="cart-output">
-              <div class="empty">Cosul este gol.</div>
-            </div>
-            <button class="primary" style="width:100%; margin-top: 14px;" onclick="placeOrder()">Trimite comanda</button>
+          <div class="order-content" id="order-output">
+            <div class="empty">Nu există comenzi în sesiunea curentă.</div>
           </div>
         </section>
+      </section>
 
-        <section class="panel" id="orders" style="margin-top: 18px;">
-          <div class="panel-head">
-            <h2 class="panel-title">Ultima comanda</h2>
-            <button class="secondary" onclick="loadOrder()">Verifica</button>
-          </div>
-          <div class="cart-content" id="order-output">
-            <div class="empty">Nu exista comenzi in sesiunea curenta.</div>
-          </div>
-        </section>
-      </aside>
-
-      <section class="panel admin-panel" id="admin-panel">
+      <section class="section panel admin-panel" id="admin-panel">
         <div class="panel-head">
-          <h2 class="panel-title">Administrare catalog</h2>
-          <span class="muted">Disponibil doar pentru rol admin</span>
+          <div>
+            <h3 class="panel-title">Studio admin</h3>
+            <p class="section-subtitle">Gestionarea categoriilor și produselor rămâne izolată de experiența clientului.</p>
+          </div>
+          <span class="status-badge">Admin only</span>
         </div>
         <div class="admin-content">
           <div class="admin-grid">
             <div class="stack">
-              <strong>Categorie noua</strong>
+              <strong>Categorie nouă</strong>
               <input id="category-name" placeholder="Nume categorie" />
               <textarea id="category-description" placeholder="Descriere categorie"></textarea>
-              <button class="primary" onclick="createCategory()">Adauga categorie</button>
+              <button class="primary" onclick="createCategory()">Adaugă categorie</button>
             </div>
             <div class="stack">
               <strong>Produs nou</strong>
               <input id="admin-product-name" placeholder="Nume produs" />
               <textarea id="admin-product-description" placeholder="Descriere produs"></textarea>
-              <input id="admin-product-price" placeholder="Pret" type="number" step="0.01" />
+              <input id="admin-product-price" placeholder="Preț" type="number" step="0.01" />
               <select id="admin-product-category-id"></select>
-              <button class="primary" onclick="createProduct()">Adauga produs</button>
-              <button class="secondary" onclick="deleteProduct()">Sterge produs dupa ID</button>
+              <button class="primary" onclick="createProduct()">Adaugă produs</button>
+              <button class="secondary" onclick="deleteProduct()">Șterge produs după ID</button>
             </div>
           </div>
-          <pre class="admin-result" id="admin-output">Actiunile admin vor aparea aici.</pre>
+          <pre class="admin-result" id="admin-output">Acțiunile admin vor apărea aici.</pre>
         </div>
       </section>
-    </main>
+
+      <footer class="footer">
+        <div class="footer-grid">
+          <div>
+            <h3>Magazon</h3>
+            <p class="footer-note">
+              Storefront demonstrativ pentru un stack cu microservicii, PostgreSQL, Redis și Kafka,
+              dar prezentat într-o interfață mai apropiată de un magazin online real.
+            </p>
+          </div>
+          <div>
+            <strong>Zone rapide</strong>
+            <p class="footer-note">Catalog, cont client, coș, comenzi și studio admin într-o structură pe secțiuni clare.</p>
+          </div>
+          <div>
+            <strong>Flux backend</strong>
+            <p class="footer-note">Auth → Cart → Order → Inventory → Payment, cu statusurile vizibile în frontend.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
 
     <div class="toast" id="toast"></div>
 
@@ -789,16 +1211,16 @@
 
       function productSvg(product) {
         const category = (product.category_name || "").toLowerCase();
-        const color = category.includes("keyboard") ? "#0b63ce" : category.includes("mice") ? "#178244" : "#f08a24";
+        const color = category.includes("keyboard") ? "#b8571b" : category.includes("mice") ? "#0f766e" : "#3156c6";
         const label = (product.name || "IT").slice(0, 2).toUpperCase();
         return `
           <svg viewBox="0 0 120 120" role="img" aria-label="${product.name}">
-            <rect x="14" y="24" width="92" height="72" rx="12" fill="#ffffff" stroke="#c8d3e1" stroke-width="3"/>
+            <rect x="14" y="24" width="92" height="72" rx="12" fill="#ffffff" stroke="#d9cfbf" stroke-width="3"/>
             <rect x="24" y="36" width="72" height="14" rx="4" fill="${color}" opacity="0.9"/>
-            <rect x="25" y="60" width="14" height="10" rx="2" fill="#d9e0ea"/>
-            <rect x="44" y="60" width="14" height="10" rx="2" fill="#d9e0ea"/>
-            <rect x="63" y="60" width="14" height="10" rx="2" fill="#d9e0ea"/>
-            <rect x="82" y="60" width="14" height="10" rx="2" fill="#d9e0ea"/>
+            <rect x="25" y="60" width="14" height="10" rx="2" fill="#e6ddcf"/>
+            <rect x="44" y="60" width="14" height="10" rx="2" fill="#e6ddcf"/>
+            <rect x="63" y="60" width="14" height="10" rx="2" fill="#e6ddcf"/>
+            <rect x="82" y="60" width="14" height="10" rx="2" fill="#e6ddcf"/>
             <text x="60" y="88" text-anchor="middle" font-size="18" font-weight="800" fill="#18202b">${label}</text>
           </svg>
         `;
@@ -814,7 +1236,7 @@
 
       function updateUserState() {
         document.getElementById("user-state").innerText = state.email ? state.email : "Neautentificat";
-        document.getElementById("user-role").innerText = state.role ? `Rol: ${state.role}` : "Logheaza-te pentru cos si comenzi.";
+        document.getElementById("user-role").innerText = state.role ? `Rol: ${state.role}` : "Loghează-te pentru coș și comenzi.";
         const isAdmin = state.role === "admin";
         document.getElementById("admin-panel").classList.toggle("visible", isAdmin);
         document.getElementById("admin-nav").style.display = isAdmin ? "inline" : "none";
@@ -831,7 +1253,7 @@
         document.getElementById("email").value = "";
         document.getElementById("password").value = "";
         document.getElementById("address").value = "";
-        document.getElementById("order-output").innerHTML = `<div class="empty">Nu exista comenzi in sesiunea curenta.</div>`;
+        document.getElementById("order-output").innerHTML = `<div class="empty">Nu există comenzi în sesiunea curentă.</div>`;
         renderCart({ items: [], total: 0 });
         updateUserState();
         toast("Deconectat.");
@@ -839,7 +1261,7 @@
 
       function updateCategorySelect() {
         const select = document.getElementById("admin-product-category-id");
-        select.innerHTML = `<option value="">Fara categorie</option>`;
+        select.innerHTML = `<option value="">Fără categorie</option>`;
         state.categories.forEach((category) => {
           const option = document.createElement("option");
           option.value = category.id;
@@ -904,7 +1326,7 @@
         document.getElementById("catalog-status").innerText = `${items.length} produse`;
         root.innerHTML = "";
         if (!items.length) {
-          root.innerHTML = `<div class="panel" style="padding:18px;"><div class="empty">Nu am gasit produse pentru filtrul curent.</div></div>`;
+          root.innerHTML = `<div class="panel" style="padding:18px;"><div class="empty">Nu am găsit produse pentru filtrul curent.</div></div>`;
           return;
         }
         items.forEach((product) => {
@@ -918,7 +1340,7 @@
               <p class="product-description">${product.description}</p>
               <div class="price-row">
                 <span class="price">${formatPrice(product.price)}</span>
-                <button class="buy-button">Adauga</button>
+                <button class="buy-button">Adaugă</button>
               </div>
             </div>
           `;
@@ -941,7 +1363,7 @@
           renderCategories();
           renderProducts();
         } catch (error) {
-          toast(`Nu pot incarca produsele: ${error.message}`);
+          toast(`Nu pot încărca produsele: ${error.message}`);
           document.getElementById("catalog-status").innerText = "Eroare";
         }
       }
@@ -969,16 +1391,11 @@
           const address = document.getElementById("address").value.trim();
 
           if (!username || !email || !password || !address) {
-            toast("Completeaza user, email, parola si adresa.");
+            toast("Completează user, email, parolă și adresă.");
             return;
           }
 
-          const body = {
-            username,
-            email,
-            password,
-            address
-          };
+          const body = { username, email, password, address };
           const result = await request(`${endpoints.auth}/register`, {
             method: "POST",
             body: JSON.stringify(body)
@@ -990,7 +1407,7 @@
           updateUserState();
           toast(`Cont creat pentru ${result.username}.`);
         } catch (error) {
-          toast(`Crearea contului a esuat: ${error.message}`);
+          toast(`Crearea contului a eșuat: ${error.message}`);
         }
       }
 
@@ -1010,20 +1427,20 @@
           state.role = await resolveRole(result.token, result.role);
           document.getElementById("password").value = "";
           updateUserState();
-          toast("Autentificare reusita.");
+          toast("Autentificare reușită.");
           try {
             await loadCart();
           } catch (cartError) {
-            toast(`Autentificat, dar cosul nu a putut fi incarcat: ${cartError.message}`);
+            toast(`Autentificat, dar coșul nu a putut fi încărcat: ${cartError.message}`);
           }
         } catch (error) {
-          toast(`Login esuat: ${error.message}`);
+          toast(`Login eșuat: ${error.message}`);
         }
       }
 
       async function addToCart(productId) {
         if (!state.userId) {
-          toast("Autentifica-te pentru a adauga produse in cos.");
+          toast("Autentifică-te pentru a adăuga produse în coș.");
           focusAccount();
           return;
         }
@@ -1033,7 +1450,7 @@
           body: JSON.stringify({ user_id: state.userId, product_id: productId, quantity: 1 })
         });
         await loadCart();
-        toast("Produs adaugat in cos.");
+        toast("Produs adăugat în coș.");
       }
 
       async function loadCart() {
@@ -1054,7 +1471,7 @@
         const count = (cart.items || []).reduce((sum, item) => sum + item.quantity, 0);
         document.getElementById("cart-count").innerText = count;
         if (!cart.items || !cart.items.length) {
-          root.innerHTML = `<div class="empty">Cosul este gol.</div>`;
+          root.innerHTML = `<div class="empty">Coșul este gol.</div>`;
           return;
         }
         const items = cart.items.map((item) => `
@@ -1062,10 +1479,10 @@
             <div>
               <strong>${item.name}</strong>
               <span>${item.quantity} x ${formatPrice(item.price)}</span>
-              <div style="display:flex; gap:6px; margin-top:6px;">
+              <div class="inline-actions">
                 <button class="secondary" onclick="changeCartQuantity(${item.product_id}, ${item.quantity - 1})">-</button>
                 <button class="secondary" onclick="changeCartQuantity(${item.product_id}, ${item.quantity + 1})">+</button>
-                <button class="secondary" onclick="removeFromCart(${item.product_id})">Sterge</button>
+                <button class="secondary" onclick="removeFromCart(${item.product_id})">Șterge</button>
               </div>
             </div>
             <strong>${formatPrice(item.subtotal)}</strong>
@@ -1082,13 +1499,13 @@
 
       async function placeOrder() {
         if (!state.userId) {
-          toast("Autentifica-te pentru a trimite comanda.");
+          toast("Autentifică-te pentru a trimite comanda.");
           return;
         }
         try {
           const cart = await loadCart();
           if (!cart.items.length) {
-            toast("Cosul este gol.");
+            toast("Coșul este gol.");
             return;
           }
           document.getElementById("catalog-status").innerText = "Trimitem comanda...";
@@ -1104,19 +1521,19 @@
           state.lastOrderId = result.order_id;
           renderOrder(result);
           await clearCart(true);
-          toast(`Comanda #${result.order_id} a fost plasata.`);
+          toast(`Comanda #${result.order_id} a fost plasată.`);
           window.setTimeout(() => {
             loadOrder().catch(() => {});
           }, 1500);
         } catch (error) {
-          document.getElementById("catalog-status").innerText = "Eroare la comanda";
-          toast(`Comanda nu a fost trimisa: ${error.message}`);
+          document.getElementById("catalog-status").innerText = "Eroare la comandă";
+          toast(`Comanda nu a fost trimisă: ${error.message}`);
         }
       }
 
       async function changeCartQuantity(productId, quantity) {
         if (!state.userId) {
-          toast("Autentifica-te mai intai.");
+          toast("Autentifică-te mai întâi.");
           return;
         }
         await request(`${endpoints.cart}/cart/replace`, {
@@ -1133,7 +1550,7 @@
 
       async function removeFromCart(productId) {
         if (!state.userId) {
-          toast("Autentifica-te mai intai.");
+          toast("Autentifică-te mai întâi.");
           return;
         }
         await request(`${endpoints.cart}/cart/${state.userId}/items/${productId}`, {
@@ -1141,12 +1558,12 @@
           headers: { Authorization: `Bearer ${state.token}` }
         });
         await loadCart();
-        toast("Produs scos din cos.");
+        toast("Produs scos din coș.");
       }
 
       async function clearCart(silent = false) {
         if (!state.userId) {
-          toast("Autentifica-te mai intai.");
+          toast("Autentifică-te mai întâi.");
           return;
         }
         await request(`${endpoints.cart}/cart/${state.userId}`, {
@@ -1155,13 +1572,13 @@
         });
         await loadCart();
         if (!silent) {
-          toast("Cos golit.");
+          toast("Coș golit.");
         }
       }
 
       async function loadOrder() {
         if (!state.lastOrderId) {
-          toast("Nu exista o comanda recenta in sesiune.");
+          toast("Nu există o comandă recentă în sesiune.");
           return;
         }
         const result = await request(`${endpoints.orders}/orders/${state.lastOrderId}`, {
@@ -1169,13 +1586,13 @@
         });
         renderOrder(result);
         if (result.status === "paid") {
-          document.getElementById("catalog-status").innerText = "Plata finalizata";
+          document.getElementById("catalog-status").innerText = "Plata finalizată";
         } else if (result.status === "inventory_failed") {
           document.getElementById("catalog-status").innerText = "Stoc insuficient";
         } else if (result.status === "payment_failed") {
-          document.getElementById("catalog-status").innerText = "Plata esuata";
+          document.getElementById("catalog-status").innerText = "Plata eșuată";
         } else {
-          document.getElementById("catalog-status").innerText = "Comanda in procesare";
+          document.getElementById("catalog-status").innerText = "Comandă în procesare";
         }
       }
 
@@ -1197,7 +1614,7 @@
         root.innerHTML = `
           <strong>Comanda #${order.order_id}</strong>
           <div class="muted" style="margin-top:4px;">Status: ${order.status}</div>
-          <div class="order-items">${items}</div>
+          <div class="order-items">${items || `<div class="empty">Nu există linii de comandă.</div>`}</div>
           <div class="summary-row">
             <span>Total</span>
             <span>${formatPrice(order.total)}</span>
@@ -1217,9 +1634,9 @@
           });
           document.getElementById("admin-output").innerText = JSON.stringify(result, null, 2);
           await loadProducts();
-          toast("Categorie adaugata.");
+          toast("Categorie adăugată.");
         } catch (error) {
-          toast(`Categoria nu a fost creata: ${error.message}`);
+          toast(`Categoria nu a fost creată: ${error.message}`);
         }
       }
 
@@ -1238,7 +1655,7 @@
           });
           document.getElementById("admin-output").innerText = JSON.stringify(result, null, 2);
           await loadProducts();
-          toast("Produs adaugat.");
+          toast("Produs adăugat.");
         } catch (error) {
           toast(`Produsul nu a fost creat: ${error.message}`);
         }
@@ -1246,7 +1663,7 @@
 
       async function deleteProduct() {
         try {
-          const productId = Number(prompt("ID produs de sters"));
+          const productId = Number(prompt("ID produs de șters"));
           if (!productId) {
             return;
           }
@@ -1256,9 +1673,9 @@
           });
           document.getElementById("admin-output").innerText = JSON.stringify(result, null, 2);
           await loadProducts();
-          toast("Produs sters.");
+          toast("Produs șters.");
         } catch (error) {
-          toast(`Produsul nu a fost sters: ${error.message}`);
+          toast(`Produsul nu a fost șters: ${error.message}`);
         }
       }
 
