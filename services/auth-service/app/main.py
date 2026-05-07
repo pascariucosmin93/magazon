@@ -67,9 +67,17 @@ async def startup():
                 )
             )
             db.commit()
-        elif not verify_password(ADMIN_PASSWORD, admin.password) or password_needs_rehash(admin.password):
-            admin.password = hash_password(ADMIN_PASSWORD)
-            db.commit()
+        else:
+            changed = False
+            if admin.role != "admin":
+                admin.role = "admin"
+                changed = True
+            if not verify_password(ADMIN_PASSWORD, admin.password) or password_needs_rehash(admin.password):
+                admin.password = hash_password(ADMIN_PASSWORD)
+                changed = True
+            if changed:
+                db.add(admin)
+                db.commit()
 
 
 app = create_base_app("auth-service", startup_hook=startup, enable_kafka=True, check_db=True)
