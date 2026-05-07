@@ -763,8 +763,19 @@
           ...options
         });
         if (!response.ok) {
-          const error = await response.text();
-          throw new Error(error);
+          const raw = await response.text();
+          let message = raw;
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed.detail === "string") {
+              message = parsed.detail;
+            } else if (parsed && typeof parsed.message === "string") {
+              message = parsed.message;
+            }
+          } catch (_error) {
+            message = raw;
+          }
+          throw new Error(message || `HTTP ${response.status}`);
         }
         return response.json();
       }
@@ -961,8 +972,12 @@
           state.token = result.token;
           state.role = await resolveRole(result.token, result.role);
           updateUserState();
-          await loadCart();
           toast("Autentificare reusita.");
+          try {
+            await loadCart();
+          } catch (cartError) {
+            toast(`Autentificat, dar cosul nu a putut fi incarcat: ${cartError.message}`);
+          }
         } catch (error) {
           toast(`Login esuat: ${error.message}`);
         }
