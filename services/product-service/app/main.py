@@ -188,6 +188,21 @@ def create_product(
     return serialize_product(product, categories_by_id)
 
 
+@app.delete("/products/{product_id}")
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    db.delete(product)
+    db.commit()
+    redis_client.delete(PRODUCT_CACHE_KEY)
+    return {"message": "Product deleted", "id": product_id}
+
+
 @app.post("/categories")
 def create_category(
     payload: CategoryRequest,

@@ -664,6 +664,7 @@
                 <button class="primary" onclick="login()">Login</button>
                 <button class="secondary" onclick="register()">Creeaza cont</button>
               </div>
+              <button class="secondary" style="width:100%;" onclick="logout()">Logout</button>
             </div>
             <div class="user-box" style="margin-top: 12px;">
               <strong id="user-state">Neautentificat</strong>
@@ -675,7 +676,10 @@
         <section class="panel" id="cart" style="margin-top: 18px;">
           <div class="panel-head">
             <h2 class="panel-title">Cos cumparaturi</h2>
-            <button class="secondary" onclick="loadCart()">Refresh</button>
+            <div style="display:flex; gap:8px;">
+              <button class="secondary" onclick="loadCart()">Refresh</button>
+              <button class="secondary" onclick="clearCart()">Goleste cos</button>
+            </div>
           </div>
           <div class="cart-content">
             <div id="cart-output">
@@ -716,6 +720,7 @@
               <input id="admin-product-price" placeholder="Pret" type="number" step="0.01" />
               <select id="admin-product-category-id"></select>
               <button class="primary" onclick="createProduct()">Adauga produs</button>
+              <button class="secondary" onclick="deleteProduct()">Sterge produs dupa ID</button>
             </div>
           </div>
           <pre class="admin-result" id="admin-output">Actiunile admin vor aparea aici.</pre>
@@ -811,6 +816,21 @@
         const isAdmin = state.role === "admin";
         document.getElementById("admin-panel").classList.toggle("visible", isAdmin);
         document.getElementById("admin-nav").style.display = isAdmin ? "inline" : "none";
+      }
+
+      function logout() {
+        state.userId = null;
+        state.email = null;
+        state.token = null;
+        state.role = null;
+        state.lastOrderId = null;
+        state.cart = null;
+        document.getElementById("email").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("order-output").innerHTML = `<div class="empty">Nu exista comenzi in sesiunea curenta.</div>`;
+        renderCart({ items: [], total: 0 });
+        updateUserState();
+        toast("Deconectat.");
       }
 
       function updateCategorySelect() {
@@ -971,6 +991,7 @@
           state.email = result.email;
           state.token = result.token;
           state.role = await resolveRole(result.token, result.role);
+          document.getElementById("password").value = "";
           updateUserState();
           toast("Autentificare reusita.");
           try {
@@ -1024,6 +1045,11 @@
             <div>
               <strong>${item.name}</strong>
               <span>${item.quantity} x ${formatPrice(item.price)}</span>
+              <div style="display:flex; gap:6px; margin-top:6px;">
+                <button class="secondary" onclick="changeCartQuantity(${item.product_id}, ${item.quantity - 1})">-</button>
+                <button class="secondary" onclick="changeCartQuantity(${item.product_id}, ${item.quantity + 1})">+</button>
+                <button class="secondary" onclick="removeFromCart(${item.product_id})">Sterge</button>
+              </div>
             </div>
             <strong>${formatPrice(item.subtotal)}</strong>
           </div>
@@ -1060,6 +1086,49 @@
         state.lastOrderId = result.order_id;
         renderOrder(result);
         toast(`Comanda #${result.order_id} a fost plasata.`);
+      }
+
+      async function changeCartQuantity(productId, quantity) {
+        if (!state.userId) {
+          toast("Autentifica-te mai intai.");
+          return;
+        }
+        await request(`${endpoints.cart}/cart/replace`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${state.token}` },
+          body: JSON.stringify({
+            user_id: state.userId,
+            product_id: productId,
+            quantity
+          })
+        });
+        await loadCart();
+      }
+
+      async function removeFromCart(productId) {
+        if (!state.userId) {
+          toast("Autentifica-te mai intai.");
+          return;
+        }
+        await request(`${endpoints.cart}/cart/${state.userId}/items/${productId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${state.token}` }
+        });
+        await loadCart();
+        toast("Produs scos din cos.");
+      }
+
+      async function clearCart() {
+        if (!state.userId) {
+          toast("Autentifica-te mai intai.");
+          return;
+        }
+        await request(`${endpoints.cart}/cart/${state.userId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${state.token}` }
+        });
+        await loadCart();
+        toast("Cos golit.");
       }
 
       async function loadOrder() {
@@ -1135,6 +1204,24 @@
           toast("Produs adaugat.");
         } catch (error) {
           toast(`Produsul nu a fost creat: ${error.message}`);
+        }
+      }
+
+      async function deleteProduct() {
+        try {
+          const productId = Number(prompt("ID produs de sters"));
+          if (!productId) {
+            return;
+          }
+          const result = await request(`${endpoints.products}/products/${productId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${state.token}` }
+          });
+          document.getElementById("admin-output").innerText = JSON.stringify(result, null, 2);
+          await loadProducts();
+          toast("Produs sters.");
+        } catch (error) {
+          toast(`Produsul nu a fost sters: ${error.message}`);
         }
       }
 

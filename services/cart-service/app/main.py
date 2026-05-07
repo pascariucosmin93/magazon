@@ -85,6 +85,18 @@ def clear_cart(user_id: int, claims: dict = Depends(current_user_claims)):
 @app.post("/cart/replace")
 def replace_cart(payload: CartItemRequest, claims: dict = Depends(current_user_claims)):
     require_user_id(payload.user_id, claims)
+    if payload.quantity < 1:
+        redis_client.hdel(cart_key(payload.user_id), payload.product_id)
+        redis_client.expire(cart_key(payload.user_id), 86400)
+        return {"message": "Item removed from cart"}
     redis_client.hset(cart_key(payload.user_id), payload.product_id, payload.quantity)
     redis_client.expire(cart_key(payload.user_id), 86400)
     return {"message": "Cart updated"}
+
+
+@app.delete("/cart/{user_id}/items/{product_id}")
+def remove_cart_item(user_id: int, product_id: int, claims: dict = Depends(current_user_claims)):
+    require_user_id(user_id, claims)
+    redis_client.hdel(cart_key(user_id), product_id)
+    redis_client.expire(cart_key(user_id), 86400)
+    return {"message": "Item removed from cart"}
