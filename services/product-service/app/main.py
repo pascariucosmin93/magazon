@@ -4,12 +4,12 @@ from datetime import datetime
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
-import requests
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Session
 
+from shared.auth import current_user_claims
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.redis_client import redis_client
@@ -17,7 +17,6 @@ from shared.service_app import create_base_app
 
 
 PRODUCT_CACHE_KEY = "products:all"
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth-service:8000")
 
 
 class Category(Base):
@@ -103,28 +102,10 @@ async def startup():
 app = create_base_app("product-service", startup_hook=startup, check_db=True, check_redis=True)
 
 
-def get_auth_context(token: str | None) -> dict:
-    if not token:
-        raise HTTPException(status_code=401, detail="Admin token required")
-    if token.lower().startswith("bearer "):
-        token = token.split(" ", 1)[1].strip()
-    try:
-        response = requests.get(f"{AUTH_SERVICE_URL}/validate/{token}", timeout=3)
-    except requests.RequestException as exc:
-        raise HTTPException(status_code=503, detail="Auth service unavailable") from exc
-    if response.status_code != 200:
-        raise HTTPException(status_code=401, detail="Invalid admin token")
-    return response.json()
-
-
-def require_admin(
-    authorization: str | None = Header(default=None),
-    x_auth_token: str | None = Header(default=None),
-):
-    context = get_auth_context(authorization or x_auth_token)
-    if context.get("role") != "admin":
+def require_admin(claims: dict = Depends(current_user_claims)):
+    if claims.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin role required")
-    return context
+    return claims
 
 
 def serialize_product(product: Product, categories_by_id: dict[int, Category]) -> dict:

@@ -1,4 +1,4 @@
-import { endpoints, AUTH_STORAGE_KEY, LAST_ORDER_STORAGE_KEY } from "../shared/constants.js";
+import { endpoints, LAST_ORDER_STORAGE_KEY } from "../shared/constants.js";
 import { request } from "../shared/http.js";
 import { toast } from "../shared/ui.js";
 import { state } from "./state.js";
@@ -50,31 +50,26 @@ export function updateUserState() {
   toggleGuestCheckout();
 }
 
-export async function resolveRole(token, fallbackRole = null) {
-  if (fallbackRole) {
-    return fallbackRole;
-  }
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const session = await request(`${endpoints.auth}/validate/${token}`);
-    return session.role || fallbackRole || "customer";
-  } catch (_error) {
-    return fallbackRole || "customer";
-  }
+export async function loadSession() {
+  const session = await request(`${endpoints.auth}/session`);
+  state.userId = session.user_id;
+  state.email = session.email;
+  state.role = session.role;
+  return session;
 }
 
-export function logout() {
+export async function logout() {
+  try {
+    await request(`${endpoints.auth}/logout`, { method: "POST" });
+  } catch (_error) {
+    // Best effort logout; local state still gets cleared.
+  }
   state.userId = null;
   state.email = null;
-  state.token = null;
   state.role = null;
   state.lastOrderId = null;
   state.lastOrderToken = null;
   state.cart = null;
-  localStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
   document.getElementById("order-output").innerHTML = `<div class="empty">Nu există încă o comandă trimisă din sesiunea curentă.</div>`;
   if (renderCartHandler && guestCartProvider) {

@@ -11,8 +11,8 @@ import {
 } from "./cart.js";
 import { createCategory, createProduct, deleteProduct } from "./admin.js";
 import { loadOrder, placeOrder } from "./orders.js";
-import { focusAccount, focusCart, goToLogin, logout, openAccount, resolveRole, updateUserState } from "./session.js";
-import { loadAuth, loadLastOrderContext, saveAuth } from "./storage.js";
+import { focusAccount, focusCart, goToLogin, logout, openAccount, loadSession, updateUserState } from "./session.js";
+import { loadLastOrderContext } from "./storage.js";
 import { state } from "./state.js";
 import { configureCatalog } from "./catalog.js";
 import { configureAdmin } from "./admin.js";
@@ -51,22 +51,16 @@ export async function bootstrap() {
   });
   exposeGlobals();
 
-  loadAuth();
   loadLastOrderContext();
   updateUserState();
   await loadProducts();
 
-  if (state.userId) {
-    try {
-      state.role = await resolveRole(state.token, state.role);
-      saveAuth();
-      updateUserState();
-      await syncGuestCartToServer();
-      await loadCart();
-    } catch (_error) {
-      logout();
-    }
-  } else {
+  try {
+    await loadSession();
+    updateUserState();
+    await syncGuestCartToServer();
+    await loadCart();
+  } catch (_error) {
     renderCart(guestCartFromStorage());
   }
 }

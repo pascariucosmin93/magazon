@@ -19,7 +19,7 @@ async def startup():
     consumer_task = asyncio.create_task(
         consume_topics(
             "notification-service",
-            ["user.created", "order.created", "payment.completed"],
+            ["user.created", "user.password_reset_requested", "order.created", "payment.completed"],
             handle_notifications,
         )
     )
@@ -45,6 +45,12 @@ app = create_base_app(
 @app.get("/notifications/info")
 def notifications_info():
     return {
-        "topics": ["user.created", "order.created", "payment.completed", "notification.sent"],
+        "topics": [
+            "user.created",
+            "user.password_reset_requested",
+            "order.created",
+            "payment.completed",
+            "notification.sent",
+        ],
         "mode": "log-only",
     }

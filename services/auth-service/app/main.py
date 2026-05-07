@@ -1,26 +1,31 @@
 import os
 from hashlib import sha256
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request, Response
 import jwt
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import Session
 
+from shared.auth import current_user_claims
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import publish_event
+from shared.rate_limit import enforce_rate_limit
 from shared.service_app import create_base_app
 
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@microshop.local")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+AUTH_COOKIE_NAME = "access_token"
+PASSWORD_RESET_EXPIRE_MINUTES = int(os.getenv("PASSWORD_RESET_EXPIRE_MINUTES", "30"))
 password_hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2)
 
 
@@ -32,6 +37,8 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     password = Column(String(255), nullable=False)
     address = Column(String(255), nullable=False, default="")
+    reset_token_hash = Column(String(64), nullable=True)
+    reset_token_expires_at = Column(DateTime, nullable=True)
     role = Column(String(50), nullable=False, default="customer")
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -46,6 +53,15 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6, max_length=255)
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirmRequest(BaseModel):
+    token: str = Field(min_length=16, max_length=255)
+    password: str = Field(min_length=8, max_length=255)
 
 
 def _run_migrations() -> None:
@@ -145,8 +161,27 @@ def decode_access_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
 
+def set_auth_cookie(response: Response, token: str, request: Request) -> None:
+    forwarded_proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    response.set_cookie(
+        key=AUTH_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=forwarded_proto == "https",
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+
+
+def clear_auth_cookie(response: Response) -> None:
+    response.delete_cookie(key=AUTH_COOKIE_NAME, path="/")
+
+
 @app.post("/register")
-async def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+async def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"auth:register:{client_ip}", limit=10, window_seconds=300)
     normalized_username = payload.username.strip()
     normalized_address = payload.address.strip()
     normalized_email = payload.email.strip().lower()
@@ -186,7 +221,14 @@ async def register(payload: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @app.post("/login")
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+def login(
+    payload: LoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"auth:login:{client_ip}", limit=12, window_seconds=300)
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -196,15 +238,86 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         db.commit()
 
     token = create_access_token(user)
+    set_auth_cookie(response, token, request)
     return {"token": token, "user_id": user.id, "email": user.email, "role": user.role}
 
 
-@app.get("/validate/{token}")
-def validate_token(token: str):
-    claims = decode_access_token(token)
+@app.post("/logout")
+def logout(response: Response):
+    clear_auth_cookie(response)
+    return {"message": "Logged out"}
+
+
+def _serialize_claims(claims: dict) -> dict:
     user_id = claims.get("sub")
     role = claims.get("role")
     email = claims.get("email")
     if not user_id or not role or not email:
         raise HTTPException(status_code=401, detail="Invalid token")
     return {"valid": True, "user_id": int(user_id), "role": role, "email": email}
+
+
+@app.get("/session")
+def session(claims: dict = Depends(current_user_claims)):
+    return _serialize_claims(claims)
+
+
+@app.post("/validate")
+def validate_token(claims: dict = Depends(current_user_claims)):
+    return _serialize_claims(claims)
+
+
+@app.post("/password-reset/request")
+async def request_password_reset(
+    payload: PasswordResetRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"auth:password-reset:{client_ip}", limit=5, window_seconds=900)
+
+    user = db.query(User).filter(User.email == payload.email.strip().lower()).first()
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_token_hash = sha256(token.encode("utf-8")).hexdigest()
+        user.reset_token_expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES)
+        db.add(user)
+        db.commit()
+        await publish_event(
+            "user.password_reset_requested",
+            {
+                "user_id": user.id,
+                "email": user.email,
+                "reset_token": token,
+                "expires_in_minutes": PASSWORD_RESET_EXPIRE_MINUTES,
+            },
+        )
+
+    return {"message": "If the account exists, reset instructions were generated."}
+
+
+@app.post("/password-reset/confirm")
+def confirm_password_reset(
+    payload: PasswordResetConfirmRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"auth:password-reset-confirm:{client_ip}", limit=10, window_seconds=900)
+
+    token_hash = sha256(payload.token.encode("utf-8")).hexdigest()
+    user = db.query(User).filter(User.reset_token_hash == token_hash).first()
+    if not user or not user.reset_token_expires_at or user.reset_token_expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user.password = hash_password(payload.password)
+    user.reset_token_hash = None
+    user.reset_token_expires_at = None
+    db.add(user)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+
+@app.get("/validate/{token}")
+def validate_token_legacy(token: str):
+    return _serialize_claims(decode_access_token(token))

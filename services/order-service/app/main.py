@@ -6,7 +6,7 @@ from datetime import datetime
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 import requests
-from fastapi import Depends, HTTPException, Query
+from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Session, relationship
@@ -233,7 +233,7 @@ async def create_order(
 @app.get("/orders/{order_id}")
 def get_order(
     order_id: int,
-    guest_token: str | None = Query(default=None),
+    x_guest_token: str | None = Header(default=None),
     db: Session = Depends(get_db),
     claims: dict | None = Depends(optional_user_claims),
 ):
@@ -245,6 +245,6 @@ def get_order(
             raise HTTPException(status_code=401, detail="Authorization required")
         require_user_id(order.user_id, claims)
     else:
-        if not guest_token or guest_token != order.guest_token:
+        if not x_guest_token or x_guest_token != order.guest_token:
             raise HTTPException(status_code=401, detail="Guest token required")
     return serialize_order(order)

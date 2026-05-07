@@ -1,38 +1,10 @@
-import {
-  AUTH_STORAGE_KEY,
-  GUEST_CART_STORAGE_KEY,
-  LAST_ORDER_STORAGE_KEY
-} from "../shared/constants.js";
+import { GUEST_CART_STORAGE_KEY, LAST_ORDER_STORAGE_KEY } from "../shared/constants.js";
 import { state } from "./state.js";
 
-export function saveAuth() {
-  if (!state.token || !state.userId) {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    return;
-  }
-
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
-    userId: state.userId,
-    email: state.email,
-    token: state.token,
-    role: state.role
-  }));
-}
-
-export function loadAuth() {
-  try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) {
-      return;
-    }
-    const parsed = JSON.parse(raw);
-    state.userId = parsed.userId || null;
-    state.email = parsed.email || null;
-    state.token = parsed.token || null;
-    state.role = parsed.role || null;
-  } catch (_error) {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-  }
+export function resetSessionState() {
+  state.userId = null;
+  state.email = null;
+  state.role = null;
 }
 
 export function guestCartPayload() {

@@ -23,9 +23,7 @@ export async function placeOrder() {
     };
     const requestOptions = { method: "POST", body: JSON.stringify(body) };
 
-    if (state.userId) {
-      requestOptions.headers = { Authorization: `Bearer ${state.token}` };
-    } else {
+    if (!state.userId) {
       const customerName = document.getElementById("guest-name").value.trim();
       const customerEmail = document.getElementById("guest-email").value.trim();
       const shippingAddress = document.getElementById("guest-address").value.trim();
@@ -70,10 +68,10 @@ export async function loadOrder() {
     return;
   }
 
-  const url = !state.userId && state.lastOrderToken
-    ? `${endpoints.orders}/orders/${state.lastOrderId}?guest_token=${encodeURIComponent(state.lastOrderToken)}`
-    : `${endpoints.orders}/orders/${state.lastOrderId}`;
-  const options = state.userId ? { headers: { Authorization: `Bearer ${state.token}` } } : {};
+  const url = `${endpoints.orders}/orders/${state.lastOrderId}`;
+  const options = !state.userId && state.lastOrderToken
+    ? { headers: { "X-Guest-Token": state.lastOrderToken } }
+    : {};
 
   const result = await request(url, options);
   renderOrder(result);

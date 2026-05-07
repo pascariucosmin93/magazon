@@ -25,6 +25,12 @@ def create_base_app(
     check_db: bool = False,
     check_redis: bool = False,
 ):
+    cors_origins = [
+        origin.strip()
+        for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         if enable_kafka:
@@ -40,7 +46,7 @@ def create_base_app(
     app = FastAPI(title=title, lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

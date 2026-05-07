@@ -45,7 +45,6 @@ export async function syncGuestCartToServer() {
   for (const [productId, quantity] of entries) {
     await request(`${endpoints.cart}/cart/add`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${state.token}` },
       body: JSON.stringify({
         user_id: state.userId,
         product_id: Number(productId),
@@ -69,7 +68,6 @@ export async function addToCart(productId) {
 
   await request(`${endpoints.cart}/cart/add`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${state.token}` },
     body: JSON.stringify({ user_id: state.userId, product_id: productId, quantity: 1 })
   });
   await loadCart();
@@ -83,9 +81,7 @@ export async function loadCart() {
     return guestCart;
   }
 
-  const result = await request(`${endpoints.cart}/cart/${state.userId}`, {
-    headers: { Authorization: `Bearer ${state.token}` }
-  });
+  const result = await request(`${endpoints.cart}/cart/${state.userId}`);
   state.cart = result;
   renderCart(result);
   return result;
@@ -141,7 +137,6 @@ export async function changeCartQuantity(productId, quantity) {
 
   await request(`${endpoints.cart}/cart/replace`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${state.token}` },
     body: JSON.stringify({
       user_id: state.userId,
       product_id: productId,
@@ -162,8 +157,7 @@ export async function removeFromCart(productId) {
   }
 
   await request(`${endpoints.cart}/cart/${state.userId}/items/${productId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${state.token}` }
+    method: "DELETE"
   });
   await loadCart();
   toast("Produs scos din coș.");
@@ -180,8 +174,7 @@ export async function clearCart(silent = false) {
   }
 
   await request(`${endpoints.cart}/cart/${state.userId}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${state.token}` }
+    method: "DELETE"
   });
   await loadCart();
   if (!silent) {

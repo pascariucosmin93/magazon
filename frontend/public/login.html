@@ -35,6 +35,7 @@
           <div class="card-head">
             <button class="tab active" id="login-tab" onclick="showTab('login')">Login</button>
             <button class="tab" id="register-tab" onclick="showTab('register')">Cont nou</button>
+            <button class="tab" id="forgot-tab" onclick="showTab('forgot')">Reset parolă</button>
           </div>
 
           <div class="form" id="login-form">
@@ -58,6 +59,19 @@
             <div class="stack">
               <button class="primary" onclick="register()">Creează cont</button>
               <button class="secondary" onclick="showTab('login')">Am deja cont</button>
+            </div>
+          </div>
+
+          <div class="form hidden" id="forgot-form">
+            <h2>Resetare parolă</h2>
+            <p class="panel-copy">Generează un token de resetare, apoi setează parola nouă.</p>
+            <input id="reset-email" placeholder="Email cont" autocomplete="email" />
+            <button class="secondary" onclick="requestPasswordReset()">Generează token resetare</button>
+            <input id="reset-token" placeholder="Token resetare" autocomplete="off" />
+            <input id="reset-password" placeholder="Parolă nouă" type="password" autocomplete="new-password" />
+            <div class="stack">
+              <button class="primary" onclick="confirmPasswordReset()">Schimbă parola</button>
+              <button class="secondary" onclick="showTab('login')">Înapoi la login</button>
             </div>
           </div>
 

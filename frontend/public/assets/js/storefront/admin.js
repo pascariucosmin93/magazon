@@ -13,7 +13,6 @@ export async function createCategory() {
   try {
     const result = await request(`${endpoints.products}/categories`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${state.token}` },
       body: JSON.stringify({
         name: document.getElementById("category-name").value,
         description: document.getElementById("category-description").value
@@ -32,7 +31,6 @@ export async function createProduct() {
     const categoryValue = document.getElementById("admin-product-category-id").value;
     const result = await request(`${endpoints.products}/products`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${state.token}` },
       body: JSON.stringify({
         name: document.getElementById("admin-product-name").value,
         description: document.getElementById("admin-product-description").value,
@@ -55,8 +53,7 @@ export async function deleteProduct() {
       return;
     }
     const result = await request(`${endpoints.products}/products/${productId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${state.token}` }
+      method: "DELETE"
     });
     document.getElementById("admin-output").innerText = JSON.stringify(result, null, 2);
     await reloadProducts();
