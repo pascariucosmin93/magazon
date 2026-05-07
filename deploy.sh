@@ -10,10 +10,11 @@ KEY_SERVICES="auth-service frontend"
 # deploy.sh manages secrets directly (secret.manage=true).
 # For ArgoCD/GitOps, pre-create the secret manually and leave secret.manage=false.
 
-if [[ -z "${POSTGRES_PASSWORD:-}" || -z "${JWT_SECRET:-}" ]]; then
-  echo "ERROR: POSTGRES_PASSWORD and JWT_SECRET must be set as environment variables." >&2
+if [[ -z "${POSTGRES_PASSWORD:-}" || -z "${JWT_SECRET:-}" || -z "${ADMIN_PASSWORD:-}" ]]; then
+  echo "ERROR: POSTGRES_PASSWORD, JWT_SECRET, and ADMIN_PASSWORD must be set as environment variables." >&2
   echo "  export POSTGRES_PASSWORD='...'" >&2
   echo "  export JWT_SECRET='...'" >&2
+  echo "  export ADMIN_PASSWORD='...'" >&2
   exit 1
 fi
 
@@ -55,6 +56,7 @@ helm upgrade --install "${RELEASE}" ./helm/microshop \
   --set "secret.orderPostgresPassword=${ORDER_POSTGRES_PASSWORD}" \
   --set "secret.inventoryPostgresPassword=${INVENTORY_POSTGRES_PASSWORD}" \
   --set "secret.paymentPostgresPassword=${PAYMENT_POSTGRES_PASSWORD}" \
+  --set "secret.adminPassword=${ADMIN_PASSWORD}" \
   --set "secret.jwtSecret=${JWT_SECRET}" \
   --dry-run \
   "$@" \
@@ -73,6 +75,7 @@ helm upgrade --install "${RELEASE}" ./helm/microshop \
   --set "secret.orderPostgresPassword=${ORDER_POSTGRES_PASSWORD}" \
   --set "secret.inventoryPostgresPassword=${INVENTORY_POSTGRES_PASSWORD}" \
   --set "secret.paymentPostgresPassword=${PAYMENT_POSTGRES_PASSWORD}" \
+  --set "secret.adminPassword=${ADMIN_PASSWORD}" \
   --set "secret.jwtSecret=${JWT_SECRET}" \
   --timeout "${TIMEOUT}" \
   --wait \

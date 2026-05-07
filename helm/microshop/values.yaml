@@ -6,6 +6,7 @@ config:
   POSTGRES_PORT: "5432"
   POSTGRES_DB: microshop
   POSTGRES_USER: microshop
+  ADMIN_EMAIL: admin@microshop.local
   REDIS_URL: redis://redis:6379/0
   KAFKA_BOOTSTRAP_SERVERS: kafka.kafka.svc.cluster.local:9092
 
@@ -20,6 +21,7 @@ config:
 #     --from-literal=ORDER_POSTGRES_PASSWORD='...' \
 #     --from-literal=INVENTORY_POSTGRES_PASSWORD='...' \
 #     --from-literal=PAYMENT_POSTGRES_PASSWORD='...' \
+#     --from-literal=ADMIN_PASSWORD='...' \
 #     --from-literal=JWT_SECRET='...'
 #   For automated injection use External Secrets Operator or Sealed Secrets.
 #
@@ -38,6 +40,7 @@ secret:
   orderPostgresPassword: ""
   inventoryPostgresPassword: ""
   paymentPostgresPassword: ""
+  adminPassword: ""
   jwtSecret: ""
 
 redis:

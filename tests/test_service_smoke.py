@@ -13,11 +13,27 @@ def load_module(name: str, relative_path: str):
     return module
 
 
-def test_hash_password_is_stable():
+def test_password_hash_uses_salted_argon2_and_verifies():
     auth_module = load_module("auth_main", "services/auth-service/app/main.py")
 
-    assert auth_module.hash_password("admin123") == auth_module.hash_password("admin123")
-    assert auth_module.hash_password("admin123") != auth_module.hash_password("demo123")
+    first = auth_module.hash_password("admin123")
+    second = auth_module.hash_password("admin123")
+
+    assert first.startswith("$argon2")
+    assert second.startswith("$argon2")
+    assert first != second
+    assert auth_module.verify_password("admin123", first)
+    assert not auth_module.verify_password("demo123", first)
+
+
+def test_legacy_sha256_password_hash_still_verifies():
+    auth_module = load_module("auth_main", "services/auth-service/app/main.py")
+
+    legacy = auth_module.legacy_hash_password("admin123")
+
+    assert auth_module.is_legacy_password_hash(legacy)
+    assert auth_module.verify_password("admin123", legacy)
+    assert not auth_module.verify_password("demo123", legacy)
 
 
 def test_product_serializers_include_category_name():

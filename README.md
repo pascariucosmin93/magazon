@@ -4,7 +4,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 
 ## Services
 
-- `auth-service`: register/login and token cache in Redis
+- `auth-service`: register/login with Argon2 password hashes and JWT access tokens
 - `product-service`: product catalog and Redis cache
 - `cart-service`: shopping cart in Redis
 - `order-service`: order creation and order status updates
@@ -16,7 +16,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 ## Infrastructure
 
 - PostgreSQL: external persistent data source at `192.168.1.16`, with one database/user per persistent service
-- Redis: cart storage, product cache, token cache
+- Redis: cart storage and product cache
 - Kafka: external event bus installed separately with Helm
 - Docker Compose: local development stack
 - Kubernetes manifests: raw `kubectl` deployment
@@ -76,8 +76,15 @@ kubectl create secret generic microshop-secret \
   --from-literal=ORDER_POSTGRES_PASSWORD='<order-password>' \
   --from-literal=INVENTORY_POSTGRES_PASSWORD='<inventory-password>' \
   --from-literal=PAYMENT_POSTGRES_PASSWORD='<payment-password>' \
+  --from-literal=ADMIN_PASSWORD='<admin-password>' \
   --from-literal=JWT_SECRET='<jwt-secret>'
 ```
+
+`ADMIN_PASSWORD` is required by `auth-service` at startup. If the admin user already exists,
+the service rotates that account to this password and stores it with Argon2.
+
+Authentication uses Argon2 password hashes and signed JWT access tokens. Legacy SHA256
+password hashes are accepted only to migrate existing users on their next successful login.
 
 ### Kubernetes with Helm
 

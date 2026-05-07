@@ -1082,7 +1082,7 @@
         try {
           const result = await request(`${endpoints.products}/categories`, {
             method: "POST",
-            headers: { "X-Auth-Token": state.token },
+            headers: { Authorization: `Bearer ${state.token}` },
             body: JSON.stringify({
               name: document.getElementById("category-name").value,
               description: document.getElementById("category-description").value
@@ -1101,7 +1101,7 @@
           const categoryValue = document.getElementById("admin-product-category-id").value;
           const result = await request(`${endpoints.products}/products`, {
             method: "POST",
-            headers: { "X-Auth-Token": state.token },
+            headers: { Authorization: `Bearer ${state.token}` },
             body: JSON.stringify({
               name: document.getElementById("admin-product-name").value,
               description: document.getElementById("admin-product-description").value,

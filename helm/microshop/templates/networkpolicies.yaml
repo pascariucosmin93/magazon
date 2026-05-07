@@ -225,7 +225,7 @@ spec:
           protocol: TCP
     {{- end }}
 ---
-# Redis: accept only from services that use it (auth, product, cart)
+# Redis: accept only from services that use it (product, cart)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -239,9 +239,6 @@ spec:
     - Ingress
   ingress:
     - from:
-        - podSelector:
-            matchLabels:
-              app: auth-service
         - podSelector:
             matchLabels:
               app: product-service

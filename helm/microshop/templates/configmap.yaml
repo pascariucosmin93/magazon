@@ -8,5 +8,6 @@ data:
   POSTGRES_PORT: {{ .Values.config.POSTGRES_PORT | quote }}
   POSTGRES_DB: {{ .Values.config.POSTGRES_DB | quote }}
   POSTGRES_USER: {{ .Values.config.POSTGRES_USER | quote }}
+  ADMIN_EMAIL: {{ .Values.config.ADMIN_EMAIL | quote }}
   REDIS_URL: {{ .Values.config.REDIS_URL | quote }}
   KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.KAFKA_BOOTSTRAP_SERVERS | quote }}
