@@ -154,3 +154,49 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
       }
+
+      @media (max-width: 1080px) {
+        .workspace-grid,
+        .admin-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .account-content,
+        .cart-content,
+        .admin-content,
+        .order-content {
+          padding: 16px;
+        }
+
+        .account-actions,
+        .cart-actions,
+        .inline-actions {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .dual-actions {
+          grid-template-columns: 1fr;
+        }
+
+        .guest-checkout {
+          padding: 14px;
+        }
+
+        .line-item {
+          grid-template-columns: 1fr;
+        }
+
+        .summary-row {
+          align-items: start;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .admin-result {
+          padding: 12px;
+          font-size: 11px;
+        }
+      }

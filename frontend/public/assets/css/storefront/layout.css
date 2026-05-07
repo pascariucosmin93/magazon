@@ -259,6 +259,137 @@
         transform: translateY(0);
       }
 
+      @media (max-width: 1080px) {
+        .header-inner {
+          grid-template-columns: 180px minmax(0, 1fr);
+        }
+
+        .header-actions {
+          grid-column: 1 / -1;
+          justify-content: flex-end;
+        }
+
+        .hero {
+          grid-template-columns: 1fr;
+        }
+
+        .footer-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 0 14px 40px;
+        }
+
+        .topbar-inner,
+        .header-inner,
+        .nav-inner {
+          padding: 0 14px;
+        }
+
+        .topbar-inner {
+          min-height: 48px;
+          justify-content: center;
+          text-align: center;
+          font-size: 12px;
+        }
+
+        .header {
+          position: static;
+        }
+
+        .header-inner {
+          grid-template-columns: 1fr;
+          gap: 12px;
+          padding-top: 14px;
+          padding-bottom: 14px;
+        }
+
+        .logo {
+          font-size: 24px;
+        }
+
+        .logo-mark {
+          width: 40px;
+          height: 40px;
+        }
+
+        .search {
+          grid-template-columns: 1fr;
+          border-radius: 22px;
+        }
+
+        .search input {
+          height: 48px;
+          padding: 0 16px;
+        }
+
+        .search button {
+          height: 46px;
+        }
+
+        .header-actions {
+          grid-column: auto;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          justify-content: stretch;
+        }
+
+        .icon-button {
+          min-width: 0;
+          width: 100%;
+          height: 44px;
+          padding: 0 14px;
+        }
+
+        .nav-inner {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          gap: 14px;
+          min-height: 42px;
+          padding-bottom: 8px;
+          scrollbar-width: none;
+        }
+
+        .nav-inner::-webkit-scrollbar {
+          display: none;
+        }
+
+        .section-head,
+        .workspace-head {
+          align-items: start;
+          flex-direction: column;
+        }
+
+        .section-head h2,
+        .workspace-head h2 {
+          font-size: 1.55rem;
+        }
+
+        .panel-head {
+          padding: 16px;
+        }
+
+        .status-badge {
+          min-height: 38px;
+          padding: 0 14px;
+        }
+
+        .footer {
+          margin-top: 22px;
+          padding: 20px 16px;
+        }
+
+        .toast {
+          right: 14px;
+          left: 14px;
+          bottom: 14px;
+          max-width: none;
+        }
+      }
+
       @media (max-width: 1160px) {
         .hero,
         .workspace-grid,

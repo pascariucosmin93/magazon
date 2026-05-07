@@ -55,3 +55,65 @@
       @media (max-width: 900px) {
         .layout { grid-template-columns: 1fr; }
       }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 20px 14px 40px;
+        }
+
+        .topbar {
+          align-items: start;
+          flex-direction: column;
+          margin-bottom: 18px;
+        }
+
+        .logo {
+          font-size: 24px;
+        }
+
+        .logo-mark {
+          width: 40px;
+          height: 40px;
+        }
+
+        .hero,
+        .card {
+          border-radius: 22px;
+        }
+
+        .hero {
+          padding: 22px 18px;
+        }
+
+        .hero h1 {
+          max-width: none;
+          font-size: clamp(2rem, 12vw, 3rem);
+          line-height: 1;
+        }
+
+        .hero ul {
+          padding-left: 16px;
+        }
+
+        .card {
+          padding: 18px 16px;
+        }
+
+        .card-head {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .tab,
+        .primary,
+        .secondary {
+          width: 100%;
+        }
+
+        .toast {
+          right: 14px;
+          left: 14px;
+          bottom: 14px;
+          max-width: none;
+        }
+      }

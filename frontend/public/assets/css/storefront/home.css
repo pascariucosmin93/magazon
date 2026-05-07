@@ -345,3 +345,89 @@
       .featured-product .product-media {
         height: 180px;
       }
+
+      @media (max-width: 1080px) {
+        .strip,
+        .category-showcase,
+        .featured-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .promo-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .hero-card,
+        .hero-side,
+        .promo-main,
+        .promo-stack article {
+          border-radius: 22px;
+        }
+
+        .hero-card {
+          padding: 22px 18px;
+        }
+
+        .hero h1 {
+          margin: 14px 0 12px;
+          max-width: none;
+          font-size: clamp(2rem, 12vw, 3.1rem);
+          line-height: 0.98;
+        }
+
+        .hero p {
+          font-size: 0.95rem;
+          line-height: 1.65;
+        }
+
+        .hero-actions,
+        .hero-metrics {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .hero-actions .primary,
+        .hero-actions .secondary,
+        .featured-head .secondary {
+          width: 100%;
+        }
+
+        .metric {
+          min-width: 0;
+        }
+
+        .hero-side {
+          padding: 20px 18px;
+        }
+
+        .strip,
+        .category-showcase,
+        .featured-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .category-tile,
+        .strip-card {
+          padding: 16px;
+        }
+
+        .promo-main,
+        .promo-stack article {
+          padding: 20px 18px;
+        }
+
+        .promo-main {
+          min-height: 0;
+        }
+
+        .promo-points {
+          gap: 8px;
+        }
+
+        .featured-head {
+          display: grid;
+          gap: 12px;
+        }
+      }
