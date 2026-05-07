@@ -8,7 +8,7 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from fastapi import Depends, HTTPException
 import jwt
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import Session
 
@@ -28,20 +28,24 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password = Column(String(255), nullable=False)
+    address = Column(String(255), nullable=False, default="")
     role = Column(String(50), nullable=False, default="customer")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class RegisterRequest(BaseModel):
-    email: str
-    password: str
+    username: str = Field(min_length=3, max_length=100)
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=255)
+    address: str = Field(min_length=5, max_length=255)
 
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=255)
 
 
 def _run_migrations() -> None:
@@ -61,14 +65,22 @@ async def startup():
         if not admin:
             db.add(
                 User(
+                    username="admin",
                     email=ADMIN_EMAIL,
                     password=hash_password(ADMIN_PASSWORD),
+                    address="Admin Console",
                     role="admin",
                 )
             )
             db.commit()
         else:
             changed = False
+            if not getattr(admin, "username", None):
+                admin.username = "admin"
+                changed = True
+            if not getattr(admin, "address", None):
+                admin.address = "Admin Console"
+                changed = True
             if admin.role != "admin":
                 admin.role = "admin"
                 changed = True
@@ -135,17 +147,42 @@ def decode_access_token(token: str) -> dict:
 
 @app.post("/register")
 async def register(payload: RegisterRequest, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == payload.email).first()
+    normalized_username = payload.username.strip()
+    normalized_address = payload.address.strip()
+    normalized_email = payload.email.strip().lower()
+
+    if not normalized_username:
+        raise HTTPException(status_code=400, detail="Username is required")
+    if not normalized_address:
+        raise HTTPException(status_code=400, detail="Address is required")
+
+    existing_username = db.query(User).filter(User.username == normalized_username).first()
+    if existing_username:
+        raise HTTPException(status_code=409, detail="Username already exists")
+
+    existing = db.query(User).filter(User.email == normalized_email).first()
     if existing:
         raise HTTPException(status_code=409, detail="User already exists")
 
-    user = User(email=payload.email, password=hash_password(payload.password), role="customer")
+    user = User(
+        username=normalized_username,
+        email=normalized_email,
+        password=hash_password(payload.password),
+        address=normalized_address,
+        role="customer",
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
 
     await publish_event("user.created", {"user_id": user.id, "email": user.email})
-    return {"id": user.id, "email": user.email, "role": user.role}
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "address": user.address,
+        "role": user.role,
+    }
 
 
 @app.post("/login")

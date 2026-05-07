@@ -1,6 +1,6 @@
 # microshop-platform
 
-Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redis, Kafka, Docker, Kubernetes and Helm.
+Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redis, Kafka, Kubernetes and Helm.
 
 ## Services
 
@@ -18,22 +18,10 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 - PostgreSQL: external persistent data source at `192.168.1.16`, with one database/user per persistent service
 - Redis: cart storage and product cache
 - Kafka: external event bus installed separately with Helm
-- Docker Compose: local development stack
 - Kubernetes manifests: raw `kubectl` deployment
 - Helm chart: reusable deployment into namespace `microshop`
 
 ## Quick Start
-
-### Local
-
-```bash
-docker compose up --build
-```
-
-Frontend: `http://localhost:8080`
-
-Note: local startup expects PostgreSQL to already be reachable at `192.168.1.16:5432`.
-Admin demo account is seeded from environment variables and defaults to `admin@microshop.local / admin123` in the provided local manifests.
 
 ### PostgreSQL service databases
 
@@ -112,7 +100,7 @@ helm upgrade --install kafka bitnami/kafka \
 
 ## CI/CD
 
-GitHub Actions is used only for CI and image publishing.
+GitHub Actions is used only for CI and container image publishing for Kubernetes deployments.
 
 - `.github/workflows/ci-cd.yaml`
   - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, OWASP Dependency-Check, and builds all container images without pushing
@@ -168,3 +156,4 @@ Helm image values use explicit `repository` + `tag` pairs, and the CI pipeline a
 - The project is intentionally simple but follows realistic microservice boundaries.
 - The Helm chart is ready for future GitOps adoption with Argo CD.
 - PostgreSQL and Kafka are not deployed by this repo; PostgreSQL is consumed externally and Kafka should be installed separately with Helm.
+- `Dockerfile` assets remain in the repository only because the CI pipeline builds and publishes container images consumed by Kubernetes.

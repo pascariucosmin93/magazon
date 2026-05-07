@@ -658,8 +658,10 @@
           </div>
           <div class="account-content">
             <div class="auth-grid">
+              <input id="username" placeholder="User" autocomplete="username" />
               <input id="email" placeholder="Email" autocomplete="email" />
-              <input id="password" placeholder="Parola" type="password" autocomplete="current-password" />
+              <input id="password" placeholder="Parola" type="password" autocomplete="new-password" />
+              <input id="address" placeholder="Adresa livrare" autocomplete="street-address" />
               <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <button class="primary" onclick="login()">Login</button>
                 <button class="secondary" onclick="register()">Creeaza cont</button>
@@ -825,8 +827,10 @@
         state.role = null;
         state.lastOrderId = null;
         state.cart = null;
+        document.getElementById("username").value = "";
         document.getElementById("email").value = "";
         document.getElementById("password").value = "";
+        document.getElementById("address").value = "";
         document.getElementById("order-output").innerHTML = `<div class="empty">Nu exista comenzi in sesiunea curenta.</div>`;
         renderCart({ items: [], total: 0 });
         updateUserState();
@@ -959,9 +963,21 @@
 
       async function register() {
         try {
+          const username = document.getElementById("username").value.trim();
+          const email = document.getElementById("email").value.trim();
+          const password = document.getElementById("password").value;
+          const address = document.getElementById("address").value.trim();
+
+          if (!username || !email || !password || !address) {
+            toast("Completeaza user, email, parola si adresa.");
+            return;
+          }
+
           const body = {
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
+            username,
+            email,
+            password,
+            address
           };
           const result = await request(`${endpoints.auth}/register`, {
             method: "POST",
@@ -970,8 +986,9 @@
           state.userId = result.id;
           state.email = result.email;
           state.role = result.role || "customer";
+          document.getElementById("password").value = "";
           updateUserState();
-          toast("Cont creat.");
+          toast(`Cont creat pentru ${result.username}.`);
         } catch (error) {
           toast(`Crearea contului a esuat: ${error.message}`);
         }
