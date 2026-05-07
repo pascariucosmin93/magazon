@@ -1,11 +1,14 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
+from shared.db import Base
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_module(name: str, relative_path: str):
+    Base.metadata.clear()
     spec = spec_from_file_location(name, ROOT / relative_path)
     module = module_from_spec(spec)
     assert spec and spec.loader
