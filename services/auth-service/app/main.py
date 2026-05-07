@@ -7,7 +7,7 @@ from alembic import command as alembic_command
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from fastapi import Depends, HTTPException
-from jose import JWTError, jwt
+import jwt
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.orm import Session
@@ -121,7 +121,7 @@ def create_access_token(user: User) -> str:
 def decode_access_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.jwt_secret, algorithms=[JWT_ALGORITHM])
-    except JWTError as exc:
+    except jwt.PyJWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
 

@@ -1,5 +1,5 @@
 from fastapi import Header, HTTPException
-from jose import JWTError, jwt
+import jwt
 
 from shared.config import settings
 
@@ -9,7 +9,7 @@ JWT_ALGORITHM = "HS256"
 def decode_access_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.jwt_secret, algorithms=[JWT_ALGORITHM])
-    except JWTError as exc:
+    except jwt.PyJWTError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
 
 
