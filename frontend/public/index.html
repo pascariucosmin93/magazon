@@ -9,8 +9,8 @@
   <body>
     <div class="topbar">
       <div class="topbar-inner">
-        <span>Livrare rapidă | stoc afișat clar | oferte de weekend</span>
-        <span>Rate, promoții și suport clienți: Luni - Vineri, 09:00 - 18:00</span>
+        <span>Livrare rapidă, stoc clar și checkout fără fricțiune</span>
+        <span>Suport clienți: Luni - Vineri, 09:00 - 18:00</span>
       </div>
     </div>
 
@@ -46,32 +46,31 @@
       <section class="hero" id="hero">
         <aside class="hero-side">
           <div>
-            <span class="eyebrow dark">Categorii populare</span>
-            <h2>Intră direct în zona care te interesează</h2>
+            <span class="eyebrow dark">Explorare rapidă</span>
+            <h2>Intră direct unde ai treabă, fără să sapi prin blocuri inutile.</h2>
           </div>
           <div class="rail-list">
-            <button class="rail-item" onclick="selectCategory(null)">Toate produsele <span>vizualizează tot</span></button>
-            <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Laptopuri & office <span>setup-uri complete</span></button>
+            <button class="rail-item" onclick="selectCategory(null)">Toate produsele <span>vezi tot catalogul</span></button>
+            <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Office & laptopuri <span>workstation, dock, productivitate</span></button>
             <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Gaming & periferice <span>mouse, tastaturi, căști</span></button>
-            <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Componente & upgrade <span>SSD, dock, accesorii</span></button>
-            <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Audio & streaming <span>microfoane și desk gear</span></button>
+            <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Upgrade & accesorii <span>SSD, hub-uri, gear de birou</span></button>
           </div>
           <div class="support-card">
-            <strong>Suport cumpărături</strong>
-            <span>Găsești rapid produse, compari prețurile și verifici statusul comenzii fără cont obligatoriu.</span>
+            <strong>Flux simplu</strong>
+            <span>Cauți, filtrezi, adaugi în coș și finalizezi comanda fără să te lupți cu interfața.</span>
           </div>
         </aside>
 
         <article class="hero-card">
-          <span class="eyebrow">Promoții hardware, periferice și accesorii</span>
-          <h1>Configurații bune, oferte clare și checkout rapid.</h1>
+          <span class="eyebrow">Storefront refresh</span>
+          <h1>Un homepage mai curat, mai aerisit și mai ușor de scanat.</h1>
           <p>
-            Homepage-ul este gândit ca un magazin de retail: intri din categorii, vezi campaniile
-            curente, alegi produsele recomandate și ajungi rapid în catalogul complet.
+            Am redus zgomotul vizual din primul ecran și am păstrat doar lucrurile care ajută:
+            acces rapid în categorii, produse recomandate și intrare clară în catalog.
           </p>
           <div class="hero-actions">
-            <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Vezi catalogul complet</button>
-            <button class="secondary" onclick="focusCart()">Vezi coșul</button>
+            <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Vezi catalogul</button>
+            <button class="secondary" onclick="focusCart()">Deschide coșul</button>
           </div>
           <div class="hero-metrics">
             <div class="metric highlight">
@@ -79,89 +78,95 @@
               <span>produse disponibile</span>
             </div>
             <div class="metric">
-              <strong>Reduceri</strong>
-              <span>campanii săptămânale și pachete promo</span>
+              <strong>Layout clar</strong>
+              <span>mai puține blocuri, ierarhie mai bună</span>
             </div>
             <div class="metric">
-              <strong>Guest order</strong>
+              <strong>Guest checkout</strong>
               <span>poți comanda și fără cont</span>
             </div>
           </div>
         </article>
 
         <div class="hero-offers">
-          <article class="offer-card main-offer">
-            <span class="category-badge warm">Promoția zilei</span>
-            <strong>Periferice pentru gaming și productivity</strong>
-            <p>Bundle-uri rapide pentru tastaturi, mouse-uri și accesorii de birou.</p>
-            <div class="offer-meta">
-              <span>Stoc actualizat</span>
-              <span>Livrare rapidă</span>
-            </div>
+          <article class="offer-card statement-card">
+            <span class="category-badge warm">Direcție nouă</span>
+            <strong>Accent pe produse și navigare, nu pe carduri puse una peste alta.</strong>
+            <p>Fiecare bloc are acum un rol clar: orientare, selecție rapidă sau acțiune.</p>
           </article>
           <article class="offer-card">
-            <span class="category-badge cool">Top vândute</span>
-            <strong>Mouse wireless și tastaturi mecanice</strong>
-            <p>Intră direct în produsele recomandate și completează setup-ul mai repede.</p>
+            <span class="category-badge cool">Categorie rapidă</span>
+            <strong>Intră în produse populare și filtrează mai repede.</strong>
+            <p>Search-ul și zona de catalog au mai multă prioritate decât bannerele decorative.</p>
           </article>
           <article class="offer-card accent-card">
-            <span class="category-badge">Cont & checkout</span>
-            <strong>Adaugi în coș, comanzi și urmărești statusul imediat</strong>
-            <p>Flux clar pentru guest checkout, cont client și verificarea ultimei comenzi.</p>
+            <span class="category-badge">Checkout</span>
+            <strong>Coșul, contul și statusul comenzii rămân vizibile, dar nu mai sufocă homepage-ul.</strong>
+            <p>Funcțiile importante există în continuare, însă sunt grupate mai clar.</p>
           </article>
         </div>
       </section>
 
+      <section class="quick-points">
+        <article class="quick-point">
+          <strong>Navigare clară</strong>
+          <span>Intrări directe în catalog și categorii, fără mult zgomot vizual.</span>
+        </article>
+        <article class="quick-point">
+          <strong>Carduri mai liniștite</strong>
+          <span>Mai puține efecte și mai mult spațiu între blocuri.</span>
+        </article>
+        <article class="quick-point">
+          <strong>Accent pe cumpărare</strong>
+          <span>Produsele și acțiunile importante ies în față mai repede.</span>
+        </article>
+      </section>
+
       <section class="category-showcase" id="featured-categories">
         <article class="category-tile">
-          <span class="category-badge">-12%</span>
-          <strong>Office & productivity</strong>
-          <span>Stații de lucru, dock-uri și periferice pentru birou.</span>
+          <span class="category-badge">Office</span>
+          <strong>Setup-uri pentru productivitate</strong>
+          <span>Laptopuri, dock-uri și periferice potrivite pentru birou și lucru hibrid.</span>
         </article>
         <article class="category-tile">
           <span class="category-badge">Gaming</span>
-          <strong>Mouse, tastaturi, căști</strong>
-          <span>Precizie, latență mică și setup-uri gata de upgrade.</span>
+          <strong>Periferice care merită văzute</strong>
+          <span>Mouse, tastaturi și căști cu acces rapid spre produsele populare.</span>
         </article>
         <article class="category-tile">
-          <span class="category-badge">Nou</span>
-          <strong>Audio & streaming</strong>
-          <span>Microfoane, căști și accesorii pentru desk setup.</span>
-        </article>
-        <article class="category-tile">
-          <span class="category-badge">Bundle</span>
-          <strong>Upgrade rapid</strong>
-          <span>Pachete promo și produse alese pentru upgrade rapid.</span>
+          <span class="category-badge">Upgrade</span>
+          <strong>Accesorii și completări utile</strong>
+          <span>SSD, hub-uri, dock-uri și gear mic pentru un upgrade rapid.</span>
         </article>
       </section>
 
       <section class="promo-grid">
         <article class="promo-main">
-          <span class="eyebrow">Campanii și oferte curente</span>
-          <h2>Intră în promoțiile principale și mergi rapid spre produsele bune.</h2>
+          <span class="eyebrow">Rearanjare vizuală</span>
+          <h2>Pagina respiră mai bine când ai mai puține mesaje concurente în același ecran.</h2>
           <p>
-            Am dus pagina spre un stil de magazin dens, comercial, cu intrări rapide în categorii,
-            bannere promo și carduri de ofertă mai apropiate de un storefront retail clasic.
+            Am păstrat tonul comercial, dar am redus senzația de panou aglomerat. Hero-ul duce în
+            catalog, recomandările sunt mai curate, iar cardurile au roluri mai evidente.
           </p>
           <div class="promo-points">
-            <span>Reduceri vizibile</span>
-            <span>Top produse</span>
-            <span>Checkout rapid</span>
+            <span>Ierarhie mai bună</span>
+            <span>Spacing mai mare</span>
+            <span>Mai puțin zgomot</span>
           </div>
         </article>
         <div class="promo-stack">
           <article>
-            <span class="category-badge">Highlight</span>
-            <strong>Deschide direct catalogul complet</strong>
-            <p>Vezi toate produsele și filtrează rapid după categorie, preț sau relevanță.</p>
+            <span class="category-badge">Catalog</span>
+            <strong>Deschide direct lista completă de produse</strong>
+            <p>Filtrele și sortarea sunt mai ușor de găsit și mai bine separate de conținutul promoțional.</p>
             <div class="hero-actions" style="margin-top: 16px;">
-              <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Deschide catalogul</button>
+              <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Intră în catalog</button>
             </div>
           </article>
           <article>
-            <span class="category-badge">Comenzi</span>
-            <strong>Poți comanda și fără cont</strong>
-            <p>Guest checkout rămâne activ: adaugi în coș, completezi livrarea și trimiți comanda direct.</p>
+            <span class="category-badge">Flux</span>
+            <strong>Guest checkout și cont client rămân la îndemână</strong>
+            <p>Zona de workspace păstrează aceleași funcții, dar homepage-ul nu mai încearcă să le explice pe toate din prima.</p>
           </article>
         </div>
       </section>
@@ -179,20 +184,16 @@
 
       <section class="strip">
         <article class="strip-card">
-          <strong>Promoții vizibile</strong>
-          <span class="muted">Bannere, highlight-uri și intrări rapide spre zonele de interes.</span>
+          <strong>Contrast mai bun</strong>
+          <span class="muted">Titlurile, acțiunile și zonele principale se citesc mai rapid.</span>
         </article>
         <article class="strip-card">
-          <strong>Catalog mai dens</strong>
-          <span class="muted">Carduri de produs mai compacte și browsing mai apropiat de un magazin real.</span>
+          <strong>Compoziție mai simplă</strong>
+          <span class="muted">Mai puține carduri care concurează pentru atenție în zona de sus.</span>
         </article>
         <article class="strip-card">
-          <strong>Checkout clar</strong>
-          <span class="muted">Poți comanda ca guest sau din cont, fără să pierzi coșul.</span>
-        </article>
-        <article class="strip-card">
-          <strong>Panou admin separat</strong>
-          <span class="muted">Zona de management rămâne izolată, fără să aglomereze experiența clientului.</span>
+          <strong>Catalog mai clar</strong>
+          <span class="muted">Zona de produse rămâne centrul paginii, nu doar un bloc de la final.</span>
         </article>
       </section>
 
@@ -220,21 +221,21 @@
 
             <section class="mini-stack">
               <article class="mini-card">
-                <strong>Intrare rapidă</strong>
-                <p>Folosește categoriile și search-ul din header ca să ajungi repede la gama potrivită.</p>
+                <strong>Filtrare rapidă</strong>
+                <p>Folosește categoriile din stânga și search-ul din header pentru a ajunge direct unde trebuie.</p>
               </article>
               <article class="mini-card">
-                <strong>Status după comandă</strong>
-                <p>După checkout poți urmări rapid statusul comenzii și plata direct din pagină.</p>
+                <strong>După checkout</strong>
+                <p>Statusul comenzii și zona de cont rămân accesibile mai jos, fără să încarce secțiunea de catalog.</p>
               </article>
             </section>
           </aside>
 
           <div class="catalog-main">
             <article class="catalog-banner">
-              <h1>Catalog de produse, oferte și upgrade-uri pentru setup-ul următor.</h1>
+              <h1>Catalog de produse pentru un browsing rapid și clar.</h1>
               <p>
-                Vezi produsele, filtrezi rapid și intri direct în variantele recomandate, fără o interfață rară sau blocuri de text inutile.
+                Produsele sunt partea principală a paginii: filtrezi, sortezi și alegi fără blocuri decorative care distrag atenția.
               </p>
             </article>
 
