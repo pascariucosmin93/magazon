@@ -90,23 +90,30 @@ export function filteredProducts() {
 
 function productSvg(product) {
   const category = (product.category_name || "").toLowerCase();
-  const color = category.includes("keyboard") ? "#b8571b" : category.includes("mice") ? "#0f766e" : "#3156c6";
+  const color = category.includes("keyboard") ? "#cf352f" : category.includes("mice") ? "#1da8e4" : "#2f3640";
   const label = (product.name || "IT").slice(0, 2).toUpperCase();
   return `
     <svg viewBox="0 0 120 120" role="img" aria-label="${product.name}">
-      <rect x="14" y="24" width="92" height="72" rx="12" fill="#ffffff" stroke="#d9cfbf" stroke-width="3"/>
+      <rect x="14" y="24" width="92" height="72" rx="12" fill="#ffffff" stroke="#d7d7d7" stroke-width="3"/>
       <rect x="24" y="36" width="72" height="14" rx="4" fill="${color}" opacity="0.9"/>
-      <rect x="25" y="60" width="14" height="10" rx="2" fill="#e6ddcf"/>
-      <rect x="44" y="60" width="14" height="10" rx="2" fill="#e6ddcf"/>
-      <rect x="63" y="60" width="14" height="10" rx="2" fill="#e6ddcf"/>
-      <rect x="82" y="60" width="14" height="10" rx="2" fill="#e6ddcf"/>
+      <rect x="25" y="60" width="14" height="10" rx="2" fill="#e5e7eb"/>
+      <rect x="44" y="60" width="14" height="10" rx="2" fill="#e5e7eb"/>
+      <rect x="63" y="60" width="14" height="10" rx="2" fill="#e5e7eb"/>
+      <rect x="82" y="60" width="14" height="10" rx="2" fill="#e5e7eb"/>
       <text x="60" y="88" text-anchor="middle" font-size="18" font-weight="800" fill="#18202b">${label}</text>
     </svg>
   `;
 }
 
+function productPromo(product) {
+  const promos = [14, 18, 22, 25, 30];
+  return promos[Math.abs(Number(product.id || 0)) % promos.length];
+}
+
 function productCardMarkup(product) {
+  const promo = productPromo(product);
   return `
+    <div class="product-promo">${promo}% reducere in cos</div>
     <div class="product-media">${productSvg(product)}</div>
     <div class="product-body">
       <div class="product-category">${product.category_name || "Necategorizat"}</div>

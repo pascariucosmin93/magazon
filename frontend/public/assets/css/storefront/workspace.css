@@ -23,8 +23,8 @@
         margin-top: 14px;
         padding: 14px;
         border-radius: var(--radius-md);
-        background: rgba(248, 250, 252, 0.94);
-        border: 1px solid rgba(23, 32, 51, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .guest-checkout.hidden,
@@ -56,8 +56,8 @@
         gap: 8px;
         padding: 14px;
         border-radius: var(--radius-md);
-        background: rgba(37, 99, 235, 0.08);
-        border: 1px solid rgba(37, 99, 235, 0.12);
+        background: rgba(29, 168, 228, 0.08);
+        border: 1px solid rgba(29, 168, 228, 0.16);
       }
 
       .workspace-copy {
@@ -84,8 +84,8 @@
         gap: 12px;
         padding: 14px;
         border-radius: var(--radius-md);
-        background: rgba(248, 250, 252, 0.95);
-        border: 1px solid rgba(23, 32, 51, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .line-item strong {
@@ -111,7 +111,7 @@
         align-items: center;
         margin-top: 16px;
         padding-top: 16px;
-        border-top: 1px solid rgba(23, 32, 51, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
         font-weight: 900;
       }
 
@@ -148,8 +148,9 @@
         min-height: 84px;
         padding: 14px;
         border-radius: var(--radius-md);
-        background: #101827;
+        background: #0d0d0d;
         color: #dbeafe;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         overflow: auto;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
