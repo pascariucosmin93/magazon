@@ -11,7 +11,6 @@ from sqlalchemy import Column, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Session
 
 from shared.auth import optional_user_claims, require_user_id
-from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, publish_event
 from shared.service_app import create_base_app
