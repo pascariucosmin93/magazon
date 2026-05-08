@@ -54,8 +54,8 @@ export async function placeOrder() {
 
     toast(`Comanda #${result.order_id} a fost plasată.`);
     window.setTimeout(() => {
-      loadOrder().catch(() => {});
-    }, 1500);
+      window.location.href = `/payment.html?order_id=${encodeURIComponent(result.order_id)}`;
+    }, 700);
   } catch (error) {
     document.getElementById("catalog-status").innerText = "Eroare la comandă";
     toast(`Comanda nu a fost trimisă: ${error.message}`);

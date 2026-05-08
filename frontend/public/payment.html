@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plată | Magazon</title>
+    <link rel="stylesheet" href="/assets/css/storefront.css" />
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="topbar-inner">
+        <span>Plată securizată prin Stripe Checkout</span>
+        <span>Comanda rămâne rezervată până la confirmarea plății</span>
+      </div>
+    </div>
+
+    <header class="header">
+      <div class="header-inner">
+        <a class="logo" href="/" aria-label="Magazon">
+          <span class="logo-mark">M</span>
+          <span>Magazon</span>
+        </a>
+        <div class="header-actions">
+          <button class="icon-button" onclick="window.location.href='/'">Înapoi în magazin</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <section class="section">
+        <div class="workspace-head">
+          <div>
+            <h2>Finalizează plata</h2>
+            <p>După rezervarea stocului, vei fi trimis către pagina securizată de checkout.</p>
+          </div>
+          <span class="status-badge" id="payment-status-badge">Pregătim plata</span>
+        </div>
+
+        <div class="workspace-grid">
+          <section class="panel workspace-panel">
+            <div class="panel-head">
+              <h3 class="panel-title">Sumar comandă</h3>
+            </div>
+            <div class="order-content" id="payment-order-output">
+              <div class="empty">Se încarcă detaliile comenzii.</div>
+            </div>
+          </section>
+
+          <section class="panel workspace-panel">
+            <div class="panel-head">
+              <h3 class="panel-title">Acțiune plată</h3>
+            </div>
+            <div class="cart-content">
+              <p class="workspace-copy" id="payment-copy">
+                Așteptăm confirmarea că stocul a fost rezervat pentru comanda ta.
+              </p>
+              <div class="stack">
+                <button class="primary" id="pay-now-button" onclick="startPayment()" disabled>Plătește acum</button>
+                <button class="secondary" onclick="refreshPaymentState()">Verifică din nou</button>
+                <button class="secondary" onclick="window.location.href='/'">Înapoi în magazin</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script type="module" src="/assets/js/payment.js"></script>
+  </body>
+</html>

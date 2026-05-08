@@ -8,3 +8,5 @@ alembic==1.14.1
 prometheus-client==0.21.0
 pydantic==2.9.2
 pydantic-settings==2.6.1
+stripe==14.4.0
+requests==2.33.1

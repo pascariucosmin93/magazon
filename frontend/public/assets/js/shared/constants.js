@@ -2,7 +2,8 @@ export const endpoints = {
   auth: "/api/auth",
   products: "/api/products",
   cart: "/api/cart",
-  orders: "/api/orders"
+  orders: "/api/orders",
+  payments: "/api/payments"
 };
 
 export const GUEST_CART_STORAGE_KEY = "magazon.guest-cart";
