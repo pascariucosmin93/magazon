@@ -62,7 +62,7 @@ spec:
           protocol: TCP
     {{- end }}
 ---
-# product-service: called by frontend and cart-service (product lookup)
+# product-service: called by frontend, cart-service and order-service (product lookup)
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -82,6 +82,9 @@ spec:
         - podSelector:
             matchLabels:
               app: cart-service
+        - podSelector:
+            matchLabels:
+              app: order-service
       ports:
         - port: 8000
           protocol: TCP
