@@ -227,6 +227,10 @@
         color: rgba(245, 239, 229, 0.72);
       }
 
+      .storefront-hidden {
+        display: none !important;
+      }
+
       .toast {
         position: fixed;
         right: 22px;

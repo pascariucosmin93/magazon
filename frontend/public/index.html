@@ -31,14 +31,14 @@
       </div>
       <nav class="nav">
         <div class="nav-inner">
-          <a href="#catalog">Laptopuri</a>
-          <a href="#catalog">PC Gaming</a>
-          <a href="#catalog">Componente</a>
-          <a href="#catalog">Monitoare</a>
-          <a href="#catalog">Periferice</a>
-          <a href="#catalog">Accesorii</a>
-          <a href="#workspace">Cont și coș</a>
-          <a href="#orders">Comenzi</a>
+          <a href="#hero">Laptopuri</a>
+          <a href="#hero">PC Gaming</a>
+          <a href="#hero">Componente</a>
+          <a href="#hero">Monitoare</a>
+          <a href="#hero">Periferice</a>
+          <a href="#hero">Accesorii</a>
+          <a href="#hero">Cont și coș</a>
+          <a href="#hero">Comenzi</a>
           <a href="#admin-panel" id="admin-nav" style="display:none;">Panou admin</a>
         </div>
       </nav>
@@ -53,9 +53,9 @@
           </div>
           <div class="rail-list">
             <button class="rail-item" onclick="selectCategory(null)">Toate produsele <span>vezi tot catalogul</span></button>
-            <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Laptopuri <span>office, business, mobile</span></button>
-            <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Gaming <span>mouse, tastaturi, căști</span></button>
-            <button class="rail-item" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Componente PC <span>SSD, dock, upgrade</span></button>
+            <button class="rail-item" onclick="selectCategory(null)">Laptopuri <span>office, business, mobile</span></button>
+            <button class="rail-item" onclick="selectCategory(null)">Gaming <span>mouse, tastaturi, căști</span></button>
+            <button class="rail-item" onclick="selectCategory(null)">Componente PC <span>SSD, dock, upgrade</span></button>
             <button class="rail-item" onclick="focusCart()">Coș & checkout <span>guest order activ</span></button>
           </div>
         </aside>
@@ -69,7 +69,7 @@
               mare, produse scoase în față și acțiuni comerciale ușor de găsit.
             </p>
             <div class="hero-actions">
-              <button class="primary" onclick="document.getElementById('catalog').scrollIntoView({ behavior: 'smooth' })">Cumpără acum</button>
+              <button class="primary" onclick="selectCategory(null)">Cumpără acum</button>
               <button class="secondary" onclick="focusCart()">Vezi coșul</button>
             </div>
             <div class="hero-metrics">
@@ -125,7 +125,7 @@
         </article>
       </section>
 
-      <section class="section">
+      <section class="section storefront-hidden">
         <div class="featured-head">
           <div>
             <h2>Promoții și produse recomandate</h2>
@@ -136,7 +136,7 @@
         <div class="featured-grid" id="featured-products"></div>
       </section>
 
-      <section class="section" id="catalog">
+      <section class="section storefront-hidden" id="catalog">
         <div class="section-head">
           <div>
             <h2>Catalog</h2>
@@ -193,7 +193,7 @@
         </div>
       </section>
 
-      <section class="section" id="workspace">
+      <section class="section storefront-hidden" id="workspace">
         <div class="workspace-head">
           <div>
             <h2>Cont, coș și checkout</h2>
@@ -253,7 +253,7 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section storefront-hidden">
         <section class="panel order-panel" id="orders">
           <div class="panel-head">
             <h3 class="panel-title">Status comandă</h3>
@@ -265,7 +265,7 @@
         </section>
       </section>
 
-      <section class="section panel admin-panel" id="admin-panel">
+      <section class="section panel admin-panel storefront-hidden" id="admin-panel">
         <div class="panel-head">
           <div>
             <h3 class="panel-title">Panou admin</h3>
@@ -295,7 +295,7 @@
         </div>
       </section>
 
-      <footer class="footer">
+      <footer class="footer storefront-hidden">
         <div class="footer-grid">
           <div>
             <h3>Magazon</h3>
