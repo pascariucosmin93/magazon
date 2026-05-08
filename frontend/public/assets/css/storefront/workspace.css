@@ -1,7 +1,7 @@
       .workspace-grid {
         display: grid;
         grid-template-columns: 1.1fr 0.9fr;
-        gap: 20px;
+        gap: 16px;
       }
 
       .workspace-stack,
@@ -20,10 +20,10 @@
       .guest-checkout {
         display: grid;
         gap: 12px;
-        margin-top: 16px;
-        padding: 16px;
+        margin-top: 14px;
+        padding: 14px;
         border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.74);
+        background: rgba(248, 250, 252, 0.94);
         border: 1px solid rgba(23, 32, 51, 0.08);
       }
 
@@ -42,7 +42,7 @@
       .cart-content,
       .admin-content,
       .order-content {
-        padding: 20px;
+        padding: 18px;
       }
 
       .dual-actions {
@@ -56,8 +56,8 @@
         gap: 8px;
         padding: 14px;
         border-radius: var(--radius-md);
-        background: rgba(15, 118, 110, 0.08);
-        border: 1px solid rgba(15, 118, 110, 0.12);
+        background: rgba(37, 99, 235, 0.08);
+        border: 1px solid rgba(37, 99, 235, 0.12);
       }
 
       .workspace-copy {
@@ -84,7 +84,7 @@
         gap: 12px;
         padding: 14px;
         border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.74);
+        background: rgba(248, 250, 252, 0.95);
         border: 1px solid rgba(23, 32, 51, 0.08);
       }
 

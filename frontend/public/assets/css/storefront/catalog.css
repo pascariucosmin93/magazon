@@ -1,7 +1,7 @@
       .catalog-layout {
         display: grid;
         grid-template-columns: 280px minmax(0, 1fr);
-        gap: 20px;
+        gap: 16px;
       }
 
       .panel {
@@ -27,37 +27,39 @@
 
       .category-list {
         display: grid;
-        gap: 8px;
-        padding: 14px;
+        gap: 6px;
+        padding: 12px;
       }
 
       .category-item {
         display: flex;
         justify-content: space-between;
         gap: 10px;
-        padding: 12px 14px;
+        padding: 11px 12px;
         text-align: left;
-        border-radius: var(--radius-sm);
-        background: transparent;
+        border-radius: 10px;
+        background: #f8fafc;
         color: var(--ink);
+        border: 1px solid rgba(22, 32, 51, 0.06);
+        font-size: 13px;
       }
 
       .category-item:hover,
       .category-item.active {
-        background: rgba(184, 87, 27, 0.08);
-        color: var(--brand-dark);
+        background: rgba(37, 99, 235, 0.08);
+        color: #1d4ed8;
       }
 
       .mini-stack {
         display: grid;
         gap: 12px;
-        padding: 14px;
+        padding: 12px;
       }
 
       .mini-card {
-        padding: 16px;
+        padding: 14px;
         border-radius: var(--radius-md);
-        background: rgba(255, 255, 255, 0.74);
+        background: rgba(248, 250, 252, 0.94);
         border: 1px solid rgba(23, 32, 51, 0.08);
       }
 
@@ -68,15 +70,15 @@
 
       .catalog-main {
         display: grid;
-        gap: 16px;
+        gap: 14px;
       }
 
       .catalog-banner {
-        padding: 22px;
+        padding: 18px;
         border-radius: var(--radius-lg);
         background:
-          radial-gradient(circle at right top, rgba(15, 118, 110, 0.12), transparent 22%),
-          linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 240, 230, 0.96) 100%);
+          radial-gradient(circle at right top, rgba(249, 115, 22, 0.14), transparent 22%),
+          linear-gradient(135deg, rgba(255, 255, 255, 0.99) 0%, rgba(243, 247, 252, 0.97) 100%);
         border: 1px solid rgba(23, 32, 51, 0.08);
         box-shadow: var(--shadow-soft);
       }
@@ -84,7 +86,7 @@
       .catalog-banner h1 {
         margin: 0;
         font-family: "Space Grotesk", sans-serif;
-        font-size: clamp(2rem, 4vw, 3.1rem);
+        font-size: clamp(1.7rem, 4vw, 2.5rem);
         letter-spacing: -0.05em;
       }
 
@@ -92,50 +94,54 @@
         margin: 8px 0 0;
         color: var(--muted);
         max-width: 66ch;
-        line-height: 1.75;
+        line-height: 1.65;
+        font-size: 14px;
       }
 
       .toolbar {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto auto;
-        gap: 12px;
+        gap: 10px;
         align-items: center;
       }
 
       .product-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 14px;
       }
 
       .product-card {
         overflow: hidden;
         display: grid;
-        grid-template-rows: 160px auto;
-        border-radius: var(--radius-lg);
+        grid-template-rows: 138px auto;
+        border-radius: var(--radius-md);
+        background: #fff;
+        border: 1px solid rgba(22, 32, 51, 0.08);
+        box-shadow: var(--shadow-soft);
       }
 
       .product-media {
         display: grid;
         place-items: center;
-        background: linear-gradient(180deg, #fffdf8 0%, #ebe1d3 100%);
+        background: linear-gradient(180deg, #ffffff 0%, #eff4fa 100%);
         border-bottom: 1px solid rgba(23, 32, 51, 0.08);
       }
 
       .product-media svg {
-        width: 104px;
-        height: 104px;
+        width: 88px;
+        height: 88px;
       }
 
       .product-body {
         display: grid;
-        gap: 12px;
-        padding: 18px;
+        gap: 10px;
+        padding: 14px;
       }
 
       .product-category {
-        color: var(--brand-dark);
-        font-size: 12px;
+        color: #1d4ed8;
+        font-size: 11px;
         font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
@@ -143,17 +149,17 @@
 
       .product-name {
         margin: 0;
-        min-height: 46px;
-        font-size: 17px;
-        line-height: 1.3;
+        min-height: 42px;
+        font-size: 15px;
+        line-height: 1.35;
       }
 
       .product-description {
-        min-height: 48px;
+        min-height: 42px;
         margin: 0;
         color: var(--muted);
-        font-size: 13px;
-        line-height: 1.55;
+        font-size: 12px;
+        line-height: 1.5;
       }
 
       .price-row {
@@ -165,7 +171,7 @@
 
       .price {
         color: var(--danger);
-        font-size: 22px;
+        font-size: 20px;
         font-weight: 900;
       }
 
