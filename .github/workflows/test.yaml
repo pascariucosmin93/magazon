@@ -156,4 +156,4 @@ jobs:
           push: false
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:test-${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max,ignore-error=true
