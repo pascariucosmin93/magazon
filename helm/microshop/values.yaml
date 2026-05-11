@@ -2,7 +2,7 @@ namespaceOverride: microshop
 createNamespace: false
 
 config:
-  POSTGRES_HOST: 192.168.1.16
+  POSTGRES_HOST: postgres.internal
   POSTGRES_PORT: "5432"
   POSTGRES_DB: microshop
   POSTGRES_USER: microshop
@@ -48,6 +48,13 @@ secret:
 
 redis:
   image: redis:7-alpine
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
 
 networkPolicies:
   enabled: true
@@ -63,6 +70,13 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
     runMigrations: true
     database:
       name: microshop_auth
@@ -75,6 +89,13 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
     runMigrations: true
     database:
       name: microshop_product
@@ -87,6 +108,13 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
   order-service:
     repository: ghcr.io/pascariucosmin93/magazon/order-service
     tag: 0.0.39
@@ -94,6 +122,13 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
     runMigrations: true
     database:
       name: microshop_order
@@ -106,6 +141,13 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 400m
+        memory: 384Mi
     runMigrations: true
     database:
       name: microshop_inventory
@@ -118,6 +160,13 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 400m
+        memory: 384Mi
     runMigrations: true
     database:
       name: microshop_payment
@@ -130,11 +179,24 @@ services:
     servicePort: 8000
     serviceType: ClusterIP
     replicas: 1
+    resources:
+      requests:
+        cpu: 75m
+        memory: 96Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
   frontend:
     repository: ghcr.io/pascariucosmin93/magazon/frontend
     tag: 0.0.39
-    loadBalancerIP: 10.10.2.50
     containerPort: 80
     servicePort: 80
-    serviceType: LoadBalancer
+    serviceType: ClusterIP
     replicas: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi

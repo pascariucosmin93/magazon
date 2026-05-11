@@ -4,6 +4,7 @@ set -euo pipefail
 NAMESPACE="${NAMESPACE:-microshop}"
 RELEASE="${RELEASE:-microshop}"
 TIMEOUT="${TIMEOUT:-5m}"
+VALUES_FILE="${VALUES_FILE:-./helm/microshop/values-production.yaml}"
 KEY_SERVICES="auth-service frontend"
 
 # ── Secret pre-flight check ───────────────────────────────────────────────────
@@ -40,6 +41,11 @@ KUBECTL_VER=$(kubectl version --client --output=json 2>/dev/null | python3 -c "i
 HELM_VER=$(helm version --short 2>/dev/null | grep -oE 'v[0-9]+\.[0-9]+' | head -1 || echo "unknown")
 echo "Using kubectl ${KUBECTL_VER}, helm ${HELM_VER}"
 
+HELM_VALUES_ARGS=(-f ./helm/microshop/values.yaml)
+if [[ -n "${VALUES_FILE}" ]]; then
+  HELM_VALUES_ARGS+=(-f "${VALUES_FILE}")
+fi
+
 # ── Namespace ────────────────────────────────────────────────────────────────
 
 kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1 || kubectl create namespace "${NAMESPACE}"
@@ -48,6 +54,7 @@ kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1 || kubectl create namespace
 
 echo "Running Helm dry-run..."
 helm upgrade --install "${RELEASE}" ./helm/microshop \
+  "${HELM_VALUES_ARGS[@]}" \
   --namespace "${NAMESPACE}" \
   --set secret.manage=true \
   --set "secret.postgresPassword=${POSTGRES_PASSWORD}" \
@@ -67,6 +74,7 @@ echo "Dry-run passed."
 
 echo "Deploying release ${RELEASE} into namespace ${NAMESPACE}..."
 helm upgrade --install "${RELEASE}" ./helm/microshop \
+  "${HELM_VALUES_ARGS[@]}" \
   --namespace "${NAMESPACE}" \
   --set secret.manage=true \
   --set "secret.postgresPassword=${POSTGRES_PASSWORD}" \

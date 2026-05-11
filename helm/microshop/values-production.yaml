@@ -1,0 +1,23 @@
+config:
+  POSTGRES_HOST: 192.168.1.16
+  KAFKA_BOOTSTRAP_SERVERS: kafka.kafka.svc.cluster.local:9092
+
+services:
+  auth-service:
+    tag: 0.0.39
+  product-service:
+    tag: 0.0.39
+  cart-service:
+    tag: 0.0.39
+  order-service:
+    tag: 0.0.39
+  inventory-service:
+    tag: 0.0.39
+  payment-service:
+    tag: 0.0.39
+  notification-service:
+    tag: 0.0.39
+  frontend:
+    tag: 0.0.39
+    serviceType: LoadBalancer
+    loadBalancerIP: 10.10.2.50

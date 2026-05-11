@@ -1,0 +1,143 @@
+name: microshop-test
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  validate:
+    name: Validate, Test, and Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install test and security tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest bandit pip-audit flake8 mypy
+          find services -name requirements.txt -print0 | xargs -0 -n1 pip install -r
+
+      - name: Run pytest
+        env:
+          PYTHONPATH: .
+          POSTGRES_PASSWORD: ci-test-password
+          JWT_SECRET: ci-test-jwt-secret-minimum-32-chars-xxx
+        run: pytest tests -q
+
+      - name: Compile Python code
+        run: python -m compileall shared services
+
+      - name: Run flake8
+        run: flake8 shared services --max-line-length=120 --extend-ignore=E501
+
+      - name: Run mypy
+        run: mypy shared services --ignore-missing-imports --no-strict-optional --explicit-package-bases
+        continue-on-error: true
+
+      - name: Lint deploy script
+        run: bash -n deploy.sh
+
+      - name: Run Bandit
+        run: bandit -r shared services -ll
+
+      - name: Run pip-audit
+        run: |
+          find services -name requirements.txt -print0 | while IFS= read -r -d '' file; do
+            echo "Auditing ${file}"
+            pip-audit -r "${file}"
+          done
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        with:
+          sarif_file: trivy-results.sarif
+        continue-on-error: true
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: microshop-platform
+          path: .
+          format: HTML
+          out: reports
+          args: >
+            --enableRetired
+            --failOnCVSS 7
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check-report
+          path: reports
+
+  build-images:
+    name: Build Images
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: auth-service
+            dockerfile: services/auth-service/Dockerfile
+          - name: product-service
+            dockerfile: services/product-service/Dockerfile
+          - name: cart-service
+            dockerfile: services/cart-service/Dockerfile
+          - name: order-service
+            dockerfile: services/order-service/Dockerfile
+          - name: inventory-service
+            dockerfile: services/inventory-service/Dockerfile
+          - name: payment-service
+            dockerfile: services/payment-service/Dockerfile
+          - name: notification-service
+            dockerfile: services/notification-service/Dockerfile
+          - name: frontend
+            dockerfile: frontend/Dockerfile
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:test-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

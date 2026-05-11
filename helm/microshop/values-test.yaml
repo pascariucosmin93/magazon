@@ -1,0 +1,10 @@
+config:
+  POSTGRES_HOST: 192.168.1.16
+  KAFKA_BOOTSTRAP_SERVERS: kafka.kafka.svc.cluster.local:9092
+
+networkPolicies:
+  monitoringNamespace: ""
+
+services:
+  frontend:
+    serviceType: ClusterIP

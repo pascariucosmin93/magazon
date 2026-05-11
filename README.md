@@ -15,7 +15,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 
 ## Infrastructure
 
-- PostgreSQL: external persistent data source at `192.168.1.16`, with one database/user per persistent service
+- PostgreSQL: external persistent data source, configured per environment through Helm values overrides
 - Redis: cart storage and product cache
 - Kafka: external event bus installed separately with Helm
 - Kubernetes manifests: raw `kubectl` deployment
@@ -81,6 +81,19 @@ password hashes are accepted only to migrate existing users on their next succes
 ./deploy.sh
 ```
 
+Default deploy uses the common chart values plus production overrides:
+
+```text
+helm/microshop/values.yaml
+helm/microshop/values-production.yaml
+```
+
+For a separate environment:
+
+```bash
+VALUES_FILE=./helm/microshop/values-test.yaml ./deploy.sh
+```
+
 This chart does not deploy Kafka. Install Kafka separately and expose it as:
 
 ```text
@@ -102,9 +115,10 @@ helm upgrade --install kafka bitnami/kafka \
 
 GitHub Actions is used only for CI and container image publishing for Kubernetes deployments.
 
-- `.github/workflows/ci-cd.yaml`
+- `.github/workflows/test.yaml`
   - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, OWASP Dependency-Check, and builds all container images without pushing
-  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values.yaml` to that version, and pushes all images to GHCR with that exact tag
+- `.github/workflows/production.yaml`
+  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values-production.yaml` to that version, and pushes all images to GHCR with that exact tag
 
 Argo CD should handle deployment by syncing this repo or a separate GitOps repo after images are published.
 
@@ -130,7 +144,7 @@ ghcr.io/pascariucosmin93/magazon/frontend:0.0.2
 
 The version sequence is driven by Git tags already present in the repository. The first release becomes `0.0.1`, then `0.0.2`, and so on.
 
-Helm image values use explicit `repository` + `tag` pairs, and the CI pipeline automatically bumps all image tags in `helm/microshop/values.yaml` to the new release version so Argo CD deploys that exact version instead of `latest`.
+Helm image values use explicit `repository` + `tag` pairs, and the production pipeline automatically bumps all image tags in `helm/microshop/values-production.yaml` to the new release version so Argo CD deploys that exact version instead of `latest`.
 
 ### Required GitHub setup
 
