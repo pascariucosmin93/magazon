@@ -47,7 +47,23 @@ jobs:
         run: flake8 shared services --max-line-length=120 --extend-ignore=E501
 
       - name: Run mypy
-        run: mypy shared services --ignore-missing-imports --no-strict-optional --explicit-package-bases
+        env:
+          PYTHONPATH: .
+        run: |
+          mypy shared --ignore-missing-imports --no-strict-optional
+          for service_dir in services/*; do
+            if [[ -d "${service_dir}/migrations" ]]; then
+              (
+                cd "${service_dir}"
+                PYTHONPATH="${GITHUB_WORKSPACE}" mypy app migrate.py migrations --ignore-missing-imports --no-strict-optional
+              )
+            else
+              (
+                cd "${service_dir}"
+                PYTHONPATH="${GITHUB_WORKSPACE}" mypy app --ignore-missing-imports --no-strict-optional
+              )
+            fi
+          done
         continue-on-error: true
 
       - name: Lint deploy script
