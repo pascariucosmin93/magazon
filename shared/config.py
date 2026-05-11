@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     service_name: str = "service"
     service_port: int = 8000
-    postgres_host: str = "192.168.1.16"
+    postgres_host: str
     postgres_port: int = 5432
     postgres_db: str = "microshop"
     postgres_user: str = "microshop"

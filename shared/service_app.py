@@ -33,15 +33,21 @@ def create_base_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        if enable_kafka:
-            await start_producer()
-        if startup_hook:
-            await startup_hook()
-        yield
-        if shutdown_hook:
-            await shutdown_hook()
-        if enable_kafka:
-            await stop_producer()
+        kafka_started = False
+        entered = False
+        try:
+            if startup_hook:
+                await startup_hook()
+            if enable_kafka:
+                await start_producer()
+                kafka_started = True
+            entered = True
+            yield
+        finally:
+            if entered and shutdown_hook:
+                await shutdown_hook()
+            if kafka_started:
+                await stop_producer()
 
     app = FastAPI(title=title, lifespan=lifespan)
     app.add_middleware(

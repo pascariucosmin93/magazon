@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from contextlib import suppress
 from typing import Awaitable, Callable
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
@@ -15,11 +16,17 @@ producer: AIOKafkaProducer | None = None
 async def start_producer():
     global producer
     if producer is None:
-        producer = AIOKafkaProducer(
+        candidate = AIOKafkaProducer(
             bootstrap_servers=settings.kafka_bootstrap_servers,
             value_serializer=lambda value: json.dumps(value).encode("utf-8"),
         )
-        await producer.start()
+        try:
+            await candidate.start()
+        except Exception:
+            with suppress(Exception):
+                await candidate.stop()
+            raise
+        producer = candidate
         logger.info("Kafka producer started")
 
 
