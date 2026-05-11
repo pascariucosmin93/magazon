@@ -2,7 +2,7 @@ namespaceOverride: microshop
 createNamespace: false
 
 config:
-  POSTGRES_HOST: postgres.internal
+  POSTGRES_HOST: 192.168.1.16
   POSTGRES_PORT: "5432"
   POSTGRES_DB: microshop
   POSTGRES_USER: microshop
