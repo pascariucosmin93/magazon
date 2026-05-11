@@ -27,10 +27,12 @@ spec:
             - python
             - /app/services/{{ $name }}/migrate.py
           env:
+            - name: POSTGRES_HOST
+              value: {{ $.Values.config.POSTGRES_HOST | quote }}
+            - name: POSTGRES_PORT
+              value: {{ $.Values.config.POSTGRES_PORT | quote }}
             {{- include "microshop.databaseEnv" (dict "service" $svc) | nindent 12 }}
           envFrom:
-            - configMapRef:
-                name: microshop-config
             - secretRef:
                 name: microshop-secret
           resources:
