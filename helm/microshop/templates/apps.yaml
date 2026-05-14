@@ -146,6 +146,7 @@ spec:
       nodePort: {{ $svc.nodePort }}
       {{- end }}
 ---
+{{- if ne (default true $svc.autoscaling.enabled) false }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -156,21 +157,16 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ $name }}
-  minReplicas: {{ $svc.replicas }}
-  maxReplicas: {{ mul 3 (int $svc.replicas) }}
+  minReplicas: {{ default (int $svc.replicas) $svc.autoscaling.minReplicas }}
+  maxReplicas: {{ default (max 2 (int $svc.replicas)) $svc.autoscaling.maxReplicas }}
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 70
-    - type: Resource
-      resource:
-        name: memory
-        target:
-          type: Utilization
-          averageUtilization: 80
+          averageUtilization: {{ default 85 $svc.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}
 {{- if gt (int $svc.replicas) 1 }}
 ---
 apiVersion: policy/v1
