@@ -3,7 +3,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import clear_mappers, sessionmaker
 
 from shared.db import Base
 from shared import kafka as shared_kafka
@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_module(name: str, relative_path: str):
+    clear_mappers()
+    Base.registry.dispose()
     Base.metadata.clear()
     spec = spec_from_file_location(name, ROOT / relative_path)
     module = module_from_spec(spec)
