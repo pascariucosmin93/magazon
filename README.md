@@ -81,11 +81,10 @@ password hashes are accepted only to migrate existing users on their next succes
 ./deploy.sh
 ```
 
-Default deploy uses the common chart values plus production overrides:
+Default deploy uses the single shared chart values file:
 
 ```text
 helm/microshop/values.yaml
-helm/microshop/values-production.yaml
 ```
 
 For a separate environment:
@@ -118,7 +117,7 @@ GitHub Actions is used only for CI and container image publishing for Kubernetes
 - `.github/workflows/test.yaml`
   - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, OWASP Dependency-Check, and builds all container images without pushing
 - `.github/workflows/production.yaml`
-  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values-production.yaml` to that version, and pushes all images to GHCR with that exact tag
+  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values.yaml` to that version, and pushes all images to GHCR with that exact tag
 
 Argo CD should handle deployment by syncing this repo or a separate GitOps repo after images are published.
 
@@ -144,7 +143,7 @@ ghcr.io/pascariucosmin93/magazon/frontend:0.0.2
 
 The version sequence is driven by Git tags already present in the repository. The first release becomes `0.0.1`, then `0.0.2`, and so on.
 
-Helm image values use explicit `repository` + `tag` pairs, and the production pipeline automatically bumps all image tags in `helm/microshop/values-production.yaml` to the new release version so Argo CD deploys that exact version instead of `latest`.
+Helm image values use explicit `repository` + `tag` pairs, and the production pipeline automatically bumps all image tags in `helm/microshop/values.yaml` to the new release version so Argo CD deploys that exact version instead of `latest`.
 
 ### Required GitHub setup
 

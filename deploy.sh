@@ -4,7 +4,7 @@ set -euo pipefail
 NAMESPACE="${NAMESPACE:-microshop}"
 RELEASE="${RELEASE:-microshop}"
 TIMEOUT="${TIMEOUT:-5m}"
-VALUES_FILE="${VALUES_FILE:-./helm/microshop/values-production.yaml}"
+VALUES_FILE="${VALUES_FILE:-}"
 KEY_SERVICES="auth-service frontend"
 
 # ── Secret pre-flight check ───────────────────────────────────────────────────

@@ -161,7 +161,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Update service tags in values-production.yaml
+      - name: Update service tags in values.yaml
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
         run: |
@@ -170,7 +170,7 @@ jobs:
           import os
 
           version = os.environ["VERSION"]
-          path = Path("helm/microshop/values-production.yaml")
+          path = Path("helm/microshop/values.yaml")
           lines = path.read_text().splitlines()
           updated = []
           for line in lines:
@@ -188,7 +188,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add helm/microshop/values-production.yaml
+          git add helm/microshop/values.yaml
           git commit -m "Update production image tags to ${VERSION} [skip ci]" || exit 0
           git push origin HEAD:main
 
