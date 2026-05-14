@@ -8,11 +8,12 @@ from pydantic import BaseModel
 import requests
 import stripe
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from shared.auth import optional_user_claims, require_user_id
 from shared.db import Base, SessionLocal, get_db
-from shared.kafka import consume_topics, publish_event
+from shared.kafka import consume_topics, get_current_event, publish_event
 from shared.service_app import create_base_app
 
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
@@ -38,6 +39,15 @@ class Payment(Base):
 
 class CheckoutSessionRequest(BaseModel):
     return_base_url: str
+
+
+class ProcessedMessage(Base):
+    __tablename__ = "processed_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(String(64), nullable=False, unique=True, index=True)
+    topic = Column(String(255), nullable=False)
+    processed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 def _request_headers(authorization: str | None = None, x_guest_token: str | None = None) -> dict[str, str]:
@@ -139,14 +149,38 @@ def serialize_payment(payment: Payment) -> dict:
 consumer_task = None
 
 
-async def handle_inventory(topic: str, payload: dict):
-    if payload.get("status") != "reserved":
-        return
+def _mark_event_processed(db: Session, topic: str) -> bool:
+    event = get_current_event()
+    if not event:
+        return False
 
+    event_id = event["event_id"]
+    existing = db.query(ProcessedMessage).filter(ProcessedMessage.event_id == event_id).first()
+    if existing:
+        return True
+
+    db.add(ProcessedMessage(event_id=event_id, topic=topic))
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        return True
+    return False
+
+
+async def handle_inventory(topic: str, payload: dict):
     db = SessionLocal()
     try:
+        if _mark_event_processed(db, topic):
+            return
+
+        if payload.get("status") != "reserved":
+            db.commit()
+            return
+
         existing = db.query(Payment).filter(Payment.order_id == payload["order_id"]).first()
         if existing:
+            db.commit()
             return
         amount = sum(item["price"] * item["quantity"] for item in payload.get("items", []))
         payment = Payment(

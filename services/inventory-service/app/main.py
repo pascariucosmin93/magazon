@@ -7,11 +7,12 @@ from alembic import command as alembic_command
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
-from shared.kafka import consume_topics, publish_event
+from shared.kafka import consume_topics, get_current_event, publish_event
 from shared.service_app import create_base_app
 
 
@@ -38,18 +39,50 @@ class InventoryReservation(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class ProcessedMessage(Base):
+    __tablename__ = "processed_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(String(64), nullable=False, unique=True, index=True)
+    topic = Column(String(255), nullable=False)
+    processed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 consumer_task = None
+
+
+def _mark_event_processed(db: Session, topic: str) -> bool:
+    event = get_current_event()
+    if not event:
+        return False
+
+    event_id = event["event_id"]
+    existing = db.query(ProcessedMessage).filter(ProcessedMessage.event_id == event_id).first()
+    if existing:
+        return True
+
+    db.add(ProcessedMessage(event_id=event_id, topic=topic))
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        return True
+    return False
 
 
 async def handle_order_created(topic: str, payload: dict):
     db = SessionLocal()
     try:
+        if _mark_event_processed(db, topic):
+            return
+
         existing = (
             db.query(InventoryReservation)
             .filter(InventoryReservation.order_id == payload["order_id"])
             .first()
         )
         if existing:
+            db.commit()
             await publish_event(
                 "inventory.reserved",
                 {"order_id": payload["order_id"], "status": existing.status, "items": payload["items"]},

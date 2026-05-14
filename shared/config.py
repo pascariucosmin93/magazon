@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     postgres_password: str
     redis_url: str = "redis://redis:6379/0"
     kafka_bootstrap_servers: str = "kafka:9092"
+    kafka_consumer_max_retries: int = 3
+    kafka_retry_backoff_seconds: float = 1.0
+    kafka_event_version: int = 1
+    kafka_dlq_suffix: str = ".dlq"
     jwt_secret: str  # Required
 
     @computed_field

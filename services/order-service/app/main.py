@@ -1,4 +1,6 @@
 import asyncio
+import json
+import logging
 import os
 import secrets
 from datetime import datetime
@@ -8,16 +10,18 @@ from alembic import command as alembic_command
 import requests
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, relationship
 
 from shared.auth import optional_user_claims, require_user_id
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
-from shared.kafka import consume_topics, publish_event
+from shared.kafka import consume_topics, get_current_event, publish_event
 from shared.service_app import create_base_app
 
 PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
+logger = logging.getLogger(__name__)
 
 
 class Order(Base):
@@ -58,14 +62,60 @@ class OrderRequest(BaseModel):
     shipping_address: str | None = None
 
 
+class ProcessedMessage(Base):
+    __tablename__ = "processed_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(String(64), nullable=False, unique=True, index=True)
+    topic = Column(String(255), nullable=False)
+    processed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class OutboxEvent(Base):
+    __tablename__ = "outbox_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    topic = Column(String(255), nullable=False)
+    payload = Column(Text, nullable=False)
+    published = Column(Boolean, nullable=False, default=False)
+    publish_attempts = Column(Integer, nullable=False, default=0)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    published_at = Column(DateTime, nullable=True)
+
+
 consumer_task = None
+outbox_task = None
+
+
+def _mark_event_processed(db: Session, topic: str) -> bool:
+    event = get_current_event()
+    if not event:
+        return False
+
+    event_id = event["event_id"]
+    existing = db.query(ProcessedMessage).filter(ProcessedMessage.event_id == event_id).first()
+    if existing:
+        return True
+
+    db.add(ProcessedMessage(event_id=event_id, topic=topic))
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        return True
+    return False
 
 
 async def handle_event(topic: str, payload: dict):
     db = SessionLocal()
     try:
+        if _mark_event_processed(db, topic):
+            return
+
         order = db.query(Order).filter(Order.id == payload.get("order_id")).first()
         if not order:
+            db.commit()
             return
         if topic == "inventory.reserved":
             order.status = (
@@ -78,6 +128,45 @@ async def handle_event(topic: str, payload: dict):
         db.close()
 
 
+def _serialize_outbox_payload(payload: dict) -> str:
+    return json.dumps(payload, separators=(",", ":"), sort_keys=True)
+
+
+async def publish_pending_outbox_events_once(limit: int = 20) -> None:
+    db = SessionLocal()
+    try:
+        events = (
+            db.query(OutboxEvent)
+            .filter(OutboxEvent.published.is_(False))
+            .order_by(OutboxEvent.id.asc())
+            .limit(limit)
+            .all()
+        )
+        for event in events:
+            event.publish_attempts += 1
+            try:
+                await publish_event(event.topic, json.loads(event.payload))
+                event.published = True
+                event.published_at = datetime.utcnow()
+                event.last_error = None
+            except Exception as exc:
+                event.last_error = str(exc)
+                logger.warning("Outbox publish failed id=%s topic=%s error=%s", event.id, event.topic, exc)
+                db.add(event)
+                db.commit()
+                continue
+            db.add(event)
+            db.commit()
+    finally:
+        db.close()
+
+
+async def outbox_publisher_loop() -> None:
+    while True:
+        await publish_pending_outbox_events_once()
+        await asyncio.sleep(1)
+
+
 def _run_migrations() -> None:
     service_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cfg = AlembicConfig()
@@ -87,14 +176,21 @@ def _run_migrations() -> None:
 
 
 async def startup():
-    global consumer_task
+    global consumer_task, outbox_task
     _run_migrations()
     consumer_task = asyncio.create_task(
         consume_topics("order-service", ["inventory.reserved", "payment.completed"], handle_event)
     )
+    outbox_task = asyncio.create_task(outbox_publisher_loop())
 
 
 async def shutdown():
+    if outbox_task:
+        outbox_task.cancel()
+        try:
+            await outbox_task
+        except asyncio.CancelledError:
+            pass
     if consumer_task:
         consumer_task.cancel()
         try:
@@ -214,18 +310,25 @@ async def create_order(
             )
         )
 
+    outbox_payload = {
+        "order_id": order.id,
+        "user_id": order.user_id,
+        "total": order.total,
+        "items": normalized_items,
+    }
+    db.add(
+        OutboxEvent(
+            topic="order.created",
+            payload=_serialize_outbox_payload(outbox_payload),
+        )
+    )
     db.commit()
     db.refresh(order)
 
-    await publish_event(
-        "order.created",
-        {
-            "order_id": order.id,
-            "user_id": order.user_id,
-            "total": order.total,
-            "items": normalized_items,
-        },
-    )
+    try:
+        await publish_pending_outbox_events_once(limit=5)
+    except Exception as exc:
+        logger.warning("Immediate outbox publish failed for order_id=%s: %s", order.id, exc)
     db.refresh(order)
     return serialize_order(order)
 
