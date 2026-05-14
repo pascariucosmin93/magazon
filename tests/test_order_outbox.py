@@ -144,7 +144,9 @@ def test_handle_event_is_idempotent_for_duplicate_event(monkeypatch):
     finally:
         shared_kafka.current_event_envelope.reset(token)
 
-    stored_order = db.query(order_module.Order).filter(order_module.Order.id == order.id).one()
-    processed = db.query(order_module.ProcessedMessage).all()
+    db.close()
+    verification_db = testing_session()
+    stored_order = verification_db.query(order_module.Order).filter(order_module.Order.id == order.id).one()
+    processed = verification_db.query(order_module.ProcessedMessage).all()
     assert stored_order.status == "paid"
     assert len(processed) == 1
