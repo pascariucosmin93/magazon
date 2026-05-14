@@ -1,4 +1,4 @@
-import pytest
+import asyncio
 
 from shared import kafka
 
@@ -29,8 +29,7 @@ def test_normalize_event_message_preserves_existing_envelope():
     assert normalized["payload"]["order_id"] == 7
 
 
-@pytest.mark.asyncio
-async def test_process_event_with_retries_sends_to_dlq_after_failures(monkeypatch):
+def test_process_event_with_retries_sends_to_dlq_after_failures(monkeypatch):
     attempts = []
     dlq_calls = []
 
@@ -53,11 +52,13 @@ async def test_process_event_with_retries_sends_to_dlq_after_failures(monkeypatc
     monkeypatch.setattr(kafka.settings, "kafka_retry_backoff_seconds", 0)
     monkeypatch.setattr(kafka, "publish_to_dlq", fake_publish_to_dlq)
 
-    await kafka.process_event_with_retries(
-        "inventory-service",
-        "order.created",
-        {"order_id": 9},
-        failing_handler,
+    asyncio.run(
+        kafka.process_event_with_retries(
+            "inventory-service",
+            "order.created",
+            {"order_id": 9},
+            failing_handler,
+        )
     )
 
     assert len(attempts) == 2
@@ -66,8 +67,7 @@ async def test_process_event_with_retries_sends_to_dlq_after_failures(monkeypatc
     assert dlq_calls[0]["attempts"] == 2
 
 
-@pytest.mark.asyncio
-async def test_process_event_with_retries_accepts_legacy_payload(monkeypatch):
+def test_process_event_with_retries_accepts_legacy_payload(monkeypatch):
     received = []
 
     async def handler(topic, payload):
@@ -75,18 +75,19 @@ async def test_process_event_with_retries_accepts_legacy_payload(monkeypatch):
 
     monkeypatch.setattr(kafka.settings, "kafka_consumer_max_retries", 2)
 
-    await kafka.process_event_with_retries(
-        "payment-service",
-        "inventory.reserved",
-        {"order_id": 12, "status": "reserved"},
-        handler,
+    asyncio.run(
+        kafka.process_event_with_retries(
+            "payment-service",
+            "inventory.reserved",
+            {"order_id": 12, "status": "reserved"},
+            handler,
+        )
     )
 
     assert received == [("inventory.reserved", {"order_id": 12, "status": "reserved"})]
 
 
-@pytest.mark.asyncio
-async def test_process_event_with_retries_exposes_current_event(monkeypatch):
+def test_process_event_with_retries_exposes_current_event(monkeypatch):
     seen = {}
 
     async def handler(topic, payload):
@@ -97,11 +98,13 @@ async def test_process_event_with_retries_exposes_current_event(monkeypatch):
 
     monkeypatch.setattr(kafka.settings, "kafka_consumer_max_retries", 1)
 
-    await kafka.process_event_with_retries(
-        "order-service",
-        "payment.completed",
-        {"event_id": "evt-42", "payload": {"order_id": 42, "status": "completed"}},
-        handler,
+    asyncio.run(
+        kafka.process_event_with_retries(
+            "order-service",
+            "payment.completed",
+            {"event_id": "evt-42", "payload": {"order_id": 42, "status": "completed"}},
+            handler,
+        )
     )
 
     assert seen == {
