@@ -5,6 +5,8 @@ metadata:
   namespace: {{ include "microshop.namespace" . }}
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: redis
@@ -18,6 +20,9 @@ spec:
           image: {{ .Values.redis.image }}
           ports:
             - containerPort: 6379
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
           resources:
             {{- toYaml .Values.redis.resources | nindent 12 }}
           readinessProbe:
@@ -30,6 +35,25 @@ spec:
               port: 6379
             initialDelaySeconds: 10
             periodSeconds: 20
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+  namespace: {{ include "microshop.namespace" . }}
+spec:
+  accessModes:
+{{- range .Values.redis.persistence.accessModes }}
+    - {{ . }}
+{{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.redis.persistence.size }}
+  storageClassName: {{ .Values.redis.persistence.storageClass }}
 ---
 apiVersion: v1
 kind: Service

@@ -48,6 +48,12 @@ secret:
 
 redis:
   image: redis:7-alpine
+  persistence:
+    enabled: true
+    storageClass: nfs-csi
+    accessModes:
+      - ReadWriteMany
+    size: 2Gi
   resources:
     requests:
       cpu: 50m
