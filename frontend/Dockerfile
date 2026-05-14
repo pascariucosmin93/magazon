@@ -1,12 +1,7 @@
 # syntax=docker/dockerfile:1
-FROM alpine:3.20 AS builder
+FROM nginx:stable-alpine3.23 AS runtime
 
-WORKDIR /html
-COPY frontend/public /html
-
-FROM nginx:1.27-alpine AS runtime
-
-COPY --from=builder /html /usr/share/nginx/html
+COPY frontend/public /usr/share/nginx/html
 COPY frontend/nginx/default.conf /etc/nginx/conf.d/default.conf
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
