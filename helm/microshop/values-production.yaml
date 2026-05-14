@@ -4,20 +4,20 @@ config:
 
 services:
   auth-service:
-    tag: 0.0.45
+    tag: 0.0.46
   product-service:
-    tag: 0.0.45
+    tag: 0.0.46
   cart-service:
-    tag: 0.0.45
+    tag: 0.0.46
   order-service:
-    tag: 0.0.45
+    tag: 0.0.46
   inventory-service:
-    tag: 0.0.45
+    tag: 0.0.46
   payment-service:
-    tag: 0.0.45
+    tag: 0.0.46
   notification-service:
-    tag: 0.0.45
+    tag: 0.0.46
   frontend:
-    tag: 0.0.45
+    tag: 0.0.46
     serviceType: LoadBalancer
     loadBalancerIP: 10.10.2.50
