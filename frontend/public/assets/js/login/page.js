@@ -3,6 +3,28 @@ import { toast } from "../shared/ui.js";
 
 const nextUrl = new URLSearchParams(window.location.search).get("next") || "/";
 
+function validateRegistration({ username, email, password, address }) {
+  if (username.length < 3) {
+    return "Userul trebuie să aibă cel puțin 3 caractere.";
+  }
+  if (username.length > 100) {
+    return "Userul poate avea maximum 100 de caractere.";
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "Introdu o adresă de email validă, de exemplu nume@domeniu.ro.";
+  }
+  if (password.length < 6) {
+    return "Parola trebuie să aibă cel puțin 6 caractere.";
+  }
+  if (address.length < 5) {
+    return "Adresa de livrare trebuie să aibă cel puțin 5 caractere.";
+  }
+  if (address.length > 255) {
+    return "Adresa de livrare poate avea maximum 255 de caractere.";
+  }
+  return null;
+}
+
 export function showTab(name) {
   const loginVisible = name === "login";
   const registerVisible = name === "register";
@@ -41,8 +63,9 @@ export async function register() {
     const password = document.getElementById("register-password").value;
     const address = document.getElementById("register-address").value.trim();
 
-    if (!username || !email || !password || !address) {
-      toast("Completează user, email, parolă și adresă.");
+    const validationError = validateRegistration({ username, email, password, address });
+    if (validationError) {
+      toast(validationError);
       return;
     }
 

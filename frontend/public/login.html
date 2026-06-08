@@ -41,7 +41,7 @@
           <div class="form" id="login-form">
             <h2>Autentificare</h2>
             <p class="panel-copy">Intră în cont pentru administrarea mai rapidă a coșului și comenzilor.</p>
-            <input id="login-email" placeholder="Email" autocomplete="email" />
+            <input id="login-email" placeholder="Email" type="email" autocomplete="email" />
             <input id="login-password" placeholder="Parolă" type="password" autocomplete="current-password" />
             <div class="stack">
               <button class="primary" onclick="login()">Login</button>
@@ -52,10 +52,10 @@
           <div class="form hidden" id="register-form">
             <h2>Creează cont</h2>
             <p class="panel-copy">Completează datele de bază și te întorci direct în magazin.</p>
-            <input id="register-username" placeholder="User" autocomplete="username" />
-            <input id="register-email" placeholder="Email" autocomplete="email" />
-            <input id="register-password" placeholder="Parolă" type="password" autocomplete="new-password" />
-            <input id="register-address" placeholder="Adresă livrare" autocomplete="street-address" />
+            <input id="register-username" placeholder="User (minimum 3 caractere)" minlength="3" maxlength="100" autocomplete="username" />
+            <input id="register-email" placeholder="Email valid" type="email" autocomplete="email" />
+            <input id="register-password" placeholder="Parolă (minimum 6 caractere)" type="password" minlength="6" maxlength="255" autocomplete="new-password" />
+            <input id="register-address" placeholder="Adresă livrare (minimum 5 caractere)" minlength="5" maxlength="255" autocomplete="street-address" />
             <div class="stack">
               <button class="primary" onclick="register()">Creează cont</button>
               <button class="secondary" onclick="showTab('login')">Am deja cont</button>
