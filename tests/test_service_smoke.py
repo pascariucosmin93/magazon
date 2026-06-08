@@ -43,6 +43,17 @@ def test_legacy_sha256_password_hash_still_verifies():
     assert not auth_module.verify_password("demo123", legacy)
 
 
+def test_login_request_accepts_existing_local_admin_email():
+    auth_module = load_module("auth_main_login", "services/auth-service/app/main.py")
+
+    payload = auth_module.LoginRequest(
+        email="admin@microshop.local",
+        password="admin-password",
+    )
+
+    assert payload.email == "admin@microshop.local"
+
+
 def test_product_serializers_include_category_name():
     product_module = load_module("product_main", "services/product-service/app/main.py")
 

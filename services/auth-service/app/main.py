@@ -51,7 +51,7 @@ class RegisterRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=6, max_length=255)
 
 
@@ -246,7 +246,8 @@ def login(
 ):
     client_ip = request.client.host if request.client else "unknown"
     enforce_rate_limit(f"auth:login:{client_ip}", limit=12, window_seconds=300)
-    user = db.query(User).filter(User.email == payload.email).first()
+    normalized_email = payload.email.strip().lower()
+    user = db.query(User).filter(User.email == normalized_email).first()
     if not user or not verify_password(payload.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
