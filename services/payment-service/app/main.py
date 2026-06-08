@@ -11,7 +11,7 @@ from sqlalchemy import Column, DateTime, Float, Integer, String, Text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from shared.auth import optional_user_claims, require_user_id
+from shared.auth import current_user_claims, optional_user_claims, require_user_id
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, get_current_event, publish_event
 from shared.service_app import create_base_app
@@ -221,8 +221,17 @@ app = create_base_app(
 )
 
 
+def require_admin(claims: dict = Depends(current_user_claims)):
+    if claims.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return claims
+
+
 @app.get("/payments")
-def list_payments(db: Session = Depends(get_db)):
+def list_payments(
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
     items = db.query(Payment).all()
     return [serialize_payment(item) for item in items]
 

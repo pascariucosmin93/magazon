@@ -5,7 +5,7 @@ from datetime import datetime
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 from fastapi import Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Session
 
@@ -40,9 +40,9 @@ class Product(Base):
 
 
 class ProductRequest(BaseModel):
-    name: str
-    description: str
-    price: float
+    name: str = Field(min_length=1, max_length=255)
+    description: str = Field(min_length=1)
+    price: float = Field(gt=0)
     category_id: int | None = None
 
 
@@ -161,6 +161,31 @@ def create_product(
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
     product = Product(**payload.model_dump())
+    db.add(product)
+    db.commit()
+    db.refresh(product)
+    redis_client.delete(PRODUCT_CACHE_KEY)
+    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    return serialize_product(product, categories_by_id)
+
+
+@app.put("/products/{product_id}")
+def update_product(
+    product_id: int,
+    payload: ProductRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if payload.category_id is not None:
+        category = db.query(Category).filter(Category.id == payload.category_id).first()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+    for field, value in payload.model_dump().items():
+        setattr(product, field, value)
     db.add(product)
     db.commit()
     db.refresh(product)

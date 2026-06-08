@@ -10,6 +10,7 @@ from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from shared.auth import current_user_claims
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, get_current_event, publish_event
@@ -161,6 +162,31 @@ app = create_base_app(
 )
 
 
+def require_admin(claims: dict = Depends(current_user_claims)):
+    if claims.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return claims
+
+
+@app.get("/inventory")
+def list_inventory(
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    records = db.query(Inventory).order_by(Inventory.product_id).all()
+    return {
+        "items": [
+            {
+                "product_id": record.product_id,
+                "stock": record.stock,
+                "updated_at": record.updated_at.isoformat() if record.updated_at else None,
+            }
+            for record in records
+        ],
+        "total": len(records),
+    }
+
+
 @app.get("/inventory/{product_id}")
 def get_inventory(product_id: int, db: Session = Depends(get_db)):
     record = db.query(Inventory).filter(Inventory.product_id == product_id).first()
@@ -170,7 +196,13 @@ def get_inventory(product_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/inventory/seed")
-def seed_inventory(payload: InventorySeedRequest, db: Session = Depends(get_db)):
+def seed_inventory(
+    payload: InventorySeedRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    if payload.stock < 0:
+        raise HTTPException(status_code=400, detail="Stock must be >= 0")
     record = db.query(Inventory).filter(Inventory.product_id == payload.product_id).first()
     if record:
         record.stock = payload.stock

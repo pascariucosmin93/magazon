@@ -143,6 +143,73 @@
         gap: 16px;
       }
 
+      .admin-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        align-items: stretch;
+        margin-bottom: 18px;
+      }
+
+      .admin-stat {
+        display: grid;
+        gap: 6px;
+        padding: 14px;
+        border-radius: var(--radius-md);
+        background: rgba(29, 168, 228, 0.08);
+        border: 1px solid rgba(29, 168, 228, 0.16);
+      }
+
+      .admin-stat span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .admin-stat strong {
+        font-size: 24px;
+      }
+
+      .admin-stats .secondary {
+        grid-column: 1 / -1;
+      }
+
+      .admin-data-section {
+        margin-top: 22px;
+      }
+
+      .admin-data-section h4 {
+        margin-bottom: 10px;
+      }
+
+      .admin-table-wrap {
+        overflow-x: auto;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-md);
+      }
+
+      .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 620px;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        padding: 11px 12px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 13px;
+      }
+
+      .admin-table th {
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .admin-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
       .admin-result {
         margin-top: 16px;
         min-height: 84px;
@@ -160,6 +227,10 @@
         .workspace-grid,
         .admin-grid {
           grid-template-columns: 1fr;
+        }
+
+        .admin-stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 
@@ -199,5 +270,13 @@
         .admin-result {
           padding: 12px;
           font-size: 11px;
+        }
+
+        .admin-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .admin-stats .secondary {
+          grid-column: auto;
         }
       }

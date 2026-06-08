@@ -14,7 +14,7 @@ from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, St
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, relationship
 
-from shared.auth import optional_user_claims, require_user_id
+from shared.auth import current_user_claims, optional_user_claims, require_user_id
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, get_current_event, publish_event
@@ -208,6 +208,12 @@ app = create_base_app(
 )
 
 
+def require_admin(claims: dict = Depends(current_user_claims)):
+    if claims.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return claims
+
+
 def fetch_product(product_id: int) -> dict:
     try:
         response = requests.get(f"{PRODUCT_SERVICE_URL}/products/{product_id}", timeout=3)
@@ -220,7 +226,7 @@ def fetch_product(product_id: int) -> dict:
     return response.json()
 
 
-def serialize_order(order: Order) -> dict:
+def serialize_order(order: Order, include_guest_token: bool = True) -> dict:
     payload = {
         "order_id": order.id,
         "user_id": order.user_id,
@@ -239,7 +245,7 @@ def serialize_order(order: Order) -> dict:
             for item in order.items
         ],
     }
-    if order.user_id is None and order.guest_token:
+    if include_guest_token and order.user_id is None and order.guest_token:
         payload["guest_token"] = order.guest_token
     return payload
 
@@ -331,6 +337,18 @@ async def create_order(
         logger.warning("Immediate outbox publish failed for order_id=%s: %s", order.id, exc)
     db.refresh(order)
     return serialize_order(order)
+
+
+@app.get("/orders")
+def list_orders(
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    orders = db.query(Order).order_by(Order.created_at.desc(), Order.id.desc()).all()
+    return {
+        "items": [serialize_order(order, include_guest_token=False) for order in orders],
+        "total": len(orders),
+    }
 
 
 @app.get("/orders/{order_id}")

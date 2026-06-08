@@ -9,7 +9,14 @@ import {
   renderCart,
   syncGuestCartToServer
 } from "./cart.js";
-import { createCategory, createProduct, deleteProduct } from "./admin.js";
+import {
+  createCategory,
+  createProduct,
+  deleteProduct,
+  loadAdminData,
+  updateInventory,
+  updateProduct
+} from "./admin.js";
 import { loadOrder, placeOrder } from "./orders.js";
 import { focusAccount, focusCart, goToLogin, logout, openAccount, loadSession, updateUserState } from "./session.js";
 import { loadLastOrderContext } from "./storage.js";
@@ -35,7 +42,10 @@ function exposeGlobals() {
     removeFromCart,
     createCategory,
     createProduct,
-    deleteProduct
+    deleteProduct,
+    loadAdminData,
+    updateInventory,
+    updateProduct
   });
 }
 
@@ -58,6 +68,9 @@ export async function bootstrap() {
   try {
     await loadSession();
     updateUserState();
+    if (state.role === "admin") {
+      await loadAdminData();
+    }
     await syncGuestCartToServer();
     await loadCart();
   } catch (_error) {

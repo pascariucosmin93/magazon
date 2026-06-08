@@ -3,6 +3,7 @@ export const endpoints = {
   products: "/api/products",
   cart: "/api/cart",
   orders: "/api/orders",
+  inventory: "/api/inventory",
   payments: "/api/payments"
 };
 

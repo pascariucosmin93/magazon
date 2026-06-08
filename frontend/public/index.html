@@ -274,6 +274,25 @@
           <span class="status-badge">Admin only</span>
         </div>
         <div class="admin-content">
+          <div class="admin-stats">
+            <article class="admin-stat">
+              <span>Utilizatori</span>
+              <strong id="admin-user-count">0</strong>
+            </article>
+            <article class="admin-stat">
+              <span>Comenzi</span>
+              <strong id="admin-order-count">0</strong>
+            </article>
+            <article class="admin-stat">
+              <span>Produse cu stoc</span>
+              <strong id="admin-stock-count">0</strong>
+            </article>
+            <article class="admin-stat">
+              <span>Plăți</span>
+              <strong id="admin-payment-count">0</strong>
+            </article>
+            <button class="secondary" onclick="loadAdminData()">Reîncarcă datele</button>
+          </div>
           <div class="admin-grid">
             <div class="stack">
               <strong>Categorie nouă</strong>
@@ -282,15 +301,39 @@
               <button class="primary" onclick="createCategory()">Adaugă categorie</button>
             </div>
             <div class="stack">
-              <strong>Produs nou</strong>
+              <strong>Adaugă sau editează produs</strong>
+              <input id="admin-product-id" placeholder="ID produs (pentru editare sau ștergere)" type="number" />
               <input id="admin-product-name" placeholder="Nume produs" />
               <textarea id="admin-product-description" placeholder="Descriere produs"></textarea>
               <input id="admin-product-price" placeholder="Preț" type="number" step="0.01" />
               <select id="admin-product-category-id"></select>
               <button class="primary" onclick="createProduct()">Adaugă produs</button>
+              <button class="secondary" onclick="updateProduct()">Actualizează produs</button>
               <button class="secondary" onclick="deleteProduct()">Șterge produs după ID</button>
             </div>
+            <div class="stack">
+              <strong>Actualizare stoc</strong>
+              <input id="admin-stock-product-id" placeholder="ID produs" type="number" />
+              <input id="admin-stock-value" placeholder="Cantitate în stoc" type="number" min="0" />
+              <button class="primary" onclick="updateInventory()">Salvează stocul</button>
+            </div>
           </div>
+          <section class="admin-data-section">
+            <h4>Utilizatori</h4>
+            <div id="admin-users"><div class="empty">Datele se încarcă după autentificarea ca admin.</div></div>
+          </section>
+          <section class="admin-data-section">
+            <h4>Comenzi</h4>
+            <div id="admin-orders"><div class="empty">Datele se încarcă după autentificarea ca admin.</div></div>
+          </section>
+          <section class="admin-data-section">
+            <h4>Stoc</h4>
+            <div id="admin-inventory"><div class="empty">Datele se încarcă după autentificarea ca admin.</div></div>
+          </section>
+          <section class="admin-data-section">
+            <h4>Plăți</h4>
+            <div id="admin-payments"><div class="empty">Datele se încarcă după autentificarea ca admin.</div></div>
+          </section>
           <pre class="admin-result" id="admin-output">Acțiunile admin vor apărea aici.</pre>
         </div>
       </section>

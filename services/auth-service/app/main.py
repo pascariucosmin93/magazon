@@ -111,6 +111,23 @@ async def startup():
 app = create_base_app("auth-service", startup_hook=startup, enable_kafka=True, check_db=True)
 
 
+def require_admin(claims: dict = Depends(current_user_claims)):
+    if claims.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return claims
+
+
+def serialize_user(user: User) -> dict:
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "address": user.address,
+        "role": user.role,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+    }
+
+
 def hash_password(value: str) -> str:
     return password_hasher.hash(value)
 
@@ -260,6 +277,15 @@ def _serialize_claims(claims: dict) -> dict:
 @app.get("/session")
 def session(claims: dict = Depends(current_user_claims)):
     return _serialize_claims(claims)
+
+
+@app.get("/users")
+def list_users(
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    users = db.query(User).order_by(User.created_at.desc(), User.id.desc()).all()
+    return {"items": [serialize_user(user) for user in users], "total": len(users)}
 
 
 @app.post("/validate")
