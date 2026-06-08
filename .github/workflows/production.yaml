@@ -154,7 +154,9 @@ jobs:
   update-helm-values:
     name: Update Production Image Tags
     runs-on: ubuntu-latest
-    needs: determine-version
+    needs:
+      - determine-version
+      - build-images
     permissions:
       contents: write
     steps:
@@ -198,7 +200,6 @@ jobs:
     needs:
       - validate
       - determine-version
-      - update-helm-values
     strategy:
       fail-fast: false
       matrix:
