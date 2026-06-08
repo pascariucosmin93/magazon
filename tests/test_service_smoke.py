@@ -1,7 +1,10 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
-from sqlalchemy.orm import clear_mappers
+import pytest
+from fastapi import HTTPException
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, clear_mappers
 
 from shared.db import Base
 
@@ -52,6 +55,40 @@ def test_login_request_accepts_existing_local_admin_email():
     )
 
     assert payload.email == "admin@microshop.local"
+
+
+def test_admin_can_delete_customer_but_not_admin_account():
+    auth_module = load_module("auth_main_delete_user", "services/auth-service/app/main.py")
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as db:
+        admin = auth_module.User(
+            username="admin",
+            email="admin@microshop.local",
+            password="unused",
+            address="Admin Console",
+            role="admin",
+        )
+        customer = auth_module.User(
+            username="customer",
+            email="customer@example.com",
+            password="unused",
+            address="Test Address",
+            role="customer",
+        )
+        db.add_all([admin, customer])
+        db.commit()
+        db.refresh(admin)
+        db.refresh(customer)
+
+        result = auth_module.delete_user(customer.id, db, {"sub": str(admin.id), "role": "admin"})
+        assert result == {"message": "User deleted", "user_id": customer.id}
+        assert db.get(auth_module.User, customer.id) is None
+
+        with pytest.raises(HTTPException) as exc:
+            auth_module.delete_user(admin.id, db, {"sub": str(admin.id), "role": "admin"})
+        assert exc.value.status_code == 409
 
 
 def test_product_serializers_include_category_name():

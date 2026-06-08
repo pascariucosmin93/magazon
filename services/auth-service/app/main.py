@@ -289,6 +289,31 @@ def list_users(
     return {"items": [serialize_user(user) for user in users], "total": len(users)}
 
 
+@app.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        admin_user_id = int(admin.get("sub"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    if user.id == admin_user_id:
+        raise HTTPException(status_code=409, detail="You cannot delete your own account")
+    if user.role == "admin":
+        raise HTTPException(status_code=409, detail="Administrator accounts cannot be deleted")
+
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted", "user_id": user_id}
+
+
 @app.post("/validate")
 def validate_token(claims: dict = Depends(current_user_claims)):
     return _serialize_claims(claims)

@@ -158,6 +158,64 @@ function renderOrders(items) {
   container.appendChild(wrapper);
 }
 
+function renderUsers(items) {
+  const container = document.getElementById("admin-users");
+  container.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Nu există utilizatori.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "admin-table-wrap";
+  const table = document.createElement("table");
+  table.className = "admin-table";
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["ID", "Utilizator", "Email", "Rol", "Creat", "Acțiune"].forEach((label) => {
+    const cell = document.createElement("th");
+    cell.textContent = label;
+    headRow.appendChild(cell);
+  });
+  head.appendChild(headRow);
+
+  const body = document.createElement("tbody");
+  items.forEach((user) => {
+    const row = document.createElement("tr");
+    [
+      user.id,
+      user.username,
+      user.email,
+      user.role,
+      user.created_at ? new Date(user.created_at).toLocaleString("ro-RO") : "-"
+    ].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value ?? "-";
+      row.appendChild(cell);
+    });
+
+    const actionCell = document.createElement("td");
+    if (user.role === "admin") {
+      actionCell.textContent = "Protejat";
+    } else {
+      const button = document.createElement("button");
+      button.className = "danger";
+      button.textContent = "Șterge";
+      button.onclick = () => deleteUser(user.id, user.email);
+      actionCell.appendChild(button);
+    }
+    row.appendChild(actionCell);
+    body.appendChild(row);
+  });
+
+  table.append(head, body);
+  wrapper.appendChild(table);
+  container.appendChild(wrapper);
+}
+
 export async function loadAdminData() {
   try {
     const [users, orders, inventory, payments, products] = await Promise.all([
@@ -186,18 +244,7 @@ export async function loadAdminData() {
       "Nu există produse."
     );
 
-    renderTable(
-      "admin-users",
-      [
-        { key: "id", label: "ID" },
-        { key: "username", label: "Utilizator" },
-        { key: "email", label: "Email" },
-        { key: "role", label: "Rol" },
-        { key: "created_at", label: "Creat", format: (value) => value ? new Date(value).toLocaleString("ro-RO") : "-" }
-      ],
-      users.items,
-      "Nu există utilizatori."
-    );
+    renderUsers(users.items);
     renderOrders(orders.items);
     renderTable(
       "admin-inventory",
@@ -236,6 +283,23 @@ export async function updateOrderStatus(orderId, status) {
     toast(`Comanda #${orderId} a fost actualizată.`);
   } catch (error) {
     toast(`Statusul comenzii nu a fost actualizat: ${error.message}`);
+  }
+}
+
+export async function deleteUser(userId, email) {
+  if (!window.confirm(`Ștergi definitiv utilizatorul ${email}?`)) {
+    return;
+  }
+
+  try {
+    const result = await request(`${endpoints.auth}/users/${userId}`, {
+      method: "DELETE"
+    });
+    showAdminResult(result);
+    await loadAdminData();
+    toast("Utilizator șters.");
+  } catch (error) {
+    toast(`Utilizatorul nu a fost șters: ${error.message}`);
   }
 }
 
