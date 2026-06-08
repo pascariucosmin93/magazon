@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Produs | Magazon</title>
+    <link rel="stylesheet" href="/assets/css/product.css" />
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="topbar-inner">
+        <span>Detalii produs și disponibilitate</span>
+        <a href="/">Înapoi la catalog</a>
+      </div>
+    </div>
+    <header class="product-header">
+      <a class="logo" href="/">
+        <span class="logo-mark">M</span>
+        <span>Magazon</span>
+      </a>
+      <div class="product-header-actions">
+        <a class="secondary" id="product-account" href="/login.html">Login / Cont</a>
+        <a class="primary" href="/#cart">Coș <span id="product-cart-count">0</span></a>
+      </div>
+    </header>
+
+    <main class="product-shell">
+      <nav class="breadcrumbs" aria-label="Navigare">
+        <a href="/">Magazin</a>
+        <span>/</span>
+        <span id="product-breadcrumb">Produs</span>
+      </nav>
+
+      <section class="product-detail panel" id="product-detail">
+        <div class="product-loading">Se încarcă produsul...</div>
+      </section>
+
+      <section class="product-benefits">
+        <article><strong>Livrare rapidă</strong><span>Comanda este urmărită din cont sau cu tokenul guest.</span></article>
+        <article><strong>Plată securizată</strong><span>Checkout-ul este procesat prin furnizorul configurat.</span></article>
+        <article><strong>Stoc verificat</strong><span>Disponibilitatea afișată vine din serviciul de inventar.</span></article>
+      </section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <script type="module" src="/assets/js/product.js"></script>
+  </body>
+</html>

@@ -2,6 +2,8 @@ import asyncio
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
+import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import clear_mappers, sessionmaker
 
@@ -126,7 +128,7 @@ def test_handle_event_is_idempotent_for_duplicate_event(monkeypatch):
     monkeypatch.setattr(order_module, "SessionLocal", testing_session)
 
     db = testing_session()
-    order = order_module.Order(status="created", total=10.0)
+    order = order_module.Order(status="inventory_reserved", total=10.0)
     db.add(order)
     db.commit()
     db.refresh(order)
@@ -150,3 +152,64 @@ def test_handle_event_is_idempotent_for_duplicate_event(monkeypatch):
     processed = verification_db.query(order_module.ProcessedMessage).all()
     assert stored_order.status == "paid"
     assert len(processed) == 1
+
+
+def test_late_payment_event_does_not_overwrite_cancelled_order(monkeypatch):
+    order_module = load_module("order_main_cancelled_event", "services/order-service/app/main.py")
+    testing_session = build_test_session(order_module)
+    monkeypatch.setattr(order_module, "SessionLocal", testing_session)
+
+    db = testing_session()
+    order = order_module.Order(status="cancelled", total=10.0)
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+
+    asyncio.run(
+        order_module.handle_event(
+            "payment.completed",
+            {"order_id": order.id, "status": "completed"},
+        )
+    )
+
+    db.refresh(order)
+    assert order.status == "cancelled"
+
+
+def test_admin_can_advance_paid_order_to_processing():
+    order_module = load_module("order_main_status_update", "services/order-service/app/main.py")
+    testing_session = build_test_session(order_module)
+    db = testing_session()
+    order = order_module.Order(status="paid", total=99.0)
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+
+    result = order_module.update_order_status(
+        order.id,
+        order_module.OrderStatusRequest(status="processing"),
+        db=db,
+        _admin={"role": "admin"},
+    )
+
+    assert result["status"] == "processing"
+
+
+def test_admin_cannot_skip_order_statuses():
+    order_module = load_module("order_main_status_invalid", "services/order-service/app/main.py")
+    testing_session = build_test_session(order_module)
+    db = testing_session()
+    order = order_module.Order(status="paid", total=99.0)
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+
+    with pytest.raises(HTTPException) as exc:
+        order_module.update_order_status(
+            order.id,
+            order_module.OrderStatusRequest(status="delivered"),
+            db=db,
+            _admin={"role": "admin"},
+        )
+
+    assert exc.value.status_code == 409

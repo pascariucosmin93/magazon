@@ -9,20 +9,11 @@ import {
   renderCart,
   syncGuestCartToServer
 } from "./cart.js";
-import {
-  createCategory,
-  createProduct,
-  deleteProduct,
-  loadAdminData,
-  updateInventory,
-  updateProduct
-} from "./admin.js";
 import { loadOrder, placeOrder } from "./orders.js";
 import { focusAccount, focusCart, goToLogin, logout, openAccount, loadSession, updateUserState } from "./session.js";
 import { loadLastOrderContext } from "./storage.js";
 import { state } from "./state.js";
 import { configureCatalog } from "./catalog.js";
-import { configureAdmin } from "./admin.js";
 import { configureSession } from "./session.js";
 
 function exposeGlobals() {
@@ -39,13 +30,7 @@ function exposeGlobals() {
     placeOrder,
     loadOrder,
     changeCartQuantity,
-    removeFromCart,
-    createCategory,
-    createProduct,
-    deleteProduct,
-    loadAdminData,
-    updateInventory,
-    updateProduct
+    removeFromCart
   });
 }
 
@@ -54,7 +39,6 @@ export async function bootstrap() {
     onAddToCart: addToCart,
     onRenderCart: () => renderCart(state.userId ? (state.cart || { items: [], total: 0 }) : guestCartFromStorage())
   });
-  configureAdmin({ onReloadProducts: loadProducts });
   configureSession({
     onRenderCart: renderCart,
     getGuestCart: guestCartFromStorage
@@ -68,9 +52,6 @@ export async function bootstrap() {
   try {
     await loadSession();
     updateUserState();
-    if (state.role === "admin") {
-      await loadAdminData();
-    }
     await syncGuestCartToServer();
     await loadCart();
   } catch (_error) {

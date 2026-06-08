@@ -210,6 +210,18 @@
         border-bottom: 0;
       }
 
+      .admin-order-action {
+        display: grid;
+        grid-template-columns: minmax(150px, 1fr) auto;
+        gap: 8px;
+        min-width: 290px;
+      }
+
+      .admin-order-action select,
+      .admin-order-action button {
+        height: 40px;
+      }
+
       .admin-result {
         margin-top: 16px;
         min-height: 84px;

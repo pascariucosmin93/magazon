@@ -13,6 +13,9 @@ export function configureCatalog({ onAddToCart, onRenderCart }) {
 
 export function updateCategorySelect() {
   const select = document.getElementById("admin-product-category-id");
+  if (!select) {
+    return;
+  }
   select.innerHTML = `<option value="">Fără categorie</option>`;
   state.categories.forEach((category) => {
     const option = document.createElement("option");
@@ -121,7 +124,10 @@ function productCardMarkup(product) {
       <p class="product-description">${product.description}</p>
       <div class="price-row">
         <span class="price">${formatPrice(product.price)}</span>
-        <button class="buy-button">Adaugă</button>
+        <div class="product-actions">
+          <a class="secondary product-details" href="/product.html?id=${product.id}">Detalii</a>
+          <button class="buy-button" data-action="add">Adaugă</button>
+        </div>
       </div>
     </div>
   `;
@@ -131,7 +137,7 @@ function buildProductCard(product, className = "panel product-card") {
   const node = document.createElement("article");
   node.className = className;
   node.innerHTML = productCardMarkup(product);
-  node.querySelector("button").onclick = () => addToCartHandler(product.id);
+  node.querySelector('[data-action="add"]').onclick = () => addToCartHandler(product.id);
   return node;
 }
 

@@ -1,0 +1,116 @@
+@import url("/assets/css/base.css");
+@import url("/assets/css/storefront/layout.css");
+@import url("/assets/css/storefront/workspace.css");
+
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  min-height: 82px;
+  padding: 14px max(20px, calc((100vw - 1380px) / 2));
+  background: rgba(16, 16, 16, 0.96);
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-header-actions,
+.admin-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-header-actions .secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-shell {
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 28px 20px 72px;
+}
+
+.admin-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 24px;
+  padding: 28px;
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at right top, rgba(29, 168, 228, 0.14), transparent 30%),
+    linear-gradient(135deg, rgba(46, 24, 23, 0.98), rgba(20, 20, 20, 0.98));
+  border: 1px solid var(--line);
+}
+
+.admin-hero h1 {
+  margin: 14px 0 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(2rem, 5vw, 3.8rem);
+  letter-spacing: -0.05em;
+}
+
+.admin-hero p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.admin-stats,
+.admin-form-panel,
+.admin-data-section {
+  margin-top: 20px;
+}
+
+.admin-stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.admin-form-panel .panel-head h2,
+.admin-data-section .panel-head h2 {
+  margin: 0;
+}
+
+.admin-access {
+  max-width: 620px;
+  margin: 80px auto;
+  padding: 30px;
+  text-align: center;
+}
+
+.admin-login-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+@media (max-width: 1080px) {
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-header,
+  .admin-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-header-actions,
+  .admin-button-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+}

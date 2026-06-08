@@ -9,7 +9,7 @@ from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 import requests
 from fastapi import Depends, Header, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, relationship
@@ -22,6 +22,17 @@ from shared.service_app import create_base_app
 
 PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
 logger = logging.getLogger(__name__)
+ADMIN_STATUS_TRANSITIONS = {
+    "created": {"cancelled"},
+    "inventory_reserved": {"cancelled"},
+    "inventory_failed": {"cancelled"},
+    "payment_failed": {"cancelled"},
+    "paid": {"processing", "cancelled"},
+    "processing": {"shipped", "cancelled"},
+    "shipped": {"delivered"},
+    "delivered": set(),
+    "cancelled": set(),
+}
 
 
 class Order(Base):
@@ -60,6 +71,10 @@ class OrderRequest(BaseModel):
     customer_name: str | None = None
     customer_email: str | None = None
     shipping_address: str | None = None
+
+
+class OrderStatusRequest(BaseModel):
+    status: str = Field(min_length=1, max_length=50)
 
 
 class ProcessedMessage(Base):
@@ -117,11 +132,11 @@ async def handle_event(topic: str, payload: dict):
         if not order:
             db.commit()
             return
-        if topic == "inventory.reserved":
+        if topic == "inventory.reserved" and order.status == "created":
             order.status = (
                 "inventory_reserved" if payload.get("status") == "reserved" else "inventory_failed"
             )
-        elif topic == "payment.completed":
+        elif topic == "payment.completed" and order.status == "inventory_reserved":
             order.status = "paid" if payload.get("status") == "completed" else "payment_failed"
         db.commit()
     finally:
@@ -236,6 +251,7 @@ def serialize_order(order: Order, include_guest_token: bool = True) -> dict:
         "guest": order.user_id is None,
         "status": order.status,
         "total": order.total,
+        "created_at": order.created_at.isoformat() if order.created_at else None,
         "items": [
             {
                 "product_id": item.product_id,
@@ -349,6 +365,33 @@ def list_orders(
         "items": [serialize_order(order, include_guest_token=False) for order in orders],
         "total": len(orders),
     }
+
+
+@app.put("/orders/{order_id}/status")
+def update_order_status(
+    order_id: int,
+    payload: OrderStatusRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    next_status = payload.status.strip().lower()
+    allowed_statuses = ADMIN_STATUS_TRANSITIONS.get(order.status, set())
+    if next_status not in allowed_statuses:
+        allowed = ", ".join(sorted(allowed_statuses)) or "none"
+        raise HTTPException(
+            status_code=409,
+            detail=f"Cannot change order from {order.status} to {next_status}. Allowed: {allowed}",
+        )
+
+    order.status = next_status
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    return serialize_order(order, include_guest_token=False)
 
 
 @app.get("/orders/{order_id}")

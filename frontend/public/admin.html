@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Administrare | Magazon</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+  </head>
+  <body>
+    <header class="admin-header">
+      <a class="logo" href="/">
+        <span class="logo-mark">M</span>
+        <span>Magazon Admin</span>
+      </a>
+      <div class="admin-header-actions">
+        <span id="admin-session">Verificăm sesiunea...</span>
+        <a class="secondary" href="/">Magazin</a>
+        <button class="secondary" onclick="adminLogout()">Logout</button>
+      </div>
+    </header>
+
+    <main class="admin-shell" id="admin-app" hidden>
+      <section class="admin-hero">
+        <div>
+          <span class="eyebrow">Administrare</span>
+          <h1>Produse, comenzi și clienți într-un singur loc.</h1>
+          <p>Operațiile de aici sunt disponibile exclusiv conturilor cu rol de administrator.</p>
+        </div>
+        <button class="primary" onclick="loadAdminData()">Reîncarcă datele</button>
+      </section>
+
+      <section class="admin-stats">
+        <article class="admin-stat"><span>Produse</span><strong id="admin-product-count">0</strong></article>
+        <article class="admin-stat"><span>Utilizatori</span><strong id="admin-user-count">0</strong></article>
+        <article class="admin-stat"><span>Comenzi</span><strong id="admin-order-count">0</strong></article>
+        <article class="admin-stat"><span>Produse cu stoc</span><strong id="admin-stock-count">0</strong></article>
+        <article class="admin-stat"><span>Plăți</span><strong id="admin-payment-count">0</strong></article>
+      </section>
+
+      <section class="panel admin-form-panel">
+        <div class="panel-head">
+          <h2>Catalog și stoc</h2>
+        </div>
+        <div class="admin-content">
+          <div class="admin-grid">
+            <div class="stack">
+              <strong>Categorie nouă</strong>
+              <input id="category-name" placeholder="Nume categorie" />
+              <textarea id="category-description" placeholder="Descriere categorie"></textarea>
+              <button class="primary" onclick="createCategory()">Adaugă categorie</button>
+            </div>
+            <div class="stack">
+              <strong>Adaugă sau editează produs</strong>
+              <input id="admin-product-id" placeholder="ID produs pentru editare sau ștergere" type="number" />
+              <input id="admin-product-name" placeholder="Nume produs" />
+              <textarea id="admin-product-description" placeholder="Descriere produs"></textarea>
+              <input id="admin-product-price" placeholder="Preț" type="number" min="0.01" step="0.01" />
+              <select id="admin-product-category-id"><option value="">Fără categorie</option></select>
+              <div class="admin-button-row">
+                <button class="primary" onclick="createProduct()">Adaugă</button>
+                <button class="secondary" onclick="updateProduct()">Actualizează</button>
+                <button class="secondary" onclick="deleteProduct()">Șterge</button>
+              </div>
+            </div>
+            <div class="stack">
+              <strong>Actualizare stoc</strong>
+              <input id="admin-stock-product-id" placeholder="ID produs" type="number" />
+              <input id="admin-stock-value" placeholder="Cantitate în stoc" type="number" min="0" />
+              <button class="primary" onclick="updateInventory()">Salvează stocul</button>
+            </div>
+          </div>
+          <pre class="admin-result" id="admin-output">Acțiunile admin vor apărea aici.</pre>
+        </div>
+      </section>
+
+      <section class="panel admin-data-section">
+        <div class="panel-head"><h2>Produse</h2></div>
+        <div class="admin-content" id="admin-products"><div class="empty">Se încarcă...</div></div>
+      </section>
+      <section class="panel admin-data-section">
+        <div class="panel-head"><h2>Comenzi</h2></div>
+        <div class="admin-content" id="admin-orders"><div class="empty">Se încarcă...</div></div>
+      </section>
+      <section class="panel admin-data-section">
+        <div class="panel-head"><h2>Utilizatori</h2></div>
+        <div class="admin-content" id="admin-users"><div class="empty">Se încarcă...</div></div>
+      </section>
+      <section class="panel admin-data-section">
+        <div class="panel-head"><h2>Stoc</h2></div>
+        <div class="admin-content" id="admin-inventory"><div class="empty">Se încarcă...</div></div>
+      </section>
+      <section class="panel admin-data-section">
+        <div class="panel-head"><h2>Plăți</h2></div>
+        <div class="admin-content" id="admin-payments"><div class="empty">Se încarcă...</div></div>
+      </section>
+    </main>
+
+    <div class="admin-access" id="admin-access">
+      <h1>Verificăm accesul</h1>
+      <p>Panoul se deschide numai pentru un cont administrator autentificat.</p>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script type="module" src="/assets/js/admin.js"></script>
+  </body>
+</html>

@@ -11,7 +11,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 - `inventory-service`: stock reservation and inventory updates
 - `payment-service`: simulated payment flow
 - `notification-service`: consumes Kafka events and logs notifications
-- `frontend`: storefront and role-protected admin UI for products, users, orders, inventory and payments
+- `frontend`: storefront, dedicated product pages and a role-protected admin UI for products, users, orders, inventory and payments
 
 ## Infrastructure
 

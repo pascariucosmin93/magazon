@@ -190,6 +190,20 @@
         min-width: 110px;
       }
 
+      .product-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .product-details {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 44px;
+        padding: 0 14px;
+      }
+
       @media (max-width: 1080px) {
         .catalog-layout {
           grid-template-columns: 1fr;
@@ -225,5 +239,10 @@
 
         .buy-button {
           width: 100%;
+        }
+
+        .product-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
         }
       }

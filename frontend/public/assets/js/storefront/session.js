@@ -38,15 +38,29 @@ export function toggleGuestCheckout() {
 }
 
 export function updateUserState() {
-  document.getElementById("user-state").innerText = state.email ? state.email : "Vizitator";
-  document.getElementById("user-role").innerText = state.role
-    ? `Rol: ${state.role}`
-    : "Poți cumpăra ca guest sau te poți autentifica pentru un flux mai rapid.";
-  document.getElementById("account-button").innerText = state.email ? "Contul meu" : "Login / Cont";
-  document.getElementById("logout-button").style.display = state.userId ? "inline-flex" : "none";
+  const userState = document.getElementById("user-state");
+  const userRole = document.getElementById("user-role");
+  const accountButton = document.getElementById("account-button");
+  const logoutButton = document.getElementById("logout-button");
+  if (userState) {
+    userState.innerText = state.email ? state.email : "Vizitator";
+  }
+  if (userRole) {
+    userRole.innerText = state.role
+      ? `Rol: ${state.role}`
+      : "Poți cumpăra ca guest sau te poți autentifica pentru un flux mai rapid.";
+  }
+  if (accountButton) {
+    accountButton.innerText = state.email ? "Contul meu" : "Login / Cont";
+  }
+  if (logoutButton) {
+    logoutButton.style.display = state.userId ? "inline-flex" : "none";
+  }
   const isAdmin = state.role === "admin";
-  document.getElementById("admin-panel").classList.toggle("visible", isAdmin);
-  document.getElementById("admin-nav").style.display = isAdmin ? "inline" : "none";
+  const adminNav = document.getElementById("admin-nav");
+  if (adminNav) {
+    adminNav.style.display = isAdmin ? "inline" : "none";
+  }
   toggleGuestCheckout();
 }
 

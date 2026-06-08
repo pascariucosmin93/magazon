@@ -1,0 +1,177 @@
+@import url("/assets/css/base.css");
+@import url("/assets/css/storefront/layout.css");
+
+.product-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  max-width: 1380px;
+  min-height: 88px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.product-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.product-header-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 20px 72px;
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.product-detail {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  overflow: hidden;
+}
+
+.product-visual {
+  display: grid;
+  place-items: center;
+  min-height: 520px;
+  padding: 40px;
+  background: linear-gradient(145deg, #f8f8f8, #dedede);
+}
+
+.product-initials {
+  display: grid;
+  place-items: center;
+  width: min(300px, 72vw);
+  aspect-ratio: 1;
+  border-radius: 48px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--brand), #1da8e4);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.28);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(4rem, 12vw, 8rem);
+  font-weight: 800;
+}
+
+.product-info {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+  padding: 44px;
+}
+
+.product-info h1 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(2.2rem, 5vw, 4rem);
+  letter-spacing: -0.05em;
+}
+
+.product-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.product-price {
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.product-stock {
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(22, 101, 52, 0.2);
+  color: #9ee6b4;
+  font-weight: 800;
+}
+
+.product-stock.unavailable {
+  background: rgba(180, 35, 24, 0.18);
+  color: #ffaaa2;
+}
+
+.product-purchase {
+  display: grid;
+  grid-template-columns: 100px minmax(180px, 1fr);
+  gap: 10px;
+}
+
+.product-purchase button {
+  height: 48px;
+}
+
+.product-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.product-benefits article {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+}
+
+.product-benefits span,
+.product-loading {
+  color: var(--muted);
+}
+
+.product-loading {
+  grid-column: 1 / -1;
+  padding: 60px;
+  text-align: center;
+}
+
+@media (max-width: 820px) {
+  .product-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .product-visual {
+    min-height: 360px;
+  }
+
+  .product-benefits {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .product-header {
+    align-items: stretch;
+    flex-direction: column;
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+
+  .product-header-actions,
+  .product-purchase {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .product-info {
+    padding: 26px 20px;
+  }
+}

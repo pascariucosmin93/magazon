@@ -3,6 +3,28 @@ import { request } from "../shared/http.js";
 import { toast } from "../shared/ui.js";
 
 let reloadProducts = null;
+const ORDER_STATUS_TRANSITIONS = {
+  created: ["cancelled"],
+  inventory_reserved: ["cancelled"],
+  inventory_failed: ["cancelled"],
+  payment_failed: ["cancelled"],
+  paid: ["processing", "cancelled"],
+  processing: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: []
+};
+const ORDER_STATUS_LABELS = {
+  created: "Creată",
+  inventory_reserved: "Stoc rezervat",
+  inventory_failed: "Stoc insuficient",
+  payment_failed: "Plată eșuată",
+  paid: "Plătită",
+  processing: "În procesare",
+  shipped: "Expediată",
+  delivered: "Livrată",
+  cancelled: "Anulată"
+};
 
 export function configureAdmin({ onReloadProducts }) {
   reloadProducts = onReloadProducts;
@@ -65,19 +87,104 @@ function showAdminResult(result) {
   document.getElementById("admin-output").innerText = JSON.stringify(result, null, 2);
 }
 
+function renderOrders(items) {
+  const container = document.getElementById("admin-orders");
+  container.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Nu există comenzi.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "admin-table-wrap";
+  const table = document.createElement("table");
+  table.className = "admin-table";
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["Comandă", "Client", "Status", "Total", "Creată", "Acțiune"].forEach((label) => {
+    const cell = document.createElement("th");
+    cell.textContent = label;
+    headRow.appendChild(cell);
+  });
+  head.appendChild(headRow);
+
+  const body = document.createElement("tbody");
+  items.forEach((order) => {
+    const row = document.createElement("tr");
+    const values = [
+      `#${order.order_id}`,
+      order.customer_email || (order.user_id ? `User #${order.user_id}` : "Guest"),
+      ORDER_STATUS_LABELS[order.status] || order.status,
+      `${Number(order.total).toFixed(2)} EUR`,
+      order.created_at ? new Date(order.created_at).toLocaleString("ro-RO") : "-"
+    ];
+    values.forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+
+    const actionCell = document.createElement("td");
+    const transitions = ORDER_STATUS_TRANSITIONS[order.status] || [];
+    if (transitions.length) {
+      const controls = document.createElement("div");
+      controls.className = "admin-order-action";
+      const select = document.createElement("select");
+      select.setAttribute("aria-label", `Status comandă ${order.order_id}`);
+      transitions.forEach((status) => {
+        const option = document.createElement("option");
+        option.value = status;
+        option.textContent = ORDER_STATUS_LABELS[status] || status;
+        select.appendChild(option);
+      });
+      const button = document.createElement("button");
+      button.className = "secondary";
+      button.textContent = "Actualizează";
+      button.onclick = () => updateOrderStatus(order.order_id, select.value);
+      controls.append(select, button);
+      actionCell.appendChild(controls);
+    } else {
+      actionCell.textContent = "Finalizată";
+    }
+    row.appendChild(actionCell);
+    body.appendChild(row);
+  });
+
+  table.append(head, body);
+  wrapper.appendChild(table);
+  container.appendChild(wrapper);
+}
+
 export async function loadAdminData() {
   try {
-    const [users, orders, inventory, payments] = await Promise.all([
+    const [users, orders, inventory, payments, products] = await Promise.all([
       request(`${endpoints.auth}/users`),
       request(`${endpoints.orders}/orders`),
       request(`${endpoints.inventory}/inventory`),
-      request(`${endpoints.payments}/payments`)
+      request(`${endpoints.payments}/payments`),
+      request(`${endpoints.products}/products`)
     ]);
 
     document.getElementById("admin-user-count").textContent = users.total;
     document.getElementById("admin-order-count").textContent = orders.total;
     document.getElementById("admin-stock-count").textContent = inventory.total;
     document.getElementById("admin-payment-count").textContent = payments.length;
+    document.getElementById("admin-product-count").textContent = products.items.length;
+
+    renderTable(
+      "admin-products",
+      [
+        { key: "id", label: "ID" },
+        { key: "name", label: "Produs" },
+        { key: "category_name", label: "Categorie" },
+        { key: "price", label: "Preț", format: (value) => `${Number(value).toFixed(2)} EUR` }
+      ],
+      products.items,
+      "Nu există produse."
+    );
 
     renderTable(
       "admin-users",
@@ -91,18 +198,7 @@ export async function loadAdminData() {
       users.items,
       "Nu există utilizatori."
     );
-    renderTable(
-      "admin-orders",
-      [
-        { key: "order_id", label: "Comandă" },
-        { key: "customer_email", label: "Client", format: (value, item) => value || (item.user_id ? `User #${item.user_id}` : "Guest") },
-        { key: "status", label: "Status" },
-        { key: "total", label: "Total", format: (value) => `${Number(value).toFixed(2)} lei` },
-        { key: "items", label: "Produse", format: (value) => String(value.length) }
-      ],
-      orders.items,
-      "Nu există comenzi."
-    );
+    renderOrders(orders.items);
     renderTable(
       "admin-inventory",
       [
@@ -126,6 +222,20 @@ export async function loadAdminData() {
     );
   } catch (error) {
     toast(`Datele de administrare nu au fost încărcate: ${error.message}`);
+  }
+}
+
+export async function updateOrderStatus(orderId, status) {
+  try {
+    const result = await request(`${endpoints.orders}/orders/${orderId}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status })
+    });
+    showAdminResult(result);
+    await loadAdminData();
+    toast(`Comanda #${orderId} a fost actualizată.`);
+  } catch (error) {
+    toast(`Statusul comenzii nu a fost actualizat: ${error.message}`);
   }
 }
 
