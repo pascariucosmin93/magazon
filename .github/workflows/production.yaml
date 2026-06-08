@@ -231,9 +231,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.1.2
-
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -263,6 +260,7 @@ jobs:
 
       - name: Sign image with Cosign
         env:
+          COSIGN_IMAGE: ghcr.io/sigstore/cosign/cosign:v3.0.6
           DIGEST: ${{ steps.build.outputs.digest }}
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
         run: |
@@ -273,8 +271,31 @@ jobs:
 
           image_ref="${IMAGE}@${DIGEST}"
           for attempt in 1 2 3 4 5; do
+            echo "Pulling ${COSIGN_IMAGE} (attempt ${attempt}/5)"
+            if docker pull "${COSIGN_IMAGE}"; then
+              break
+            fi
+
+            if [[ "${attempt}" -eq 5 ]]; then
+              echo "Cosign image pull failed after ${attempt} attempts" >&2
+              exit 1
+            fi
+
+            sleep_seconds=$((attempt * 20))
+            echo "Cosign image pull failed; retrying in ${sleep_seconds}s..."
+            sleep "${sleep_seconds}"
+          done
+
+          for attempt in 1 2 3 4 5; do
             echo "Signing ${image_ref} (attempt ${attempt}/5)"
-            if cosign sign --yes "${image_ref}"; then
+            if docker run --rm \
+              -e ACTIONS_ID_TOKEN_REQUEST_TOKEN \
+              -e ACTIONS_ID_TOKEN_REQUEST_URL \
+              -e CI \
+              -e DOCKER_CONFIG=/cosign/.docker \
+              -e GITHUB_ACTIONS \
+              -v "${HOME}/.docker:/cosign/.docker:ro" \
+              "${COSIGN_IMAGE}" sign --yes "${image_ref}"; then
               exit 0
             fi
 
