@@ -55,8 +55,9 @@
                 Așteptăm confirmarea că stocul a fost rezervat pentru comanda ta.
               </p>
               <div class="stack">
-                <button class="primary" id="pay-now-button" onclick="startPayment()" disabled>Plătește acum</button>
-                <button class="secondary" onclick="refreshPaymentState()">Verifică din nou</button>
+                <button class="primary" id="pay-now-button" onclick="startPayment(this)" disabled>Plătește acum</button>
+                <button class="secondary" onclick="refreshPaymentState(this)">Verifică din nou</button>
+                <button class="secondary" id="order-details-button" onclick="goToOrderDetails()">Detalii comandă</button>
                 <button class="secondary" onclick="window.location.href='/'">Înapoi în magazin</button>
               </div>
             </div>

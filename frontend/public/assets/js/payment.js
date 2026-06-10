@@ -1,6 +1,6 @@
 import { endpoints, LAST_ORDER_STORAGE_KEY } from "./shared/constants.js";
 import { request } from "./shared/http.js";
-import { formatPrice, toast } from "./shared/ui.js";
+import { formatPrice, setButtonLoading, toast } from "./shared/ui.js";
 
 const params = new URLSearchParams(window.location.search);
 const queryOrderId = params.get("order_id");
@@ -75,12 +75,13 @@ async function confirmSuccessfulCheckout() {
   });
 }
 
-export async function refreshPaymentState() {
+export async function refreshPaymentState(button) {
   if (!orderId) {
     setStatus("Lipsește comanda", "Nu există order_id pentru această pagină.");
     return;
   }
 
+  setButtonLoading(button, true, "Verificăm...");
   try {
     const order = await loadOrder();
     const confirmed = await confirmSuccessfulCheckout();
@@ -112,10 +113,13 @@ export async function refreshPaymentState() {
   } catch (error) {
     setStatus("Eroare", `Nu am putut încărca plata: ${error.message}`);
     toast(`Plata nu a putut fi încărcată: ${error.message}`);
+  } finally {
+    setButtonLoading(button, false);
   }
 }
 
-export async function startPayment() {
+export async function startPayment(button) {
+  setButtonLoading(button, true, "Deschidem plata...");
   try {
     const result = await request(`${endpoints.payments}/payments/orders/${orderId}/checkout-session`, {
       method: "POST",
@@ -128,10 +132,15 @@ export async function startPayment() {
     window.location.href = result.checkout_url;
   } catch (error) {
     toast(`Plata nu a putut fi inițiată: ${error.message}`);
+    setButtonLoading(button, false);
   }
 }
 
-Object.assign(window, { startPayment, refreshPaymentState });
+export function goToOrderDetails() {
+  window.location.href = `/order.html?id=${encodeURIComponent(orderId)}`;
+}
+
+Object.assign(window, { goToOrderDetails, startPayment, refreshPaymentState });
 
 loadStoredContext();
 refreshPaymentState();

@@ -16,7 +16,7 @@ export function goToLogin() {
 }
 
 export function focusAccount() {
-  document.getElementById("account").scrollIntoView({ behavior: "smooth", block: "start" });
+  window.location.href = "/account.html";
 }
 
 export function openAccount() {
@@ -28,13 +28,13 @@ export function openAccount() {
 }
 
 export function focusCart() {
-  document.getElementById("cart").scrollIntoView({ behavior: "smooth", block: "start" });
+  window.location.href = "/checkout.html";
 }
 
 export function toggleGuestCheckout() {
   const showGuest = !state.userId;
-  document.getElementById("guest-checkout-fields").classList.toggle("hidden", !showGuest);
-  document.getElementById("guest-note").classList.toggle("hidden", !showGuest);
+  document.getElementById("guest-checkout-fields")?.classList.toggle("hidden", !showGuest);
+  document.getElementById("guest-note")?.classList.toggle("hidden", !showGuest);
 }
 
 export function updateUserState() {
@@ -99,7 +99,10 @@ export async function logout() {
   state.lastOrderToken = null;
   state.cart = null;
   localStorage.removeItem(LAST_ORDER_STORAGE_KEY);
-  document.getElementById("order-output").innerHTML = `<div class="empty">Nu există încă o comandă trimisă din sesiunea curentă.</div>`;
+  const orderOutput = document.getElementById("order-output");
+  if (orderOutput) {
+    orderOutput.innerHTML = `<div class="empty">Nu există încă o comandă trimisă din sesiunea curentă.</div>`;
+  }
   if (renderCartHandler && guestCartProvider) {
     renderCartHandler(guestCartProvider());
   }

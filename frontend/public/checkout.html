@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checkout | Magazon</title>
+    <link rel="stylesheet" href="/assets/css/pages.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="page-header">
+        <a class="logo" href="/">
+          <span class="logo-mark">M</span>
+          <span>Magazon</span>
+        </a>
+        <div class="page-actions">
+          <button class="secondary" id="account-button" onclick="openAccount()">Login / Cont</button>
+          <button class="secondary" onclick="window.location.href='/'">Continuă cumpărăturile</button>
+        </div>
+      </header>
+
+      <section class="page-intro">
+        <span class="eyebrow">Checkout</span>
+        <h1>Finalizează comanda în trei pași.</h1>
+        <p>Verifică produsele, completează livrarea și confirmă sumarul înainte de trimitere.</p>
+      </section>
+
+      <div class="checkout-steps">
+        <div class="checkout-step active" data-step-indicator="1">1. Produse</div>
+        <div class="checkout-step" data-step-indicator="2">2. Livrare</div>
+        <div class="checkout-step" data-step-indicator="3">3. Confirmare</div>
+      </div>
+
+      <section class="panel checkout-panel active" data-step-panel="1">
+        <div class="panel-head">
+          <h2 class="panel-title">Produsele din coș</h2>
+          <span class="status-badge"><span id="cart-count">0</span>&nbsp;produse</span>
+        </div>
+        <div class="panel-body" id="cart-output">
+          <div class="loading-placeholder"></div>
+        </div>
+        <div class="panel-body checkout-navigation">
+          <button class="secondary" onclick="clearCheckoutCart(this)">Golește coșul</button>
+          <button class="primary" onclick="nextCheckoutStep(this)">Continuă la livrare</button>
+        </div>
+      </section>
+
+      <section class="panel checkout-panel" data-step-panel="2">
+        <div class="panel-head"><h2 class="panel-title">Date de livrare</h2></div>
+        <div class="panel-body">
+          <div id="member-delivery" class="stack hidden">
+            <label for="checkout-address">Alege adresa salvată</label>
+            <select id="checkout-address"></select>
+            <p class="muted">Adresele pot fi administrate din <a href="/account.html"><strong>Contul meu</strong></a>.</p>
+          </div>
+          <div id="guest-delivery" class="form-grid">
+            <input id="guest-name" placeholder="Nume complet" autocomplete="name" />
+            <input id="guest-email" type="email" placeholder="Email" autocomplete="email" />
+            <input class="full" id="guest-address" placeholder="Adresă completă de livrare" autocomplete="street-address" />
+          </div>
+          <div class="checkout-navigation">
+            <button class="secondary" onclick="previousCheckoutStep()">Înapoi la produse</button>
+            <button class="primary" onclick="nextCheckoutStep(this)">Continuă la confirmare</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel checkout-panel" data-step-panel="3">
+        <div class="panel-head"><h2 class="panel-title">Confirmă comanda</h2></div>
+        <div class="panel-body">
+          <div id="checkout-review" class="stack"></div>
+          <div class="checkout-navigation">
+            <button class="secondary" onclick="previousCheckoutStep()">Modifică livrarea</button>
+            <button class="primary" id="place-order-button" onclick="placeCheckoutOrder(this)">Trimite comanda</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <script type="module" src="/assets/js/checkout-page.js"></script>
+  </body>
+</html>

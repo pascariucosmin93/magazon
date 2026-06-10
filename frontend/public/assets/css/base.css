@@ -62,6 +62,35 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  transform: none;
+}
+
+button.is-loading {
+  position: relative;
+  padding-left: 42px;
+}
+
+button.is-loading::before {
+  position: absolute;
+  left: 18px;
+  width: 14px;
+  height: 14px;
+  content: "";
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: button-spin 0.7s linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 input,
 select,
 textarea {
@@ -183,4 +212,20 @@ a {
 .toast.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+.loading-placeholder {
+  min-height: 84px;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.07), transparent),
+    rgba(255, 255, 255, 0.04);
+  background-size: 220% 100%;
+  animation: loading-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes loading-sweep {
+  to {
+    background-position: -220% 0;
+  }
 }

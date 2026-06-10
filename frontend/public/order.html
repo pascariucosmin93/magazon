@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Detalii comandă | Magazon</title>
+    <link rel="stylesheet" href="/assets/css/pages.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="page-header">
+        <a class="logo" href="/">
+          <span class="logo-mark">M</span>
+          <span>Magazon</span>
+        </a>
+        <div class="page-actions">
+          <button class="secondary" onclick="window.location.href='/account.html'">Contul meu</button>
+          <button class="secondary" onclick="window.location.href='/'">Magazin</button>
+        </div>
+      </header>
+
+      <section class="page-intro">
+        <span class="eyebrow">Urmărire comandă</span>
+        <h1 id="order-title">Încărcăm comanda.</h1>
+        <p id="order-copy">Verificăm statusul comenzii și al plății.</p>
+        <div class="timeline" id="order-timeline" aria-label="Progres comandă"></div>
+      </section>
+
+      <div class="page-grid">
+        <div>
+          <section class="panel">
+            <div class="panel-head">
+              <h2 class="panel-title">Produse</h2>
+              <span class="status-badge" id="order-status">Se încarcă</span>
+            </div>
+            <div class="order-content" id="order-items">
+              <div class="loading-placeholder"></div>
+            </div>
+          </section>
+        </div>
+
+        <div>
+          <section class="panel">
+            <div class="panel-head"><h2 class="panel-title">Livrare</h2></div>
+            <div class="panel-body detail-list" id="shipping-details">
+              <div class="loading-placeholder"></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2 class="panel-title">Plată</h2></div>
+            <div class="panel-body detail-list" id="payment-details">
+              <div class="loading-placeholder"></div>
+            </div>
+          </section>
+          <section class="panel" id="order-actions">
+            <div class="panel-head"><h2 class="panel-title">Acțiuni</h2></div>
+            <div class="panel-body stack">
+              <button class="secondary" onclick="refreshOrder(this)">Actualizează statusul</button>
+              <button class="primary" id="pay-order-button" onclick="goToPayment()">Continuă plata</button>
+              <button class="secondary" id="cancel-order-button" onclick="cancelOrder(this)">Anulează comanda</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <script type="module" src="/assets/js/order-page.js"></script>
+  </body>
+</html>

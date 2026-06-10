@@ -91,7 +91,13 @@ export function renderCart(cart) {
   const resolvedCart = cart || guestCartFromStorage();
   const root = document.getElementById("cart-output");
   const count = (resolvedCart.items || []).reduce((sum, item) => sum + item.quantity, 0);
-  document.getElementById("cart-count").innerText = count;
+  const countNode = document.getElementById("cart-count");
+  if (countNode) {
+    countNode.innerText = count;
+  }
+  if (!root) {
+    return;
+  }
 
   if (!resolvedCart.items || !resolvedCart.items.length) {
     root.innerHTML = `<div class="empty">Coșul este gol.</div>`;
