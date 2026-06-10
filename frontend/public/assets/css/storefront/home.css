@@ -75,11 +75,11 @@
 
       .hero-retail h1 {
         margin: 16px 0 14px;
-        max-width: 10ch;
+        max-width: 12ch;
         font-family: "Space Grotesk", sans-serif;
-        font-size: clamp(2.8rem, 5vw, 4.6rem);
-        line-height: 0.92;
-        letter-spacing: -0.07em;
+        font-size: clamp(2.6rem, 4.4vw, 4.2rem);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
       }
 
       .hero-retail p {
@@ -149,7 +149,10 @@
         background: rgba(0, 0, 0, 0.42);
         border: 4px solid rgba(255, 255, 255, 0.14);
         color: #ffffff;
-        font-size: 1.9rem;
+        padding: 22px;
+        text-align: center;
+        font-size: 1.4rem;
+        line-height: 1.15;
         transform: rotate(-8deg);
       }
 
@@ -160,7 +163,7 @@
         height: 100px;
         background: linear-gradient(135deg, #f44336 0%, #b71c1c 100%);
         color: #fff;
-        font-size: 2.4rem;
+        font-size: 2rem;
         transform: rotate(-6deg);
       }
 
