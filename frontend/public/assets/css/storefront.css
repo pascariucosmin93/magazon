@@ -1,5 +1,5 @@
-@import url("/assets/css/base.css");
-@import url("/assets/css/storefront/layout.css");
-@import url("/assets/css/storefront/home.css");
-@import url("/assets/css/storefront/catalog.css");
-@import url("/assets/css/storefront/workspace.css");
+@import url("/assets/css/base.css?v=4");
+@import url("/assets/css/storefront/layout.css?v=4");
+@import url("/assets/css/storefront/home.css?v=4");
+@import url("/assets/css/storefront/catalog.css?v=4");
+@import url("/assets/css/storefront/workspace.css?v=4");

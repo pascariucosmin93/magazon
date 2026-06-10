@@ -102,7 +102,7 @@
 
       .product-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 20px;
       }
 
@@ -111,7 +111,7 @@
         overflow: hidden;
         display: flex;
         min-width: 0;
-        min-height: 470px;
+        min-height: 520px;
         flex-direction: column;
         border-radius: 20px;
         background:
@@ -170,11 +170,12 @@
       }
 
       .product-body {
-        display: grid;
-        grid-template-rows: auto auto auto 1fr auto;
-        gap: 9px;
-        height: 100%;
-        padding: 18px;
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        flex-direction: column;
+        gap: 10px;
+        padding: 20px;
       }
 
       .product-category {
@@ -201,40 +202,61 @@
       .product-description {
         display: -webkit-box;
         overflow: hidden;
-        min-height: 42px;
+        min-height: 63px;
         margin: 0;
         color: var(--muted);
         font-size: 13px;
         line-height: 1.6;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
+        overflow-wrap: anywhere;
+        -webkit-line-clamp: 3;
       }
 
       .price-row {
         display: grid;
-        gap: 14px;
-        align-self: end;
-        margin-top: 8px;
-        padding-top: 15px;
+        gap: 16px;
+        width: 100%;
+        margin-top: auto;
+        padding-top: 18px;
         border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .product-price {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        min-width: 0;
+        white-space: nowrap;
       }
 
       .price {
         color: #ffffff;
         font-family: "Space Grotesk", sans-serif;
-        font-size: 25px;
+        font-size: clamp(23px, 2vw, 29px);
         font-weight: 900;
         letter-spacing: -0.04em;
       }
 
+      .price-currency {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
       .buy-button {
+        width: 100%;
         min-width: 0;
+        padding: 0 12px;
+        white-space: nowrap;
       }
 
       .product-actions {
         display: grid;
-        grid-template-columns: 0.8fr 1.2fr;
-        gap: 8px;
+        grid-template-columns: minmax(94px, 0.72fr) minmax(140px, 1.28fr);
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
       }
 
       .product-details {
@@ -242,7 +264,11 @@
         align-items: center;
         justify-content: center;
         height: 44px;
-        padding: 0 14px;
+        width: 100%;
+        min-width: 0;
+        padding: 0 12px;
+        box-sizing: border-box;
+        white-space: nowrap;
       }
 
       @media (max-width: 1280px) {
