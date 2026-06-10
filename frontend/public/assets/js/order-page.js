@@ -1,6 +1,6 @@
 import { endpoints, LAST_ORDER_STORAGE_KEY } from "./shared/constants.js";
 import { request } from "./shared/http.js";
-import { formatPrice, setButtonLoading, toast } from "./shared/ui.js";
+import { escapeHtml, formatPrice, setButtonLoading, toast } from "./shared/ui.js";
 
 const orderId = Number(new URLSearchParams(window.location.search).get("id"));
 let guestToken = null;
@@ -56,8 +56,8 @@ function renderOrder(order) {
   const items = (order.items || []).map((item) => `
     <div class="line-item">
       <div>
-        <strong>${item.product_name || `Produs #${item.product_id}`}</strong>
-        <span>${item.product_sku || `PRODUCT-${item.product_id}`} · ${item.quantity} x ${formatPrice(item.price)}</span>
+        <strong>${escapeHtml(item.product_name || `Produs #${item.product_id}`)}</strong>
+        <span>${escapeHtml(item.product_sku || `PRODUCT-${item.product_id}`)} · ${item.quantity} x ${formatPrice(item.price)}</span>
       </div>
       <strong>${formatPrice(item.quantity * item.price)}</strong>
     </div>
@@ -73,10 +73,10 @@ function renderOrder(order) {
     <div class="summary-row"><span>Total comandă</span><span>${formatPrice(order.total)}</span></div>
   `;
   document.getElementById("shipping-details").innerHTML = `
-    <div class="detail-row"><span>Client</span><strong>${order.customer_name || "-"}</strong></div>
-    <div class="detail-row"><span>Email</span><strong>${order.customer_email || "-"}</strong></div>
-    <div class="detail-row"><span>Adresă</span><strong>${order.shipping_address || "-"}</strong></div>
-    ${order.cancellation_reason ? `<div class="detail-row"><span>Motiv anulare</span><strong>${order.cancellation_reason}</strong></div>` : ""}
+    <div class="detail-row"><span>Client</span><strong>${escapeHtml(order.customer_name || "-")}</strong></div>
+    <div class="detail-row"><span>Email</span><strong>${escapeHtml(order.customer_email || "-")}</strong></div>
+    <div class="detail-row"><span>Adresă</span><strong>${escapeHtml(order.shipping_address || "-")}</strong></div>
+    ${order.cancellation_reason ? `<div class="detail-row"><span>Motiv anulare</span><strong>${escapeHtml(order.cancellation_reason)}</strong></div>` : ""}
   `;
   renderTimeline(order.status);
 
@@ -90,10 +90,10 @@ function renderOrder(order) {
 
 function renderPayment(payment) {
   document.getElementById("payment-details").innerHTML = `
-    <div class="detail-row"><span>Status</span><strong>${payment.status || "necunoscut"}</strong></div>
+    <div class="detail-row"><span>Status</span><strong>${escapeHtml(payment.status || "necunoscut")}</strong></div>
     <div class="detail-row"><span>Sumă</span><strong>${formatPrice(payment.amount || currentOrder?.total)}</strong></div>
     <div class="detail-row"><span>Rambursat</span><strong>${formatPrice(payment.refunded_amount)}</strong></div>
-    <div class="detail-row"><span>Procesator</span><strong>${payment.provider || "-"}</strong></div>
+    <div class="detail-row"><span>Procesator</span><strong>${escapeHtml(payment.provider || "-")}</strong></div>
   `;
 }
 

@@ -8,7 +8,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 FROM python:3.12-slim AS runtime
 
-RUN groupadd --gid 1000 app && \
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid 1000 app && \
     useradd --uid 1000 --gid 1000 --no-create-home --shell /bin/false app
 
 WORKDIR /app
