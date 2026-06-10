@@ -120,7 +120,7 @@ helm upgrade --install kafka bitnami/kafka \
 GitHub Actions is used only for CI and container image publishing for Kubernetes deployments.
 
 - `.github/workflows/test.yaml`
-  - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, OWASP Dependency-Check, and builds all container images without pushing
+  - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, and builds all container images without pushing
 - `.github/workflows/production.yaml`
   - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values.yaml` to that version, and pushes all images to GHCR with that exact tag
 
