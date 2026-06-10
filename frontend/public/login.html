@@ -8,53 +8,82 @@
   </head>
   <body>
     <div class="shell">
-      <div class="topbar">
+      <header class="topbar">
         <a class="logo" href="/">
           <span class="logo-mark">M</span>
           <span>Magazon</span>
         </a>
-        <a href="/">Înapoi la magazin</a>
-      </div>
+        <a class="store-link" href="/">
+          <span aria-hidden="true">←</span>
+          Înapoi la magazin
+        </a>
+      </header>
 
-      <div class="layout">
+      <main class="layout">
         <section class="hero">
-          <span class="eyebrow">Login separat</span>
-          <h1>Intră în cont sau creează unul nou.</h1>
+          <div class="hero-copy">
+            <span class="eyebrow">Contul tău Magazon</span>
+            <h1>Tot ce ai cumpărat, într-un singur loc.</h1>
+          </div>
           <p>
-            Pagina de autentificare este separată de homepage, iar magazinul rămâne curat pentru browsing.
-            Dacă nu vrei cont, poți reveni în magazin și comanda direct ca guest.
+            Autentifică-te pentru un checkout mai rapid, acces la comenzi și adresele tale salvate.
+            Poți continua oricând și fără cont.
           </p>
-          <ul>
-            <li>Login rapid fără să aglomereze pagina principală</li>
-            <li>Cont nou cu user, email, parolă și adresă</li>
-            <li>Comenzile pot fi plasate și fără autentificare</li>
-          </ul>
+          <div class="benefits">
+            <div class="benefit">
+              <span class="benefit-icon" aria-hidden="true">01</span>
+              <span><strong>Checkout rapid</strong> cu datele de livrare salvate</span>
+            </div>
+            <div class="benefit">
+              <span class="benefit-icon" aria-hidden="true">02</span>
+              <span><strong>Comenzi la îndemână</strong> și status ușor de urmărit</span>
+            </div>
+            <div class="benefit">
+              <span class="benefit-icon" aria-hidden="true">03</span>
+              <span><strong>Cumpărături flexibile</strong> cu cont sau ca guest</span>
+            </div>
+          </div>
+          <div class="hero-art" aria-hidden="true">
+            <span class="art-card art-card-back">MAGAZON</span>
+            <span class="art-card art-card-front">
+              <small>Cont client</small>
+              <strong>Rapid. Simplu. Sigur.</strong>
+            </span>
+          </div>
         </section>
 
         <section class="card">
-          <div class="card-head">
-            <button class="tab active" id="login-tab" onclick="showTab('login')">Login</button>
-            <button class="tab" id="register-tab" onclick="showTab('register')">Cont nou</button>
-            <button class="tab" id="forgot-tab" onclick="showTab('forgot')">Reset parolă</button>
+          <div class="card-head" role="tablist" aria-label="Opțiuni cont">
+            <button class="tab active" id="login-tab" role="tab" aria-controls="login-form" aria-selected="true" onclick="showTab('login')">Login</button>
+            <button class="tab" id="register-tab" role="tab" aria-controls="register-form" aria-selected="false" onclick="showTab('register')">Cont nou</button>
+            <button class="tab" id="forgot-tab" role="tab" aria-controls="forgot-form" aria-selected="false" onclick="showTab('forgot')">Resetare</button>
           </div>
 
-          <div class="form" id="login-form">
+          <div class="form" id="login-form" role="tabpanel" aria-labelledby="login-tab">
+            <span class="form-kicker">Bine ai revenit</span>
             <h2>Autentificare</h2>
-            <p class="panel-copy">Intră în cont pentru administrarea mai rapidă a coșului și comenzilor.</p>
-            <input id="login-email" placeholder="Email" type="email" autocomplete="email" />
-            <input id="login-password" placeholder="Parolă" type="password" autocomplete="current-password" />
+            <p class="panel-copy">Intră în cont pentru a continua de unde ai rămas.</p>
+            <label for="login-email">Adresă de email</label>
+            <input id="login-email" placeholder="nume@exemplu.ro" type="email" autocomplete="email" />
+            <label for="login-password">Parolă</label>
+            <input id="login-password" placeholder="Introdu parola" type="password" autocomplete="current-password" />
             <div class="stack">
-              <button class="primary" onclick="login()">Login</button>
-              <button class="secondary" onclick="window.location.href='/'">Continuă ca guest</button>
+              <button class="primary" onclick="login()">Intră în cont</button>
+              <button class="secondary" onclick="window.location.href='/'">Continuă fără cont</button>
             </div>
           </div>
 
-          <div class="form hidden" id="register-form">
+          <div class="form hidden" id="register-form" role="tabpanel" aria-labelledby="register-tab">
+            <span class="form-kicker">Începe aici</span>
             <h2>Creează cont</h2>
             <p class="panel-copy">Completează datele de bază și te întorci direct în magazin.</p>
+            <label for="register-username">Nume utilizator</label>
             <input id="register-username" placeholder="User (minimum 3 caractere)" minlength="3" maxlength="100" autocomplete="username" />
+            <label for="register-email">Adresă de email</label>
             <input id="register-email" placeholder="Email valid" type="email" autocomplete="email" />
+            <label for="register-password">Parolă</label>
             <input id="register-password" placeholder="Parolă (minimum 6 caractere)" type="password" minlength="6" maxlength="255" autocomplete="new-password" />
+            <label for="register-address">Adresă de livrare</label>
             <input id="register-address" placeholder="Adresă livrare (minimum 5 caractere)" minlength="5" maxlength="255" autocomplete="street-address" />
             <div class="stack">
               <button class="primary" onclick="register()">Creează cont</button>
@@ -62,12 +91,16 @@
             </div>
           </div>
 
-          <div class="form hidden" id="forgot-form">
+          <div class="form hidden" id="forgot-form" role="tabpanel" aria-labelledby="forgot-tab">
+            <span class="form-kicker">Recuperează accesul</span>
             <h2>Resetare parolă</h2>
             <p class="panel-copy">Generează un token de resetare, apoi setează parola nouă.</p>
-            <input id="reset-email" placeholder="Email cont" autocomplete="email" />
+            <label for="reset-email">Adresă de email</label>
+            <input id="reset-email" placeholder="nume@exemplu.ro" type="email" autocomplete="email" />
             <button class="secondary" onclick="requestPasswordReset()">Generează token resetare</button>
+            <label for="reset-token">Token de resetare</label>
             <input id="reset-token" placeholder="Token resetare" autocomplete="off" />
+            <label for="reset-password">Parolă nouă</label>
             <input id="reset-password" placeholder="Parolă nouă" type="password" autocomplete="new-password" />
             <div class="stack">
               <button class="primary" onclick="confirmPasswordReset()">Schimbă parola</button>
@@ -76,10 +109,10 @@
           </div>
 
           <p class="footer-note">
-            Dacă ai deja produse în coș ca guest, ele rămân în magazin și după ce revii din pagina de login.
+            Produsele adăugate în coș rămân acolo după autentificare.
           </p>
         </section>
-      </div>
+      </main>
     </div>
 
     <div class="toast" id="toast"></div>

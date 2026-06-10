@@ -29,12 +29,22 @@ export function showTab(name) {
   const loginVisible = name === "login";
   const registerVisible = name === "register";
   const forgotVisible = name === "forgot";
+  const states = {
+    login: loginVisible,
+    register: registerVisible,
+    forgot: forgotVisible
+  };
+
   document.getElementById("login-form").classList.toggle("hidden", !loginVisible);
   document.getElementById("register-form").classList.toggle("hidden", !registerVisible);
   document.getElementById("forgot-form").classList.toggle("hidden", !forgotVisible);
   document.getElementById("login-tab").classList.toggle("active", loginVisible);
   document.getElementById("register-tab").classList.toggle("active", registerVisible);
   document.getElementById("forgot-tab").classList.toggle("active", forgotVisible);
+
+  Object.entries(states).forEach(([tabName, isVisible]) => {
+    document.getElementById(`${tabName}-tab`).setAttribute("aria-selected", String(isVisible));
+  });
 }
 
 export async function login() {
