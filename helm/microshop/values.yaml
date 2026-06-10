@@ -23,7 +23,8 @@ config:
 #     --from-literal=PAYMENT_POSTGRES_PASSWORD='...' \
 #     --from-literal=ADMIN_PASSWORD='...' \
 #     --from-literal=JWT_SECRET='...' \
-#     --from-literal=STRIPE_SECRET_KEY='sk_live_...'
+#     --from-literal=STRIPE_SECRET_KEY='sk_live_...' \
+#     --from-literal=STRIPE_WEBHOOK_SECRET='whsec_...'
 #   For automated injection use External Secrets Operator or Sealed Secrets.
 #
 # manage: true — manual/CI mode.
@@ -32,7 +33,8 @@ config:
 #     --set secret.manage=true \
 #     --set secret.postgresPassword='...' \
 #     --set secret.jwtSecret='...' \
-#     --set secret.stripeSecretKey='sk_live_...'
+#     --set secret.stripeSecretKey='sk_live_...' \
+#     --set secret.stripeWebhookSecret='whsec_...'
 secret:
   manage: false
   # Legacy fallback used by non-DB services because shared settings still load it.
@@ -45,6 +47,7 @@ secret:
   adminPassword: ""
   jwtSecret: ""
   stripeSecretKey: ""
+  stripeWebhookSecret: ""
 
 redis:
   image: redis:7-alpine

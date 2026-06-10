@@ -38,6 +38,7 @@ class InventoryReservation(Base):
     order_id = Column(Integer, unique=True, nullable=False, index=True)
     status = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    released_at = Column(DateTime, nullable=True)
 
 
 class ProcessedMessage(Base):
@@ -71,10 +72,46 @@ def _mark_event_processed(db: Session, topic: str) -> bool:
     return False
 
 
-async def handle_order_created(topic: str, payload: dict):
+async def handle_order_event(topic: str, payload: dict):
     db = SessionLocal()
     try:
         if _mark_event_processed(db, topic):
+            return
+
+        if topic == "order.cancelled":
+            existing = (
+                db.query(InventoryReservation)
+                .filter(InventoryReservation.order_id == payload["order_id"])
+                .first()
+            )
+            if not existing:
+                db.add(InventoryReservation(order_id=payload["order_id"], status="cancelled"))
+                db.commit()
+                await publish_event(
+                    "inventory.released",
+                    {"order_id": payload["order_id"], "status": "cancelled_before_reservation"},
+                )
+                return
+            if existing.status == "reserved":
+                for item in payload.get("items", []):
+                    record = (
+                        db.query(Inventory)
+                        .filter(Inventory.product_id == item["product_id"])
+                        .with_for_update()
+                        .first()
+                    )
+                    if record:
+                        record.stock += int(item["quantity"])
+                existing.status = "released"
+                existing.released_at = datetime.utcnow()
+            elif existing.status == "failed":
+                existing.status = "cancelled"
+                existing.released_at = datetime.utcnow()
+            db.commit()
+            await publish_event(
+                "inventory.released",
+                {"order_id": payload["order_id"], "status": existing.status},
+            )
             return
 
         existing = (
@@ -92,14 +129,14 @@ async def handle_order_created(topic: str, payload: dict):
 
         ok = True
         for item in payload.get("items", []):
-            record = db.query(Inventory).filter(Inventory.product_id == item["product_id"]).first()
+            record = db.query(Inventory).filter(Inventory.product_id == item["product_id"]).with_for_update().first()
             if not record or record.stock < item["quantity"]:
                 ok = False
                 break
 
         if ok:
             for item in payload.get("items", []):
-                record = db.query(Inventory).filter(Inventory.product_id == item["product_id"]).first()
+                record = db.query(Inventory).filter(Inventory.product_id == item["product_id"]).with_for_update().first()
                 record.stock -= item["quantity"]
             db.add(InventoryReservation(order_id=payload["order_id"], status="reserved"))
             db.commit()
@@ -140,7 +177,7 @@ async def startup():
             )
             db.commit()
     consumer_task = asyncio.create_task(
-        consume_topics("inventory-service", ["order.created"], handle_order_created)
+        consume_topics("inventory-service", ["order.created", "order.cancelled"], handle_order_event)
     )
 
 

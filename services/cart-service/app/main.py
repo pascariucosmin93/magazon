@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import requests
 
 from shared.auth import current_user_claims, require_user_id
+from shared.money import as_money, money_json
 from shared.redis_client import redis_client
 from shared.service_app import create_base_app
 
@@ -42,26 +43,26 @@ def get_cart(user_id: int, claims: dict = Depends(current_user_claims)):
     require_user_id(user_id, claims)
     items = redis_client.hgetall(cart_key(user_id))
     result = []
-    total = 0.0
+    total = as_money(0)
 
     for product_id, quantity in items.items():
         product_id_int = int(product_id)
         quantity_int = int(quantity)
         product = fetch_product(product_id_int)
-        price = float(product["price"]) if product else 0.0
+        price = as_money(product["price"]) if product else as_money(0)
         subtotal = price * quantity_int
         total += subtotal
         result.append(
             {
                 "product_id": product_id_int,
                 "name": product["name"] if product else f"Product {product_id_int}",
-                "price": price,
+                "price": money_json(price),
                 "quantity": quantity_int,
-                "subtotal": subtotal,
+                "subtotal": money_json(subtotal),
             }
         )
 
-    return {"user_id": user_id, "items": result, "total": total}
+    return {"user_id": user_id, "items": result, "total": money_json(total)}
 
 
 @app.post("/cart/add")

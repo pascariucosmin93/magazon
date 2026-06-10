@@ -61,6 +61,12 @@ export function updateUserState() {
   if (adminNav) {
     adminNav.style.display = isAdmin ? "inline" : "none";
   }
+  document.querySelectorAll(".authenticated-only").forEach((node) => {
+    node.classList.toggle("hidden", !state.userId);
+  });
+  document.querySelectorAll(".anonymous-only").forEach((node) => {
+    node.classList.toggle("hidden", Boolean(state.userId));
+  });
   toggleGuestCheckout();
 }
 
@@ -69,6 +75,11 @@ export async function loadSession() {
   state.userId = session.user_id;
   state.email = session.email;
   state.role = session.role;
+  state.profile = {
+    username: session.username,
+    email: session.email,
+    address: session.address
+  };
   return session;
 }
 
@@ -81,6 +92,9 @@ export async function logout() {
   state.userId = null;
   state.email = null;
   state.role = null;
+  state.profile = null;
+  state.addresses = [];
+  state.orders = [];
   state.lastOrderId = null;
   state.lastOrderToken = null;
   state.cart = null;

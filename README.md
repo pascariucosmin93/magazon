@@ -66,7 +66,9 @@ kubectl create secret generic microshop-secret \
   --from-literal=INVENTORY_POSTGRES_PASSWORD='<inventory-password>' \
   --from-literal=PAYMENT_POSTGRES_PASSWORD='<payment-password>' \
   --from-literal=ADMIN_PASSWORD='<admin-password>' \
-  --from-literal=JWT_SECRET='<jwt-secret>'
+  --from-literal=JWT_SECRET='<jwt-secret>' \
+  --from-literal=STRIPE_SECRET_KEY='<stripe-secret>' \
+  --from-literal=STRIPE_WEBHOOK_SECRET='<stripe-webhook-secret>'
 ```
 
 `ADMIN_PASSWORD` is required by `auth-service` at startup. If the admin user already exists,
@@ -74,6 +76,9 @@ the service rotates that account to this password and stores it with Argon2.
 
 Authentication uses Argon2 password hashes and signed JWT access tokens. Legacy SHA256
 password hashes are accepted only to migrate existing users on their next successful login.
+
+Configure Stripe to send checkout and refund events to
+`https://<store-host>/api/payments/webhooks/stripe`.
 
 ### Kubernetes with Helm
 
@@ -162,6 +167,9 @@ Helm image values use explicit `repository` + `tag` pairs, and the production pi
 - `order.created`
 - `inventory.reserved`
 - `payment.completed`
+- `payment.refunded`
+- `order.cancelled`
+- `inventory.released`
 - `notification.sent`
 
 ## Notes

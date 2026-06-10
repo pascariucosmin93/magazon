@@ -4,13 +4,14 @@ import logging
 import os
 import secrets
 from datetime import datetime
+from decimal import Decimal
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 import requests
 from fastapi import Depends, Header, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, relationship
 
@@ -18,6 +19,7 @@ from shared.auth import current_user_claims, optional_user_claims, require_user_
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, get_current_event, publish_event
+from shared.money import as_money, money_json
 from shared.service_app import create_base_app
 
 PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
@@ -45,7 +47,9 @@ class Order(Base):
     shipping_address = Column(String(255), nullable=True)
     guest_token = Column(String(120), nullable=True, unique=True, index=True)
     status = Column(String(50), default="created", nullable=False)
-    total = Column(Float, default=0, nullable=False)
+    total = Column(Numeric(12, 2), default=0, nullable=False)
+    cancelled_at = Column(DateTime, nullable=True)
+    cancellation_reason = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
@@ -57,13 +61,13 @@ class OrderItem(Base):
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
     product_id = Column(Integer, nullable=False)
     quantity = Column(Integer, nullable=False)
-    price = Column(Float, nullable=False)
+    price = Column(Numeric(12, 2), nullable=False)
     order = relationship("Order", back_populates="items")
 
 
 class OrderItemRequest(BaseModel):
     product_id: int
-    quantity: int
+    quantity: int = Field(ge=1)
 
 
 class OrderRequest(BaseModel):
@@ -75,6 +79,10 @@ class OrderRequest(BaseModel):
 
 class OrderStatusRequest(BaseModel):
     status: str = Field(min_length=1, max_length=50)
+
+
+class OrderCancellationRequest(BaseModel):
+    reason: str | None = Field(default=None, max_length=255)
 
 
 class ProcessedMessage(Base):
@@ -250,13 +258,15 @@ def serialize_order(order: Order, include_guest_token: bool = True) -> dict:
         "shipping_address": order.shipping_address,
         "guest": order.user_id is None,
         "status": order.status,
-        "total": order.total,
+        "total": money_json(order.total),
+        "cancelled_at": order.cancelled_at.isoformat() if order.cancelled_at else None,
+        "cancellation_reason": order.cancellation_reason,
         "created_at": order.created_at.isoformat() if order.created_at else None,
         "items": [
             {
                 "product_id": item.product_id,
                 "quantity": item.quantity,
-                "price": item.price,
+                "price": money_json(item.price),
             }
             for item in order.items
         ],
@@ -264,6 +274,61 @@ def serialize_order(order: Order, include_guest_token: bool = True) -> dict:
     if include_guest_token and order.user_id is None and order.guest_token:
         payload["guest_token"] = order.guest_token
     return payload
+
+
+def _claims_user_id(claims: dict) -> int:
+    subject = claims.get("sub")
+    try:
+        return int(subject)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
+
+
+def _ensure_order_access(order: Order, claims: dict | None, guest_token: str | None) -> None:
+    if claims and claims.get("role") == "admin":
+        return
+    if order.user_id is not None:
+        if not claims:
+            raise HTTPException(status_code=401, detail="Authorization required")
+        require_user_id(order.user_id, claims)
+        return
+    if not guest_token or guest_token != order.guest_token:
+        raise HTTPException(status_code=401, detail="Guest token required")
+
+
+def _cancel_order(order: Order, reason: str | None, db: Session) -> None:
+    if order.status == "cancelled":
+        return
+    if order.status in {"shipped", "delivered"}:
+        raise HTTPException(status_code=409, detail="Order can no longer be cancelled")
+
+    previous_status = order.status
+    order.status = "cancelled"
+    order.cancelled_at = datetime.utcnow()
+    order.cancellation_reason = reason.strip() if reason and reason.strip() else None
+    db.add(order)
+    db.add(
+        OutboxEvent(
+            topic="order.cancelled",
+            payload=_serialize_outbox_payload(
+                {
+                    "order_id": order.id,
+                    "user_id": order.user_id,
+                    "previous_status": previous_status,
+                    "reason": order.cancellation_reason,
+                    "total": money_json(order.total),
+                    "items": [
+                        {
+                            "product_id": item.product_id,
+                            "quantity": item.quantity,
+                            "price": money_json(item.price),
+                        }
+                        for item in order.items
+                    ],
+                }
+            ),
+        )
+    )
 
 
 @app.post("/orders")
@@ -306,7 +371,7 @@ async def create_order(
             {
                 "product_id": item.product_id,
                 "quantity": item.quantity,
-                "price": float(product["price"]),
+                "price": money_json(product["price"]),
             }
         )
 
@@ -317,7 +382,7 @@ async def create_order(
         shipping_address=shipping_address,
         guest_token=guest_token,
         status="created",
-        total=sum(item["price"] * item["quantity"] for item in normalized_items),
+        total=sum((as_money(item["price"]) * item["quantity"] for item in normalized_items), Decimal("0.00")),
     )
     db.add(order)
     db.flush()
@@ -328,14 +393,14 @@ async def create_order(
                 order_id=order.id,
                 product_id=item["product_id"],
                 quantity=item["quantity"],
-                price=item["price"],
+                price=as_money(item["price"]),
             )
         )
 
     outbox_payload = {
         "order_id": order.id,
         "user_id": order.user_id,
-        "total": order.total,
+        "total": money_json(order.total),
         "items": normalized_items,
     }
     db.add(
@@ -353,6 +418,24 @@ async def create_order(
         logger.warning("Immediate outbox publish failed for order_id=%s: %s", order.id, exc)
     db.refresh(order)
     return serialize_order(order)
+
+
+@app.get("/orders/mine")
+def list_my_orders(
+    db: Session = Depends(get_db),
+    claims: dict = Depends(current_user_claims),
+):
+    user_id = _claims_user_id(claims)
+    orders = (
+        db.query(Order)
+        .filter(Order.user_id == user_id)
+        .order_by(Order.created_at.desc(), Order.id.desc())
+        .all()
+    )
+    return {
+        "items": [serialize_order(order, include_guest_token=False) for order in orders],
+        "total": len(orders),
+    }
 
 
 @app.get("/orders")
@@ -387,11 +470,36 @@ def update_order_status(
             detail=f"Cannot change order from {order.status} to {next_status}. Allowed: {allowed}",
         )
 
-    order.status = next_status
-    db.add(order)
+    if next_status == "cancelled":
+        _cancel_order(order, "Cancelled by administrator", db)
+    else:
+        order.status = next_status
+        db.add(order)
     db.commit()
     db.refresh(order)
     return serialize_order(order, include_guest_token=False)
+
+
+@app.post("/orders/{order_id}/cancel")
+async def cancel_order(
+    order_id: int,
+    payload: OrderCancellationRequest | None = None,
+    x_guest_token: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+    claims: dict | None = Depends(optional_user_claims),
+):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    _ensure_order_access(order, claims, x_guest_token)
+    _cancel_order(order, payload.reason if payload else None, db)
+    db.commit()
+    db.refresh(order)
+    try:
+        await publish_pending_outbox_events_once(limit=5)
+    except Exception as exc:
+        logger.warning("Immediate cancellation publish failed for order_id=%s: %s", order.id, exc)
+    return serialize_order(order)
 
 
 @app.get("/orders/{order_id}")
@@ -404,11 +512,5 @@ def get_order(
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    if order.user_id is not None:
-        if not claims:
-            raise HTTPException(status_code=401, detail="Authorization required")
-        require_user_id(order.user_id, claims)
-    else:
-        if not x_guest_token or x_guest_token != order.guest_token:
-            raise HTTPException(status_code=401, detail="Guest token required")
+    _ensure_order_access(order, claims, x_guest_token)
     return serialize_order(order)
