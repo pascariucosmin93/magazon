@@ -1,25 +1,28 @@
 import asyncio
 import os
 from datetime import datetime
+from decimal import Decimal
 from urllib.parse import urlparse
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 import requests
 import stripe
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from shared.auth import current_user_claims, optional_user_claims, require_user_id
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, get_current_event, publish_event
+from shared.money import as_money, money_json, money_minor_units
 from shared.service_app import create_base_app
 
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
 PAYMENT_PROVIDER = os.getenv("PAYMENT_PROVIDER", "stripe")
 PAYMENT_CURRENCY = os.getenv("PAYMENT_CURRENCY", "eur")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 stripe.api_key = STRIPE_SECRET_KEY or None
 
 
@@ -28,13 +31,34 @@ class Payment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, nullable=False, unique=True, index=True)
-    amount = Column(Float, nullable=False, default=0)
+    amount = Column(Numeric(12, 2), nullable=False, default=0)
     currency = Column(String(10), nullable=False, default=PAYMENT_CURRENCY)
     provider = Column(String(50), nullable=False, default=PAYMENT_PROVIDER)
     status = Column(String(50), nullable=False, default="awaiting_payment")
     checkout_session_id = Column(String(255), nullable=True)
     checkout_url = Column(Text, nullable=True)
+    payment_intent_id = Column(String(255), nullable=True, index=True)
+    refunded_amount = Column(Numeric(12, 2), nullable=False, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PaymentTransaction(Base):
+    __tablename__ = "payment_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payment_id = Column(
+        Integer,
+        ForeignKey("payments.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    provider_event_id = Column(String(255), nullable=True, unique=True, index=True)
+    transaction_type = Column(String(50), nullable=False)
+    status = Column(String(50), nullable=False)
+    amount = Column(Numeric(12, 2), nullable=False, default=0)
+    currency = Column(String(10), nullable=False, default=PAYMENT_CURRENCY)
+    provider_reference = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class CheckoutSessionRequest(BaseModel):
@@ -98,7 +122,7 @@ def ensure_payment_record(db: Session, order: dict) -> Payment:
         return payment
     payment = Payment(
         order_id=order["order_id"],
-        amount=float(order["total"]),
+        amount=as_money(order["total"]),
         currency=PAYMENT_CURRENCY,
         provider=PAYMENT_PROVIDER,
         status="awaiting_payment",
@@ -109,22 +133,111 @@ def ensure_payment_record(db: Session, order: dict) -> Payment:
     return payment
 
 
-async def finalize_payment(payment: Payment) -> None:
-    if payment.status == "completed":
+def _record_transaction(
+    db: Session,
+    payment: Payment,
+    transaction_type: str,
+    status: str,
+    amount: Decimal,
+    provider_reference: str | None = None,
+    provider_event_id: str | None = None,
+) -> PaymentTransaction:
+    transaction = PaymentTransaction(
+        payment_id=payment.id,
+        provider_event_id=provider_event_id,
+        transaction_type=transaction_type,
+        status=status,
+        amount=as_money(amount),
+        currency=payment.currency,
+        provider_reference=provider_reference,
+    )
+    db.add(transaction)
+    return transaction
+
+
+async def finalize_payment(
+    payment: Payment,
+    db: Session,
+    provider_reference: str | None = None,
+    provider_event_id: str | None = None,
+) -> None:
+    if payment.status in {"refunded", "partially_refunded"}:
         return
+    if payment.status == "completed":
+        if provider_reference and not payment.payment_intent_id:
+            payment.payment_intent_id = provider_reference
+            db.add(payment)
+            db.commit()
+        return
+    if payment.status == "refund_pending":
+        if provider_reference:
+            payment.payment_intent_id = provider_reference
+            db.add(payment)
+            db.commit()
+        await refund_payment(payment, db, provider_event_id)
+        return
+
+    was_cancelled = payment.status == "cancelled"
     payment.status = "completed"
+    if provider_reference:
+        payment.payment_intent_id = provider_reference
+    db.add(payment)
+    _record_transaction(
+        db, payment, "payment", "completed", payment.amount, provider_reference, provider_event_id
+    )
+    db.commit()
     await publish_event(
         "payment.completed",
-        {"order_id": payment.order_id, "status": "completed", "amount": payment.amount},
+        {"order_id": payment.order_id, "status": "completed", "amount": money_json(payment.amount)},
+    )
+    if was_cancelled:
+        await refund_payment(payment, db)
+
+
+async def refund_payment(
+    payment: Payment,
+    db: Session,
+    provider_event_id: str | None = None,
+) -> None:
+    refundable = as_money(payment.amount) - as_money(payment.refunded_amount)
+    if refundable <= 0 or payment.status == "refunded":
+        return
+    if not STRIPE_SECRET_KEY or not payment.payment_intent_id:
+        payment.status = "refund_pending"
+        db.add(payment)
+        db.commit()
+        return
+
+    refund = stripe.Refund.create(
+        payment_intent=payment.payment_intent_id,
+        amount=money_minor_units(refundable),
+        metadata={"order_id": str(payment.order_id)},
+    )
+    payment.refunded_amount = as_money(payment.refunded_amount) + refundable
+    payment.status = "refunded" if payment.refunded_amount >= payment.amount else "partially_refunded"
+    db.add(payment)
+    _record_transaction(
+        db,
+        payment,
+        "refund",
+        payment.status,
+        refundable,
+        refund.get("id"),
+        provider_event_id,
+    )
+    db.commit()
+    await publish_event(
+        "payment.refunded",
+        {"order_id": payment.order_id, "status": payment.status, "amount": money_json(refundable)},
     )
 
 
-async def refresh_payment_from_stripe(payment: Payment) -> None:
+async def refresh_payment_from_stripe(payment: Payment, db: Session) -> None:
     if not payment.checkout_session_id or payment.status == "completed" or not STRIPE_SECRET_KEY:
         return
     session = stripe.checkout.Session.retrieve(payment.checkout_session_id)
     if session.get("payment_status") == "paid":
-        await finalize_payment(payment)
+        await finalize_payment(payment, db, session.get("payment_intent"))
 
 
 def validate_return_base_url(return_base_url: str) -> str:
@@ -138,12 +251,45 @@ def serialize_payment(payment: Payment) -> dict:
     return {
         "order_id": payment.order_id,
         "status": payment.status,
-        "amount": payment.amount,
+        "amount": money_json(payment.amount),
+        "refunded_amount": money_json(payment.refunded_amount),
         "currency": payment.currency,
         "provider": payment.provider,
         "checkout_session_id": payment.checkout_session_id,
         "checkout_url": payment.checkout_url,
+        "payment_intent_id": payment.payment_intent_id,
     }
+
+
+def serialize_transaction(transaction: PaymentTransaction) -> dict:
+    return {
+        "id": transaction.id,
+        "payment_id": transaction.payment_id,
+        "provider_event_id": transaction.provider_event_id,
+        "type": transaction.transaction_type,
+        "status": transaction.status,
+        "amount": money_json(transaction.amount),
+        "currency": transaction.currency,
+        "provider_reference": transaction.provider_reference,
+        "created_at": transaction.created_at.isoformat() if transaction.created_at else None,
+    }
+
+
+def _payment_from_stripe_object(db: Session, stripe_object: dict) -> Payment | None:
+    session_id = stripe_object.get("id") if stripe_object.get("object") == "checkout.session" else None
+    if session_id:
+        payment = db.query(Payment).filter(Payment.checkout_session_id == session_id).first()
+        if payment:
+            return payment
+    payment_intent_id = stripe_object.get("payment_intent")
+    if payment_intent_id:
+        payment = db.query(Payment).filter(Payment.payment_intent_id == payment_intent_id).first()
+        if payment:
+            return payment
+    order_id = (stripe_object.get("metadata") or {}).get("order_id")
+    if order_id:
+        return db.query(Payment).filter(Payment.order_id == int(order_id)).first()
+    return None
 
 
 consumer_task = None
@@ -168,10 +314,24 @@ def _mark_event_processed(db: Session, topic: str) -> bool:
     return False
 
 
-async def handle_inventory(topic: str, payload: dict):
+async def handle_payment_event(topic: str, payload: dict):
     db = SessionLocal()
     try:
         if _mark_event_processed(db, topic):
+            return
+
+        if topic == "order.cancelled":
+            payment = db.query(Payment).filter(Payment.order_id == payload["order_id"]).first()
+            if not payment:
+                db.commit()
+                return
+            if payment.status in {"completed", "refund_pending"}:
+                await refund_payment(payment, db)
+            elif payment.status not in {"refunded", "partially_refunded"}:
+                payment.status = "cancelled"
+                db.add(payment)
+                _record_transaction(db, payment, "cancellation", "cancelled", Decimal("0.00"))
+                db.commit()
             return
 
         if payload.get("status") != "reserved":
@@ -182,7 +342,10 @@ async def handle_inventory(topic: str, payload: dict):
         if existing:
             db.commit()
             return
-        amount = sum(item["price"] * item["quantity"] for item in payload.get("items", []))
+        amount = sum(
+            (as_money(item["price"]) * int(item["quantity"]) for item in payload.get("items", [])),
+            Decimal("0.00"),
+        )
         payment = Payment(
             order_id=payload["order_id"],
             amount=amount,
@@ -199,7 +362,9 @@ async def handle_inventory(topic: str, payload: dict):
 async def startup():
     global consumer_task
     consumer_task = asyncio.create_task(
-        consume_topics("payment-service", ["inventory.reserved"], handle_inventory)
+        consume_topics(
+            "payment-service", ["inventory.reserved", "order.cancelled"], handle_payment_event
+        )
     )
 
 
@@ -269,7 +434,7 @@ async def get_payment_for_order(
             "checkout_url": None,
         }
 
-    await refresh_payment_from_stripe(payment)
+    await refresh_payment_from_stripe(payment, db)
     db.add(payment)
     db.commit()
     db.refresh(payment)
@@ -319,7 +484,7 @@ async def create_checkout_session(
                 "price_data": {
                     "currency": PAYMENT_CURRENCY,
                     "product_data": {"name": f"Produs #{item['product_id']}"},
-                    "unit_amount": int(round(float(item["price"]) * 100)),
+                    "unit_amount": money_minor_units(item["price"]),
                 },
                 "quantity": int(item["quantity"]),
             }
@@ -331,6 +496,7 @@ async def create_checkout_session(
         cancel_url=f"{return_base_url}/payment.html?order_id={order_id}&checkout=cancel",
         customer_email=order.get("customer_email") or None,
         metadata={"order_id": str(order_id)},
+        payment_intent_data={"metadata": {"order_id": str(order_id)}},
         line_items=line_items,
     )
 
@@ -366,7 +532,7 @@ async def confirm_checkout_session(
 
     session = stripe.checkout.Session.retrieve(payment.checkout_session_id)
     if session.get("payment_status") == "paid":
-        await finalize_payment(payment)
+        await finalize_payment(payment, db, session.get("payment_intent"))
         db.add(payment)
         db.commit()
         db.refresh(payment)
@@ -384,3 +550,141 @@ async def confirm_checkout_session(
         "stripe_status": session.get("status"),
         "stripe_payment_status": session.get("payment_status"),
     }
+
+
+@app.post("/webhooks/stripe")
+async def stripe_webhook(
+    request: Request,
+    stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
+    db: Session = Depends(get_db),
+):
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=503, detail="Stripe webhook is not configured")
+    if not stripe_signature:
+        raise HTTPException(status_code=400, detail="Stripe signature is required")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            await request.body(), stripe_signature, STRIPE_WEBHOOK_SECRET
+        )
+    except (ValueError, stripe.error.SignatureVerificationError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid Stripe webhook") from exc
+
+    event_id = event["id"]
+    duplicate = (
+        db.query(PaymentTransaction)
+        .filter(PaymentTransaction.provider_event_id == event_id)
+        .first()
+    )
+    if duplicate:
+        payment = db.query(Payment).filter(Payment.id == duplicate.payment_id).first()
+        if payment and duplicate.transaction_type == "payment":
+            await publish_event(
+                "payment.completed",
+                {
+                    "order_id": payment.order_id,
+                    "status": "completed" if payment.status == "completed" else "failed",
+                    "amount": money_json(payment.amount),
+                },
+            )
+        return {"received": True, "duplicate": True}
+
+    event_type = event["type"]
+    stripe_object = event["data"]["object"]
+    payment = _payment_from_stripe_object(db, stripe_object)
+    if not payment:
+        return {"received": True, "ignored": True}
+
+    if event_type in {"checkout.session.completed", "checkout.session.async_payment_succeeded"}:
+        if stripe_object.get("payment_status") == "paid":
+            if payment.status == "completed":
+                _record_transaction(
+                    db,
+                    payment,
+                    "webhook",
+                    "acknowledged",
+                    Decimal("0.00"),
+                    stripe_object.get("payment_intent"),
+                    event_id,
+                )
+                db.commit()
+            else:
+                await finalize_payment(
+                    payment, db, stripe_object.get("payment_intent"), event_id
+                )
+    elif event_type in {"checkout.session.expired", "checkout.session.async_payment_failed"}:
+        payment.status = "payment_failed"
+        db.add(payment)
+        _record_transaction(
+            db,
+            payment,
+            "payment",
+            "failed",
+            payment.amount,
+            stripe_object.get("payment_intent"),
+            event_id,
+        )
+        db.commit()
+        await publish_event(
+            "payment.completed",
+            {
+                "order_id": payment.order_id,
+                "status": "failed",
+                "amount": money_json(payment.amount),
+            },
+        )
+    elif event_type == "charge.refunded":
+        refunded = as_money(
+            Decimal(str(stripe_object.get("amount_refunded", 0))) / Decimal("100")
+        )
+        payment.refunded_amount = max(as_money(payment.refunded_amount), refunded)
+        payment.status = (
+            "refunded" if payment.refunded_amount >= payment.amount else "partially_refunded"
+        )
+        db.add(payment)
+        _record_transaction(
+            db,
+            payment,
+            "refund_webhook",
+            payment.status,
+            refunded,
+            stripe_object.get("id"),
+            event_id,
+        )
+        db.commit()
+
+    return {"received": True}
+
+
+@app.post("/payments/orders/{order_id}/refund")
+async def refund_order_payment(
+    order_id: int,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if payment.status not in {"completed", "refund_pending", "partially_refunded"}:
+        raise HTTPException(status_code=409, detail="Payment is not refundable")
+    await refund_payment(payment, db)
+    db.refresh(payment)
+    return serialize_payment(payment)
+
+
+@app.get("/payments/orders/{order_id}/transactions")
+def list_payment_transactions(
+    order_id: int,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    transactions = (
+        db.query(PaymentTransaction)
+        .filter(PaymentTransaction.payment_id == payment.id)
+        .order_by(PaymentTransaction.created_at.desc(), PaymentTransaction.id.desc())
+        .all()
+    )
+    return {"items": [serialize_transaction(item) for item in transactions], "total": len(transactions)}

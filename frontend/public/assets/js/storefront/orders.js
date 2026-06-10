@@ -37,6 +37,19 @@ export async function placeOrder() {
       body.customer_email = customerEmail;
       body.shipping_address = shippingAddress;
       requestOptions.body = JSON.stringify(body);
+    } else {
+      const addressId = Number(document.getElementById("checkout-address").value);
+      const address = state.addresses.find((item) => item.id === addressId);
+      if (!address) {
+        toast("Adaugă și selectează o adresă de livrare.");
+        return;
+      }
+      body.customer_name = address.recipient_name;
+      body.customer_email = state.profile?.email || state.email;
+      body.shipping_address = [address.line1, address.city, address.postal_code, address.country]
+        .filter(Boolean)
+        .join(", ");
+      requestOptions.body = JSON.stringify(body);
     }
 
     const result = await request(`${endpoints.orders}/orders`, requestOptions);
@@ -53,6 +66,7 @@ export async function placeOrder() {
     }
 
     toast(`Comanda #${result.order_id} a fost plasată.`);
+    window.dispatchEvent(new CustomEvent("orders:changed"));
     window.setTimeout(() => {
       window.location.href = `/payment.html?order_id=${encodeURIComponent(result.order_id)}`;
     }, 700);
@@ -82,6 +96,8 @@ export async function loadOrder() {
     document.getElementById("catalog-status").innerText = "Stoc insuficient";
   } else if (result.status === "payment_failed") {
     document.getElementById("catalog-status").innerText = "Plata eșuată";
+  } else if (result.status === "cancelled") {
+    document.getElementById("catalog-status").innerText = "Comandă anulată";
   } else {
     document.getElementById("catalog-status").innerText = "Comandă în procesare";
   }
@@ -103,6 +119,10 @@ export function renderOrder(order) {
     `;
   }).join("");
 
+  const cancelAction = !["cancelled", "shipped", "delivered"].includes(order.status)
+    ? `<div class="inline-actions"><button class="secondary" onclick="cancelCurrentOrder()">Anulează comanda</button></div>`
+    : "";
+
   root.innerHTML = `
     <strong>Comanda #${order.order_id}</strong>
     <div class="muted" style="margin-top:4px;">Status: ${order.status}</div>
@@ -111,5 +131,32 @@ export function renderOrder(order) {
       <span>Total</span>
       <span>${formatPrice(order.total)}</span>
     </div>
+    ${cancelAction}
   `;
+}
+
+
+export async function cancelCurrentOrder() {
+  if (!state.lastOrderId) {
+    toast("Nu există o comandă selectată.");
+    return;
+  }
+  const options = {
+    method: "POST",
+    body: JSON.stringify({ reason: "Anulată de client" })
+  };
+  if (!state.userId && state.lastOrderToken) {
+    options.headers = { "X-Guest-Token": state.lastOrderToken };
+  }
+  try {
+    const result = await request(
+      `${endpoints.orders}/orders/${state.lastOrderId}/cancel`,
+      options
+    );
+    renderOrder(result);
+    window.dispatchEvent(new CustomEvent("orders:changed"));
+    toast(`Comanda #${result.order_id} a fost anulată.`);
+  } catch (error) {
+    toast(`Comanda nu a putut fi anulată: ${error.message}`);
+  }
 }

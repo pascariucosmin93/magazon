@@ -10,7 +10,7 @@ from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatc
 from fastapi import Depends, HTTPException, Request, Response
 import jwt
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Session
 
 from shared.auth import current_user_claims
@@ -43,6 +43,21 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class UserAddress(Base):
+    __tablename__ = "user_addresses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    label = Column(String(80), nullable=False, default="Acasă")
+    recipient_name = Column(String(120), nullable=False)
+    line1 = Column(String(255), nullable=False)
+    city = Column(String(120), nullable=False)
+    postal_code = Column(String(20), nullable=False, default="")
+    country = Column(String(2), nullable=False, default="RO")
+    is_default = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 class RegisterRequest(BaseModel):
     username: str = Field(min_length=3, max_length=100)
     email: EmailStr
@@ -53,6 +68,21 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=6, max_length=255)
+
+
+class ProfileUpdateRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=100)
+    email: EmailStr
+
+
+class AddressRequest(BaseModel):
+    label: str = Field(min_length=1, max_length=80)
+    recipient_name: str = Field(min_length=2, max_length=120)
+    line1: str = Field(min_length=5, max_length=255)
+    city: str = Field(min_length=2, max_length=120)
+    postal_code: str = Field(default="", max_length=20)
+    country: str = Field(default="RO", min_length=2, max_length=2)
+    is_default: bool = False
 
 
 class PasswordResetRequest(BaseModel):
@@ -224,6 +254,18 @@ async def register(payload: RegisterRequest, request: Request, db: Session = Dep
         role="customer",
     )
     db.add(user)
+    db.flush()
+    db.add(
+        UserAddress(
+            user_id=user.id,
+            label="Acasă",
+            recipient_name=user.username,
+            line1=user.address,
+            city="Nespecificat",
+            country="RO",
+            is_default=True,
+        )
+    )
     db.commit()
     db.refresh(user)
 
@@ -276,8 +318,20 @@ def _serialize_claims(claims: dict) -> dict:
 
 
 @app.get("/session")
-def session(claims: dict = Depends(current_user_claims)):
-    return _serialize_claims(claims)
+def session(
+    claims: dict = Depends(current_user_claims),
+    db: Session = Depends(get_db),
+):
+    user_id = int(claims["sub"])
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User no longer exists")
+    return {
+        **_serialize_claims(claims),
+        "username": user.username,
+        "email": user.email,
+        "address": user.address,
+    }
 
 
 @app.get("/users")
@@ -373,3 +427,176 @@ def confirm_password_reset(
 @app.get("/validate/{token}")
 def validate_token_legacy(token: str):
     return _serialize_claims(decode_access_token(token))
+
+
+def _current_user(db: Session, claims: dict) -> User:
+    try:
+        user_id = int(claims.get("sub"))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+def serialize_address(address: UserAddress) -> dict:
+    return {
+        "id": address.id,
+        "label": address.label,
+        "recipient_name": address.recipient_name,
+        "line1": address.line1,
+        "city": address.city,
+        "postal_code": address.postal_code,
+        "country": address.country,
+        "is_default": address.is_default,
+    }
+
+
+def _address_summary(address: UserAddress) -> str:
+    parts = [address.line1, address.city, address.postal_code, address.country]
+    return ", ".join(part for part in parts if part)
+
+
+def _set_default_address(db: Session, user: User, address: UserAddress) -> None:
+    db.query(UserAddress).filter(
+        UserAddress.user_id == user.id,
+        UserAddress.id != address.id,
+    ).update({UserAddress.is_default: False}, synchronize_session=False)
+    address.is_default = True
+    user.address = _address_summary(address)
+    db.add_all([user, address])
+
+
+@app.get("/profile")
+def get_profile(
+    claims: dict = Depends(current_user_claims),
+    db: Session = Depends(get_db),
+):
+    user = _current_user(db, claims)
+    return serialize_user(user)
+
+
+@app.put("/profile")
+def update_profile(
+    payload: ProfileUpdateRequest,
+    claims: dict = Depends(current_user_claims),
+    db: Session = Depends(get_db),
+):
+    user = _current_user(db, claims)
+    username = payload.username.strip()
+    email = payload.email.strip().lower()
+    username_owner = db.query(User).filter(User.username == username, User.id != user.id).first()
+    if username_owner:
+        raise HTTPException(status_code=409, detail="Username already exists")
+    email_owner = db.query(User).filter(User.email == email, User.id != user.id).first()
+    if email_owner:
+        raise HTTPException(status_code=409, detail="Email already exists")
+    user.username = username
+    user.email = email
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return serialize_user(user)
+
+
+@app.get("/addresses")
+def list_addresses(
+    claims: dict = Depends(current_user_claims),
+    db: Session = Depends(get_db),
+):
+    user = _current_user(db, claims)
+    addresses = (
+        db.query(UserAddress)
+        .filter(UserAddress.user_id == user.id)
+        .order_by(UserAddress.is_default.desc(), UserAddress.created_at.asc())
+        .all()
+    )
+    return {"items": [serialize_address(item) for item in addresses], "total": len(addresses)}
+
+
+@app.post("/addresses")
+def create_address(
+    payload: AddressRequest,
+    claims: dict = Depends(current_user_claims),
+    db: Session = Depends(get_db),
+):
+    user = _current_user(db, claims)
+    has_addresses = db.query(UserAddress).filter(UserAddress.user_id == user.id).first() is not None
+    address = UserAddress(
+        user_id=user.id,
+        label=payload.label.strip(),
+        recipient_name=payload.recipient_name.strip(),
+        line1=payload.line1.strip(),
+        city=payload.city.strip(),
+        postal_code=payload.postal_code.strip(),
+        country=payload.country.strip().upper(),
+        is_default=payload.is_default or not has_addresses,
+    )
+    db.add(address)
+    db.flush()
+    if address.is_default:
+        _set_default_address(db, user, address)
+    db.commit()
+    db.refresh(address)
+    return serialize_address(address)
+
+
+@app.put("/addresses/{address_id}")
+def update_address(
+    address_id: int,
+    payload: AddressRequest,
+    claims: dict = Depends(current_user_claims),
+    db: Session = Depends(get_db),
+):
+    user = _current_user(db, claims)
+    address = db.query(UserAddress).filter(
+        UserAddress.id == address_id,
+        UserAddress.user_id == user.id,
+    ).first()
+    if not address:
+        raise HTTPException(status_code=404, detail="Address not found")
+    for field in ("label", "recipient_name", "line1", "city", "postal_code", "country"):
+        value = getattr(payload, field).strip()
+        setattr(address, field, value.upper() if field == "country" else value)
+    if payload.is_default:
+        _set_default_address(db, user, address)
+    elif address.is_default:
+        user.address = _address_summary(address)
+        db.add(user)
+    db.add(address)
+    db.commit()
+    db.refresh(address)
+    return serialize_address(address)
+
+
+@app.delete("/addresses/{address_id}")
+def delete_address(
+    address_id: int,
+    claims: dict = Depends(current_user_claims),
+    db: Session = Depends(get_db),
+):
+    user = _current_user(db, claims)
+    address = db.query(UserAddress).filter(
+        UserAddress.id == address_id,
+        UserAddress.user_id == user.id,
+    ).first()
+    if not address:
+        raise HTTPException(status_code=404, detail="Address not found")
+    was_default = address.is_default
+    db.delete(address)
+    db.flush()
+    if was_default:
+        replacement = (
+            db.query(UserAddress)
+            .filter(UserAddress.user_id == user.id)
+            .order_by(UserAddress.created_at.asc())
+            .first()
+        )
+        if replacement:
+            _set_default_address(db, user, replacement)
+        else:
+            user.address = ""
+            db.add(user)
+    db.commit()
+    return {"message": "Address deleted", "address_id": address_id}

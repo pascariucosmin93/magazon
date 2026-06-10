@@ -292,3 +292,26 @@
           grid-column: auto;
         }
       }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .account-management,
+      .account-form,
+      .member-checkout {
+        display: grid;
+        gap: 10px;
+      }
+
+      .account-management {
+        margin-top: 18px;
+      }
+
+      .account-management h4 {
+        margin-top: 10px;
+      }
+
+      .member-checkout {
+        margin-top: 14px;
+      }

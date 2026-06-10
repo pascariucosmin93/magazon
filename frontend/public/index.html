@@ -210,16 +210,35 @@
               <button class="secondary" id="logout-button" onclick="logout()">Logout</button>
             </div>
             <div class="account-content">
-              <p class="workspace-copy">
-                Dacă vrei istoric și acces mai rapid, intră în cont din pagina dedicată. Dacă nu, poți comanda direct ca guest.
-              </p>
-              <div class="account-actions">
-                <button class="primary" onclick="goToLogin()">Login / Creează cont</button>
-                <button class="secondary" onclick="focusCart()">Continuă ca guest</button>
+              <div class="anonymous-only">
+                <p class="workspace-copy">Intră în cont pentru profil, adrese și istoricul comenzilor.</p>
+                <div class="account-actions">
+                  <button class="primary" onclick="goToLogin()">Login / Creează cont</button>
+                  <button class="secondary" onclick="focusCart()">Continuă ca guest</button>
+                </div>
               </div>
               <div class="user-box" style="margin-top: 14px;">
                 <strong id="user-state">Neautentificat</strong>
-                <span class="muted" id="user-role">Poți cumpăra ca guest sau te poți autentifica pentru un flux mai rapid.</span>
+                <span class="muted" id="user-role">Poți cumpăra ca guest sau te poți autentifica.</span>
+              </div>
+              <div class="authenticated-only hidden account-management">
+                <h4>Profil</h4>
+                <div class="account-form">
+                  <input id="profile-username" placeholder="Nume utilizator" />
+                  <input id="profile-email" type="email" placeholder="Email" />
+                  <button class="secondary" onclick="saveProfile()">Salvează profilul</button>
+                </div>
+                <h4>Adrese de livrare</h4>
+                <div id="address-list" class="stack"></div>
+                <div class="account-form">
+                  <input id="address-label" placeholder="Etichetă, ex. Acasă" />
+                  <input id="address-recipient" placeholder="Nume destinatar" />
+                  <input id="address-line1" placeholder="Stradă, număr, apartament" />
+                  <input id="address-city" placeholder="Oraș" />
+                  <input id="address-postal-code" placeholder="Cod poștal" />
+                  <label><input id="address-default" type="checkbox" /> Adresă implicită</label>
+                  <button class="secondary" onclick="addAddress()">Adaugă adresa</button>
+                </div>
               </div>
             </div>
           </section>
@@ -239,6 +258,10 @@
               <div id="cart-output">
                 <div class="empty">Coșul este gol.</div>
               </div>
+              <div class="authenticated-only hidden member-checkout">
+                <label for="checkout-address">Adresă de livrare</label>
+                <select id="checkout-address"></select>
+              </div>
               <p class="workspace-copy guest-note" id="guest-note">
                 Pentru comandă fără cont, completează datele de livrare de mai jos.
               </p>
@@ -251,6 +274,17 @@
             </div>
           </section>
         </div>
+      </section>
+
+      <section class="section storefront-hidden authenticated-only hidden">
+        <section class="panel order-panel">
+          <div class="panel-head">
+            <h3 class="panel-title">Istoric comenzi</h3>
+          </div>
+          <div class="order-content" id="order-history-output">
+            <div class="empty">Se încarcă istoricul...</div>
+          </div>
+        </section>
       </section>
 
       <section class="section storefront-hidden">

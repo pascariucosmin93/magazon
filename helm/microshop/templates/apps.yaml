@@ -137,6 +137,9 @@ metadata:
   {{- end }}
 spec:
   type: {{ $svc.serviceType }}
+  {{- if and (hasKey $svc "externalTrafficPolicy") (or (eq $svc.serviceType "LoadBalancer") (eq $svc.serviceType "NodePort")) }}
+  externalTrafficPolicy: {{ $svc.externalTrafficPolicy }}
+  {{- end }}
   selector:
     app: {{ $name }}
   ports:

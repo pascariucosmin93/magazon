@@ -1,17 +1,19 @@
 import os
 import json
 from datetime import datetime
+from decimal import Decimal
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Session
 
 from shared.auth import current_user_claims
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
+from shared.money import as_money, money_json
 from shared.redis_client import redis_client
 from shared.service_app import create_base_app
 
@@ -34,7 +36,7 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
-    price = Column(Float, nullable=False)
+    price = Column(Numeric(12, 2), nullable=False)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -42,7 +44,7 @@ class Product(Base):
 class ProductRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     description: str = Field(min_length=1)
-    price: float = Field(gt=0)
+    price: Decimal = Field(gt=0, decimal_places=2, max_digits=12)
     category_id: int | None = None
 
 
@@ -114,7 +116,7 @@ def serialize_product(product: Product, categories_by_id: dict[int, Category]) -
         "id": product.id,
         "name": product.name,
         "description": product.description,
-        "price": product.price,
+        "price": money_json(product.price),
         "category_id": product.category_id,
         "category_name": category.name if category else None,
     }
@@ -160,7 +162,9 @@ def create_product(
         category = db.query(Category).filter(Category.id == payload.category_id).first()
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
-    product = Product(**payload.model_dump())
+    values = payload.model_dump()
+    values["price"] = as_money(values["price"])
+    product = Product(**values)
     db.add(product)
     db.commit()
     db.refresh(product)
@@ -184,7 +188,9 @@ def update_product(
         if not category:
             raise HTTPException(status_code=404, detail="Category not found")
 
-    for field, value in payload.model_dump().items():
+    values = payload.model_dump()
+    values["price"] = as_money(values["price"])
+    for field, value in values.items():
         setattr(product, field, value)
     db.add(product)
     db.commit()
