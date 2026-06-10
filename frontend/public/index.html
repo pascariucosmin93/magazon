@@ -14,15 +14,15 @@
       </div>
     </div>
 
-      <header class="header">
+    <header class="header">
       <div class="header-inner">
-        <a class="logo" href="#hero" aria-label="Magazon">
+        <a class="logo" href="/" aria-label="Magazon">
           <span class="logo-mark">M</span>
           <span>Magazon</span>
         </a>
         <div class="search">
           <input id="search-input" placeholder="Caută laptopuri, componente, periferice, accesorii..." oninput="renderProducts()" />
-          <button onclick="renderProducts()">Caută</button>
+          <button onclick="browseCatalog()">Caută</button>
         </div>
         <div class="header-actions">
           <button class="icon-button" id="account-button" onclick="openAccount()">Login / Cont</button>
@@ -31,12 +31,12 @@
       </div>
       <nav class="nav">
         <div class="nav-inner">
-          <a href="#hero">Laptopuri</a>
-          <a href="#hero">PC Gaming</a>
-          <a href="#hero">Componente</a>
-          <a href="#hero">Monitoare</a>
-          <a href="#hero">Periferice</a>
-          <a href="#hero">Accesorii</a>
+          <a href="#catalog" onclick="browseCatalog('Laptopuri'); return false;">Laptopuri</a>
+          <a href="#catalog" onclick="browseCatalog('Gaming'); return false;">PC Gaming</a>
+          <a href="#catalog" onclick="browseCatalog('Componente'); return false;">Componente</a>
+          <a href="#catalog" onclick="browseCatalog('Monitoare'); return false;">Monitoare</a>
+          <a href="#catalog" onclick="browseCatalog('Periferice'); return false;">Periferice</a>
+          <a href="#catalog" onclick="browseCatalog('Accesorii'); return false;">Accesorii</a>
           <a href="/account.html">Contul meu</a>
           <a href="/checkout.html">Checkout</a>
           <a href="/admin.html" id="admin-nav" style="display:none;">Panou admin</a>
@@ -52,10 +52,10 @@
             <h2>Intră direct în departamentul care te interesează.</h2>
           </div>
           <div class="rail-list">
-            <button class="rail-item" onclick="selectCategory(null)">Toate produsele <span>vezi tot catalogul</span></button>
-            <button class="rail-item" onclick="selectCategory(null)">Laptopuri <span>office, business, mobile</span></button>
-            <button class="rail-item" onclick="selectCategory(null)">Gaming <span>mouse, tastaturi, căști</span></button>
-            <button class="rail-item" onclick="selectCategory(null)">Componente PC <span>SSD, dock, upgrade</span></button>
+            <button class="rail-item" onclick="browseCatalog()">Toate produsele <span>vezi tot catalogul</span></button>
+            <button class="rail-item" onclick="browseCatalog('Laptopuri')">Laptopuri <span>office, business, mobile</span></button>
+            <button class="rail-item" onclick="browseCatalog('Gaming')">Gaming <span>mouse, tastaturi, căști</span></button>
+            <button class="rail-item" onclick="browseCatalog('Componente')">Componente PC <span>SSD, dock, upgrade</span></button>
             <button class="rail-item" onclick="focusCart()">Coș & checkout <span>finalizare în pași</span></button>
           </div>
         </aside>
@@ -69,7 +69,7 @@
               mare, produse scoase în față și acțiuni comerciale ușor de găsit.
             </p>
             <div class="hero-actions">
-              <button class="primary" onclick="selectCategory(null)">Cumpără acum</button>
+              <button class="primary" onclick="browseCatalog()">Cumpără acum</button>
               <button class="secondary" onclick="focusCart()">Vezi coșul</button>
             </div>
             <div class="hero-metrics">
@@ -125,7 +125,7 @@
         </article>
       </section>
 
-      <section class="section storefront-hidden">
+      <section class="section">
         <div class="featured-head">
           <div>
             <h2>Promoții și produse recomandate</h2>
@@ -136,7 +136,7 @@
         <div class="featured-grid" id="featured-products"></div>
       </section>
 
-      <section class="section storefront-hidden" id="catalog">
+      <section class="section" id="catalog">
         <div class="section-head">
           <div>
             <h2>Catalog</h2>
@@ -193,7 +193,7 @@
         </div>
       </section>
 
-      <section class="section storefront-hidden" id="workspace">
+      <section class="section" id="workspace">
         <div class="workspace-head">
           <div>
             <h2>Cont și checkout</h2>
@@ -244,7 +244,7 @@
         </div>
       </section>
 
-      <footer class="footer storefront-hidden">
+      <footer class="footer">
         <div class="footer-grid">
           <div>
             <h3>Magazon</h3>

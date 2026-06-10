@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository }}
@@ -43,6 +47,12 @@ jobs:
       - name: Compile Python code
         run: python -m compileall shared services
 
+      - name: Validate frontend JavaScript
+        run: |
+          while IFS= read -r -d '' file; do
+            node --input-type=module --check < "${file}"
+          done < <(find frontend/public/assets/js -name '*.js' -print0)
+
       - name: Run flake8
         run: flake8 shared services --max-line-length=120 --extend-ignore=E501
 
@@ -68,6 +78,20 @@ jobs:
 
       - name: Lint deploy script
         run: bash -n deploy.sh
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Lint and render Helm chart
+        run: |
+          helm lint helm/microshop
+          helm template microshop helm/microshop \
+            --set secret.manage=true \
+            --set secret.postgresPassword=ci-postgres-password \
+            --set secret.jwtSecret=ci-test-jwt-secret-minimum-32-chars-xxx \
+            --set secret.adminPassword=ci-admin-password \
+            >/tmp/microshop-rendered.yaml
+          test -s /tmp/microshop-rendered.yaml
 
       - name: Run Bandit
         run: bandit -r shared services -ll

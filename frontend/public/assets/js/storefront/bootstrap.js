@@ -1,4 +1,4 @@
-import { loadProducts, renderProducts, selectCategory } from "./catalog.js";
+import { browseCatalog, loadProducts, renderProducts, selectCategory } from "./catalog.js";
 import {
   addToCart,
   changeCartQuantity,
@@ -18,6 +18,7 @@ import { configureSession } from "./session.js";
 function exposeGlobals() {
   Object.assign(window, {
     renderProducts,
+    browseCatalog,
     selectCategory,
     focusAccount,
     focusCart,
@@ -41,6 +42,11 @@ export async function bootstrap() {
     getGuestCart: guestCartFromStorage
   });
   exposeGlobals();
+  document.getElementById("search-input")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      browseCatalog();
+    }
+  });
 
   loadLastOrderContext();
   updateUserState();

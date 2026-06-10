@@ -126,6 +126,7 @@
         padding: 11px 14px;
         border-right: 1px solid rgba(255, 255, 255, 0.08);
         color: #fff8f8;
+        white-space: nowrap;
       }
 
       .nav-inner a:hover {
@@ -134,6 +135,7 @@
 
       .section {
         margin-top: 26px;
+        scroll-margin-top: 150px;
       }
 
       .section-head,
@@ -304,6 +306,10 @@
           position: static;
         }
 
+        .section {
+          scroll-margin-top: 16px;
+        }
+
         .search {
           grid-template-columns: 1fr;
         }
@@ -348,5 +354,20 @@
           left: 14px;
           bottom: 14px;
           max-width: none;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .header-actions {
+          grid-template-columns: 1fr;
+        }
+
+        .logo {
+          font-size: 26px;
+        }
+
+        .logo-mark {
+          width: 42px;
+          height: 42px;
         }
       }
