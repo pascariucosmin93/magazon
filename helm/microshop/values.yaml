@@ -236,6 +236,7 @@ services:
     containerPort: 80
     servicePort: 80
     serviceType: LoadBalancer
+    externalTrafficPolicy: Local
     loadBalancerIP: 10.10.2.50
     replicas: 1
     autoscaling:
