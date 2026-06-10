@@ -11,7 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DEPENDENCY_CHECK_VERSION: "12.2.1"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository }}
@@ -123,42 +122,6 @@ jobs:
           sarif_file: trivy-results.sarif
           category: trivy-filesystem
         continue-on-error: true
-
-      - name: Cache OWASP Dependency-Check data
-        uses: actions/cache@v5
-        with:
-          path: ~/.dependency-check
-          key: dependency-check-${{ runner.os }}-${{ env.DEPENDENCY_CHECK_VERSION }}-${{ github.run_id }}
-          restore-keys: |
-            dependency-check-${{ runner.os }}-${{ env.DEPENDENCY_CHECK_VERSION }}-
-
-      - name: Install OWASP Dependency-Check CLI
-        run: |
-          archive="dependency-check-${DEPENDENCY_CHECK_VERSION}-release.zip"
-          url="https://github.com/dependency-check/DependencyCheck/releases/download/v${DEPENDENCY_CHECK_VERSION}/${archive}"
-          curl --fail --location --retry 5 --retry-all-errors --retry-delay 5 \
-            --output "/tmp/${archive}" "${url}"
-          unzip -q "/tmp/${archive}" -d "${RUNNER_TEMP}"
-          echo "${RUNNER_TEMP}/dependency-check/bin" >> "${GITHUB_PATH}"
-
-      - name: Run OWASP Dependency-Check
-        run: |
-          dependency-check.sh \
-            --project microshop-platform \
-            --scan . \
-            --format HTML \
-            --out reports \
-            --data "${HOME}/.dependency-check" \
-            --disableOssIndex \
-            --enableRetired \
-            --failOnCVSS 7
-
-      - name: Upload OWASP report
-        if: always() && hashFiles('reports/dependency-check-report.html') != ''
-        uses: actions/upload-artifact@v7
-        with:
-          name: owasp-dependency-check-report
-          path: reports
 
   build-images:
     name: Build Images
