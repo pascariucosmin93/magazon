@@ -1,26 +1,63 @@
 import asyncio
-import json
 import logging
 import os
-import secrets
+import sys
 from datetime import datetime
-from decimal import Decimal
+from pathlib import Path
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 import requests
-from fastapi import Depends, Header, HTTPException
-from pydantic import BaseModel, Field
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from fastapi import Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Session
 
-from shared.auth import current_user_claims, optional_user_claims, require_user_id
-from shared.config import settings
-from shared.db import Base, SessionLocal, get_db
-from shared.kafka import consume_topics, get_current_event, publish_event
-from shared.money import as_money, money_json
-from shared.service_app import create_base_app
+APP_DIR = Path(__file__).resolve().parent
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
+if not __package__:
+    for module_name in (
+        "order_outbox",
+        "order_repository",
+        "order_routes",
+        "order_serializers",
+        "order_schemas",
+        "order_models",
+    ):
+        sys.modules.pop(module_name, None)
+
+from order_models import Order, OrderItem, OutboxEvent, ProcessedMessage  # noqa: E402
+from order_outbox import enqueue as enqueue_outbox_event  # noqa: E402
+from order_outbox import publish_pending_once as publish_outbox_once  # noqa: E402
+from order_outbox import serialize_payload as serialize_outbox_payload  # noqa: E402
+from order_repository import get_order as repository_get_order  # noqa: E402
+from order_routes import register_routes  # noqa: E402
+from order_schemas import (  # noqa: E402
+    OrderCancellationRequest,
+    OrderItemRequest,
+    OrderRequest,
+    OrderStatusRequest,
+)
+from order_serializers import serialize_order  # noqa: E402
+from shared.auth import current_user_claims, require_user_id  # noqa: E402
+from shared.config import settings  # noqa: E402
+from shared.db import Base, SessionLocal  # noqa: E402
+from shared.kafka import consume_topics, get_current_event, publish_event  # noqa: E402
+from shared.money import money_json  # noqa: E402
+from shared.service_app import create_base_app  # noqa: E402
+
+__all__ = [
+    "Order",
+    "Base",
+    "OrderCancellationRequest",
+    "OrderItem",
+    "OrderItemRequest",
+    "OrderRequest",
+    "OrderStatusRequest",
+    "OutboxEvent",
+    "ProcessedMessage",
+    "serialize_order",
+]
 
 PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
 logger = logging.getLogger(__name__)
@@ -35,80 +72,6 @@ ADMIN_STATUS_TRANSITIONS = {
     "delivered": set(),
     "cancelled": set(),
 }
-
-
-class Order(Base):
-    __tablename__ = "orders"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=True, index=True)
-    customer_name = Column(String(120), nullable=True)
-    customer_email = Column(String(255), nullable=True)
-    shipping_address = Column(String(255), nullable=True)
-    guest_token = Column(String(120), nullable=True, unique=True, index=True)
-    status = Column(String(50), default="created", nullable=False)
-    total = Column(Numeric(12, 2), default=0, nullable=False)
-    cancelled_at = Column(DateTime, nullable=True)
-    cancellation_reason = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
-
-
-class OrderItem(Base):
-    __tablename__ = "order_items"
-
-    id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    product_id = Column(Integer, nullable=False)
-    product_name = Column(String(255), nullable=False, default="Unknown product")
-    product_sku = Column(String(80), nullable=False, default="UNKNOWN")
-    quantity = Column(Integer, nullable=False)
-    price = Column(Numeric(12, 2), nullable=False)
-    order = relationship("Order", back_populates="items")
-
-
-class OrderItemRequest(BaseModel):
-    product_id: int
-    quantity: int = Field(ge=1)
-
-
-class OrderRequest(BaseModel):
-    items: list[OrderItemRequest]
-    customer_name: str | None = None
-    customer_email: str | None = None
-    shipping_address: str | None = None
-
-
-class OrderStatusRequest(BaseModel):
-    status: str = Field(min_length=1, max_length=50)
-
-
-class OrderCancellationRequest(BaseModel):
-    reason: str | None = Field(default=None, max_length=255)
-
-
-class ProcessedMessage(Base):
-    __tablename__ = "processed_messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    event_id = Column(String(64), nullable=False, unique=True, index=True)
-    topic = Column(String(255), nullable=False)
-    processed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-
-class OutboxEvent(Base):
-    __tablename__ = "outbox_events"
-
-    id = Column(Integer, primary_key=True, index=True)
-    topic = Column(String(255), nullable=False)
-    payload = Column(Text, nullable=False)
-    published = Column(Boolean, nullable=False, default=False)
-    publish_attempts = Column(Integer, nullable=False, default=0)
-    last_error = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    published_at = Column(DateTime, nullable=True)
-
-
 consumer_task = None
 outbox_task = None
 
@@ -138,7 +101,7 @@ async def handle_event(topic: str, payload: dict):
         if _mark_event_processed(db, topic):
             return
 
-        order = db.query(Order).filter(Order.id == payload.get("order_id")).first()
+        order = repository_get_order(db, payload.get("order_id"))
         if not order:
             db.commit()
             return
@@ -154,36 +117,11 @@ async def handle_event(topic: str, payload: dict):
 
 
 def _serialize_outbox_payload(payload: dict) -> str:
-    return json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    return serialize_outbox_payload(payload)
 
 
 async def publish_pending_outbox_events_once(limit: int = 20) -> None:
-    db = SessionLocal()
-    try:
-        events = (
-            db.query(OutboxEvent)
-            .filter(OutboxEvent.published.is_(False))
-            .order_by(OutboxEvent.id.asc())
-            .limit(limit)
-            .all()
-        )
-        for event in events:
-            event.publish_attempts += 1
-            try:
-                await publish_event(event.topic, json.loads(event.payload))
-                event.published = True
-                event.published_at = datetime.utcnow()
-                event.last_error = None
-            except Exception as exc:
-                event.last_error = str(exc)
-                logger.warning("Outbox publish failed id=%s topic=%s error=%s", event.id, event.topic, exc)
-                db.add(event)
-                db.commit()
-                continue
-            db.add(event)
-            db.commit()
-    finally:
-        db.close()
+    await publish_outbox_once(SessionLocal, publish_event, logger, limit)
 
 
 async def outbox_publisher_loop() -> None:
@@ -251,35 +189,6 @@ def fetch_product(product_id: int) -> dict:
     return response.json()
 
 
-def serialize_order(order: Order, include_guest_token: bool = True) -> dict:
-    payload = {
-        "order_id": order.id,
-        "user_id": order.user_id,
-        "customer_name": order.customer_name,
-        "customer_email": order.customer_email,
-        "shipping_address": order.shipping_address,
-        "guest": order.user_id is None,
-        "status": order.status,
-        "total": money_json(order.total),
-        "cancelled_at": order.cancelled_at.isoformat() if order.cancelled_at else None,
-        "cancellation_reason": order.cancellation_reason,
-        "created_at": order.created_at.isoformat() if order.created_at else None,
-        "items": [
-            {
-                "product_id": item.product_id,
-                "product_name": item.product_name or f"Produs #{item.product_id}",
-                "product_sku": item.product_sku or f"PRODUCT-{item.product_id}",
-                "quantity": item.quantity,
-                "price": money_json(item.price),
-            }
-            for item in order.items
-        ],
-    }
-    if include_guest_token and order.user_id is None and order.guest_token:
-        payload["guest_token"] = order.guest_token
-    return payload
-
-
 def _claims_user_id(claims: dict) -> int:
     subject = claims.get("sub")
     try:
@@ -311,216 +220,27 @@ def _cancel_order(order: Order, reason: str | None, db: Session) -> None:
     order.cancelled_at = datetime.utcnow()
     order.cancellation_reason = reason.strip() if reason and reason.strip() else None
     db.add(order)
-    db.add(
-        OutboxEvent(
-            topic="order.cancelled",
-            payload=_serialize_outbox_payload(
+    enqueue_outbox_event(
+        db,
+        "order.cancelled",
+        {
+            "order_id": order.id,
+            "user_id": order.user_id,
+            "previous_status": previous_status,
+            "reason": order.cancellation_reason,
+            "total": money_json(order.total),
+            "items": [
                 {
-                    "order_id": order.id,
-                    "user_id": order.user_id,
-                    "previous_status": previous_status,
-                    "reason": order.cancellation_reason,
-                    "total": money_json(order.total),
-                    "items": [
-                        {
-                            "product_id": item.product_id,
-                            "product_name": item.product_name or f"Produs #{item.product_id}",
-                            "product_sku": item.product_sku or f"PRODUCT-{item.product_id}",
-                            "quantity": item.quantity,
-                            "price": money_json(item.price),
-                        }
-                        for item in order.items
-                    ],
+                    "product_id": item.product_id,
+                    "product_name": item.product_name or f"Produs #{item.product_id}",
+                    "product_sku": item.product_sku or f"PRODUCT-{item.product_id}",
+                    "quantity": item.quantity,
+                    "price": money_json(item.price),
                 }
-            ),
-        )
+                for item in order.items
+            ],
+        },
     )
 
 
-@app.post("/orders")
-async def create_order(
-    payload: OrderRequest,
-    db: Session = Depends(get_db),
-    claims: dict | None = Depends(optional_user_claims),
-):
-    if not payload.items:
-        raise HTTPException(status_code=400, detail="Order requires at least one item")
-
-    user_id = None
-    guest_token = None
-    customer_name = payload.customer_name.strip() if payload.customer_name else None
-    customer_email = payload.customer_email.strip().lower() if payload.customer_email else None
-    shipping_address = payload.shipping_address.strip() if payload.shipping_address else None
-
-    if claims:
-        subject = claims.get("sub")
-        if not subject:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        try:
-            user_id = int(subject)
-        except (TypeError, ValueError) as exc:
-            raise HTTPException(status_code=401, detail="Invalid token") from exc
-    else:
-        if not customer_name or not customer_email or not shipping_address:
-            raise HTTPException(
-                status_code=400,
-                detail="Guest checkout requires customer_name, customer_email and shipping_address",
-            )
-        guest_token = secrets.token_urlsafe(24)
-
-    normalized_items = []
-    for item in payload.items:
-        if item.quantity < 1:
-            raise HTTPException(status_code=400, detail="Quantity must be >= 1")
-        product = fetch_product(item.product_id)
-        normalized_items.append(
-            {
-                "product_id": item.product_id,
-                "product_name": product.get("name") or f"Produs #{item.product_id}",
-                "product_sku": product.get("sku") or f"PRODUCT-{item.product_id}",
-                "quantity": item.quantity,
-                "price": money_json(product["price"]),
-            }
-        )
-
-    order = Order(
-        user_id=user_id,
-        customer_name=customer_name,
-        customer_email=customer_email,
-        shipping_address=shipping_address,
-        guest_token=guest_token,
-        status="created",
-        total=sum((as_money(item["price"]) * item["quantity"] for item in normalized_items), Decimal("0.00")),
-    )
-    db.add(order)
-    db.flush()
-
-    for item in normalized_items:
-        db.add(
-            OrderItem(
-                order_id=order.id,
-                product_id=item["product_id"],
-                product_name=item["product_name"],
-                product_sku=item["product_sku"],
-                quantity=item["quantity"],
-                price=as_money(item["price"]),
-            )
-        )
-
-    outbox_payload = {
-        "order_id": order.id,
-        "user_id": order.user_id,
-        "total": money_json(order.total),
-        "items": normalized_items,
-    }
-    db.add(
-        OutboxEvent(
-            topic="order.created",
-            payload=_serialize_outbox_payload(outbox_payload),
-        )
-    )
-    db.commit()
-    db.refresh(order)
-
-    try:
-        await publish_pending_outbox_events_once(limit=5)
-    except Exception as exc:
-        logger.warning("Immediate outbox publish failed for order_id=%s: %s", order.id, exc)
-    db.refresh(order)
-    return serialize_order(order)
-
-
-@app.get("/orders/mine")
-def list_my_orders(
-    db: Session = Depends(get_db),
-    claims: dict = Depends(current_user_claims),
-):
-    user_id = _claims_user_id(claims)
-    orders = (
-        db.query(Order)
-        .filter(Order.user_id == user_id)
-        .order_by(Order.created_at.desc(), Order.id.desc())
-        .all()
-    )
-    return {
-        "items": [serialize_order(order, include_guest_token=False) for order in orders],
-        "total": len(orders),
-    }
-
-
-@app.get("/orders")
-def list_orders(
-    db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
-):
-    orders = db.query(Order).order_by(Order.created_at.desc(), Order.id.desc()).all()
-    return {
-        "items": [serialize_order(order, include_guest_token=False) for order in orders],
-        "total": len(orders),
-    }
-
-
-@app.put("/orders/{order_id}/status")
-def update_order_status(
-    order_id: int,
-    payload: OrderStatusRequest,
-    db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
-):
-    order = db.query(Order).filter(Order.id == order_id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-
-    next_status = payload.status.strip().lower()
-    allowed_statuses = ADMIN_STATUS_TRANSITIONS.get(order.status, set())
-    if next_status not in allowed_statuses:
-        allowed = ", ".join(sorted(allowed_statuses)) or "none"
-        raise HTTPException(
-            status_code=409,
-            detail=f"Cannot change order from {order.status} to {next_status}. Allowed: {allowed}",
-        )
-
-    if next_status == "cancelled":
-        _cancel_order(order, "Cancelled by administrator", db)
-    else:
-        order.status = next_status
-        db.add(order)
-    db.commit()
-    db.refresh(order)
-    return serialize_order(order, include_guest_token=False)
-
-
-@app.post("/orders/{order_id}/cancel")
-async def cancel_order(
-    order_id: int,
-    payload: OrderCancellationRequest | None = None,
-    x_guest_token: str | None = Header(default=None),
-    db: Session = Depends(get_db),
-    claims: dict | None = Depends(optional_user_claims),
-):
-    order = db.query(Order).filter(Order.id == order_id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    _ensure_order_access(order, claims, x_guest_token)
-    _cancel_order(order, payload.reason if payload else None, db)
-    db.commit()
-    db.refresh(order)
-    try:
-        await publish_pending_outbox_events_once(limit=5)
-    except Exception as exc:
-        logger.warning("Immediate cancellation publish failed for order_id=%s: %s", order.id, exc)
-    return serialize_order(order)
-
-
-@app.get("/orders/{order_id}")
-def get_order(
-    order_id: int,
-    x_guest_token: str | None = Header(default=None),
-    db: Session = Depends(get_db),
-    claims: dict | None = Depends(optional_user_claims),
-):
-    order = db.query(Order).filter(Order.id == order_id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    _ensure_order_access(order, claims, x_guest_token)
-    return serialize_order(order)
+globals().update(register_routes(app, lambda: globals()))

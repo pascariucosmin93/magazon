@@ -1,25 +1,51 @@
 import asyncio
-import json
 import logging
 import os
-from datetime import datetime
+import sys
 from decimal import Decimal
+from pathlib import Path
 from urllib.parse import urlparse
-from uuid import uuid4
 
 from fastapi import Depends, Header, HTTPException, Request
-from pydantic import BaseModel
 import requests
 import stripe
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from shared.auth import current_user_claims, optional_user_claims, require_user_id
-from shared.db import Base, SessionLocal, get_db
-from shared.kafka import consume_topics, get_current_event, publish_event
-from shared.money import as_money, money_json, money_minor_units
-from shared.service_app import create_base_app
+APP_DIR = Path(__file__).resolve().parent
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
+if not __package__:
+    for module_name in (
+        "payment_outbox",
+        "payment_repository",
+        "payment_service",
+        "payment_serializers",
+        "payment_schemas",
+        "payment_models",
+    ):
+        sys.modules.pop(module_name, None)
+
+from payment_models import Payment, PaymentOutboxEvent, PaymentTransaction, ProcessedMessage  # noqa: E402
+from payment_outbox import enqueue as enqueue_outbox_event  # noqa: E402
+from payment_outbox import publish_pending_once as publish_outbox_once  # noqa: E402
+from payment_outbox import serialize_payload as serialize_outbox_payload  # noqa: E402
+from payment_repository import find_payment_for_stripe_object, get_payment_by_order  # noqa: E402
+from payment_repository import list_payments as repository_list_payments  # noqa: E402
+from payment_repository import list_transactions  # noqa: E402
+from payment_schemas import CheckoutSessionRequest  # noqa: E402
+from payment_service import finalize as finalize_payment_state  # noqa: E402
+from payment_service import record_transaction  # noqa: E402
+from payment_service import refresh_from_stripe  # noqa: E402
+from payment_service import refund as refund_payment_state  # noqa: E402
+from payment_serializers import serialize_payment, serialize_transaction  # noqa: E402
+from shared.auth import current_user_claims, optional_user_claims, require_user_id  # noqa: E402
+from shared.db import Base, SessionLocal, get_db  # noqa: E402
+from shared.kafka import consume_topics, get_current_event, publish_event  # noqa: E402
+from shared.money import as_money, money_json, money_minor_units  # noqa: E402
+from shared.service_app import create_base_app  # noqa: E402
+
+__all__ = ["Base"]
 
 ORDER_SERVICE_URL = os.getenv("ORDER_SERVICE_URL", "http://order-service:8000")
 PAYMENT_PROVIDER = os.getenv("PAYMENT_PROVIDER", "stripe")
@@ -28,68 +54,6 @@ STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 stripe.api_key = STRIPE_SECRET_KEY or None
 logger = logging.getLogger(__name__)
-
-
-class Payment(Base):
-    __tablename__ = "payments"
-
-    id = Column(Integer, primary_key=True, index=True)
-    order_id = Column(Integer, nullable=False, unique=True, index=True)
-    amount = Column(Numeric(12, 2), nullable=False, default=0)
-    currency = Column(String(10), nullable=False, default=PAYMENT_CURRENCY)
-    provider = Column(String(50), nullable=False, default=PAYMENT_PROVIDER)
-    status = Column(String(50), nullable=False, default="awaiting_payment")
-    checkout_session_id = Column(String(255), nullable=True)
-    checkout_url = Column(Text, nullable=True)
-    payment_intent_id = Column(String(255), nullable=True, index=True)
-    refunded_amount = Column(Numeric(12, 2), nullable=False, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
-class PaymentTransaction(Base):
-    __tablename__ = "payment_transactions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    payment_id = Column(
-        Integer,
-        ForeignKey("payments.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    provider_event_id = Column(String(255), nullable=True, unique=True, index=True)
-    transaction_type = Column(String(50), nullable=False)
-    status = Column(String(50), nullable=False)
-    amount = Column(Numeric(12, 2), nullable=False, default=0)
-    currency = Column(String(10), nullable=False, default=PAYMENT_CURRENCY)
-    provider_reference = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-
-class PaymentOutboxEvent(Base):
-    __tablename__ = "payment_outbox_events"
-
-    id = Column(Integer, primary_key=True, index=True)
-    event_id = Column(String(64), nullable=False, unique=True, index=True)
-    topic = Column(String(255), nullable=False)
-    payload = Column(Text, nullable=False)
-    published = Column(Boolean, nullable=False, default=False)
-    publish_attempts = Column(Integer, nullable=False, default=0)
-    last_error = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    published_at = Column(DateTime, nullable=True)
-
-
-class CheckoutSessionRequest(BaseModel):
-    return_base_url: str
-
-
-class ProcessedMessage(Base):
-    __tablename__ = "processed_messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    event_id = Column(String(64), nullable=False, unique=True, index=True)
-    topic = Column(String(255), nullable=False)
-    processed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 def _request_headers(authorization: str | None = None, x_guest_token: str | None = None) -> dict[str, str]:
@@ -135,7 +99,7 @@ def ensure_order_access(order: dict, claims: dict | None, x_guest_token: str | N
 
 
 def ensure_payment_record(db: Session, order: dict) -> Payment:
-    payment = db.query(Payment).filter(Payment.order_id == order["order_id"]).first()
+    payment = get_payment_by_order(db, order["order_id"])
     if payment:
         return payment
     payment = Payment(
@@ -160,74 +124,27 @@ def _record_transaction(
     provider_reference: str | None = None,
     provider_event_id: str | None = None,
 ) -> PaymentTransaction:
-    transaction = PaymentTransaction(
-        payment_id=payment.id,
-        provider_event_id=provider_event_id,
-        transaction_type=transaction_type,
-        status=status,
-        amount=as_money(amount),
-        currency=payment.currency,
-        provider_reference=provider_reference,
+    return record_transaction(
+        db,
+        payment,
+        transaction_type,
+        status,
+        amount,
+        provider_reference,
+        provider_event_id,
     )
-    db.add(transaction)
-    return transaction
 
 
 def _serialize_outbox_payload(payload: dict) -> str:
-    return json.dumps(payload, separators=(",", ":"), sort_keys=True)
+    return serialize_outbox_payload(payload)
 
 
 def _enqueue_payment_event(db: Session, topic: str, payload: dict) -> PaymentOutboxEvent:
-    event = PaymentOutboxEvent(
-        event_id=str(uuid4()),
-        topic=topic,
-        payload=_serialize_outbox_payload(payload),
-    )
-    db.add(event)
-    return event
+    return enqueue_outbox_event(db, topic, payload)
 
 
 async def publish_pending_payment_events_once(limit: int = 20) -> None:
-    db = SessionLocal()
-    attempted_ids: list[int] = []
-    try:
-        for _ in range(limit):
-            query = db.query(PaymentOutboxEvent).filter(
-                PaymentOutboxEvent.published.is_(False)
-            )
-            if attempted_ids:
-                query = query.filter(PaymentOutboxEvent.id.notin_(attempted_ids))
-            event = (
-                query
-                .order_by(PaymentOutboxEvent.id.asc())
-                .with_for_update(skip_locked=True)
-                .first()
-            )
-            if not event:
-                break
-            attempted_ids.append(event.id)
-            event.publish_attempts += 1
-            try:
-                await publish_event(
-                    event.topic,
-                    json.loads(event.payload),
-                    event_id=event.event_id,
-                )
-                event.published = True
-                event.published_at = datetime.utcnow()
-                event.last_error = None
-            except Exception as exc:
-                event.last_error = str(exc)
-                logger.warning(
-                    "Payment outbox publish failed id=%s topic=%s error=%s",
-                    event.id,
-                    event.topic,
-                    exc,
-                )
-            db.add(event)
-            db.commit()
-    finally:
-        db.close()
+    await publish_outbox_once(SessionLocal, publish_event, logger, limit)
 
 
 async def payment_outbox_publisher_loop() -> None:
@@ -249,43 +166,15 @@ async def finalize_payment(
     provider_reference: str | None = None,
     provider_event_id: str | None = None,
 ) -> None:
-    if payment.status in {"refunded", "partially_refunded"}:
-        return
-    if payment.status == "completed":
-        if provider_reference and not payment.payment_intent_id:
-            payment.payment_intent_id = provider_reference
-            db.add(payment)
-            db.commit()
-        return
-    if payment.status == "refund_pending":
-        if provider_reference:
-            payment.payment_intent_id = provider_reference
-            db.add(payment)
-            db.commit()
-        await refund_payment(payment, db, provider_event_id)
-        return
-
-    was_cancelled = payment.status == "cancelled"
-    payment.status = "completed"
-    if provider_reference:
-        payment.payment_intent_id = provider_reference
-    db.add(payment)
-    _record_transaction(
-        db, payment, "payment", "completed", payment.amount, provider_reference, provider_event_id
-    )
-    _enqueue_payment_event(
+    await finalize_payment_state(
+        payment,
         db,
-        "payment.completed",
-        {
-            "order_id": payment.order_id,
-            "status": "completed",
-            "amount": money_json(payment.amount),
-        },
+        provider_reference,
+        provider_event_id,
+        enqueue_event=_enqueue_payment_event,
+        publish_best_effort=_publish_payment_outbox_best_effort,
+        refund_payment=refund_payment,
     )
-    db.commit()
-    await _publish_payment_outbox_best_effort()
-    if was_cancelled:
-        await refund_payment(payment, db)
 
 
 async def refund_payment(
@@ -293,51 +182,25 @@ async def refund_payment(
     db: Session,
     provider_event_id: str | None = None,
 ) -> None:
-    refundable = as_money(payment.amount) - as_money(payment.refunded_amount)
-    if refundable <= 0 or payment.status == "refunded":
-        return
-    if not STRIPE_SECRET_KEY or not payment.payment_intent_id:
-        payment.status = "refund_pending"
-        db.add(payment)
-        db.commit()
-        return
-
-    refund = stripe.Refund.create(
-        payment_intent=payment.payment_intent_id,
-        amount=money_minor_units(refundable),
-        metadata={"order_id": str(payment.order_id)},
-    )
-    payment.refunded_amount = as_money(payment.refunded_amount) + refundable
-    payment.status = "refunded" if payment.refunded_amount >= payment.amount else "partially_refunded"
-    db.add(payment)
-    _record_transaction(
-        db,
+    await refund_payment_state(
         payment,
-        "refund",
-        payment.status,
-        refundable,
-        refund.get("id"),
-        provider_event_id,
-    )
-    _enqueue_payment_event(
         db,
-        "payment.refunded",
-        {
-            "order_id": payment.order_id,
-            "status": payment.status,
-            "amount": money_json(refundable),
-        },
+        provider_event_id,
+        stripe_client=stripe,
+        stripe_secret_key=STRIPE_SECRET_KEY,
+        enqueue_event=_enqueue_payment_event,
+        publish_best_effort=_publish_payment_outbox_best_effort,
     )
-    db.commit()
-    await _publish_payment_outbox_best_effort()
 
 
 async def refresh_payment_from_stripe(payment: Payment, db: Session) -> None:
-    if not payment.checkout_session_id or payment.status == "completed" or not STRIPE_SECRET_KEY:
-        return
-    session = stripe.checkout.Session.retrieve(payment.checkout_session_id)
-    if session.get("payment_status") == "paid":
-        await finalize_payment(payment, db, session.get("payment_intent"))
+    await refresh_from_stripe(
+        payment,
+        db,
+        stripe_client=stripe,
+        stripe_secret_key=STRIPE_SECRET_KEY,
+        finalize_payment=finalize_payment,
+    )
 
 
 def validate_return_base_url(return_base_url: str) -> str:
@@ -347,49 +210,8 @@ def validate_return_base_url(return_base_url: str) -> str:
     return return_base_url.rstrip("/")
 
 
-def serialize_payment(payment: Payment) -> dict:
-    return {
-        "order_id": payment.order_id,
-        "status": payment.status,
-        "amount": money_json(payment.amount),
-        "refunded_amount": money_json(payment.refunded_amount),
-        "currency": payment.currency,
-        "provider": payment.provider,
-        "checkout_session_id": payment.checkout_session_id,
-        "checkout_url": payment.checkout_url,
-        "payment_intent_id": payment.payment_intent_id,
-    }
-
-
-def serialize_transaction(transaction: PaymentTransaction) -> dict:
-    return {
-        "id": transaction.id,
-        "payment_id": transaction.payment_id,
-        "provider_event_id": transaction.provider_event_id,
-        "type": transaction.transaction_type,
-        "status": transaction.status,
-        "amount": money_json(transaction.amount),
-        "currency": transaction.currency,
-        "provider_reference": transaction.provider_reference,
-        "created_at": transaction.created_at.isoformat() if transaction.created_at else None,
-    }
-
-
 def _payment_from_stripe_object(db: Session, stripe_object: dict) -> Payment | None:
-    session_id = stripe_object.get("id") if stripe_object.get("object") == "checkout.session" else None
-    if session_id:
-        payment = db.query(Payment).filter(Payment.checkout_session_id == session_id).first()
-        if payment:
-            return payment
-    payment_intent_id = stripe_object.get("payment_intent")
-    if payment_intent_id:
-        payment = db.query(Payment).filter(Payment.payment_intent_id == payment_intent_id).first()
-        if payment:
-            return payment
-    order_id = (stripe_object.get("metadata") or {}).get("order_id")
-    if order_id:
-        return db.query(Payment).filter(Payment.order_id == int(order_id)).first()
-    return None
+    return find_payment_for_stripe_object(db, stripe_object)
 
 
 consumer_task = None
@@ -505,7 +327,7 @@ def list_payments(
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
-    items = db.query(Payment).all()
+    items = repository_list_payments(db)
     return [serialize_payment(item) for item in items]
 
 
@@ -520,7 +342,7 @@ async def get_payment_for_order(
     order = fetch_order(order_id, authorization, x_guest_token)
     ensure_order_access(order, claims, x_guest_token)
 
-    payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+    payment = get_payment_by_order(db, order_id)
     if not payment:
         if order["status"] == "inventory_failed":
             return {
@@ -638,7 +460,7 @@ async def confirm_checkout_session(
 
     order = fetch_order(order_id, authorization, x_guest_token)
     ensure_order_access(order, claims, x_guest_token)
-    payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+    payment = get_payment_by_order(db, order_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     if not payment.checkout_session_id:
@@ -781,7 +603,7 @@ async def refund_order_payment(
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
-    payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+    payment = get_payment_by_order(db, order_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     if payment.status not in {"completed", "refund_pending", "partially_refunded"}:
@@ -797,13 +619,8 @@ def list_payment_transactions(
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
-    payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+    payment = get_payment_by_order(db, order_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
-    transactions = (
-        db.query(PaymentTransaction)
-        .filter(PaymentTransaction.payment_id == payment.id)
-        .order_by(PaymentTransaction.created_at.desc(), PaymentTransaction.id.desc())
-        .all()
-    )
+    transactions = list_transactions(db, payment.id)
     return {"items": [serialize_transaction(item) for item in transactions], "total": len(transactions)}

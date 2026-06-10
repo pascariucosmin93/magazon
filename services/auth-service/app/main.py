@@ -1,97 +1,101 @@
 import os
-from hashlib import sha256
 import secrets
-from datetime import datetime, timedelta, timezone
+import sys
+from datetime import datetime, timedelta
+from hashlib import sha256
+from pathlib import Path
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
-from argon2 import PasswordHasher
-from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from fastapi import Depends, HTTPException, Request, Response
-import jwt
-from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Session
 
-from shared.auth import current_user_claims
-from shared.config import settings
-from shared.db import Base, SessionLocal, get_db
-from shared.kafka import publish_event
-from shared.rate_limit import enforce_rate_limit
-from shared.service_app import create_base_app
+APP_DIR = Path(__file__).resolve().parent
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
+if not __package__:
+    for module_name in (
+        "auth_account_routes",
+        "auth_repository",
+        "auth_serializers",
+        "auth_security",
+        "auth_schemas",
+        "auth_models",
+    ):
+        sys.modules.pop(module_name, None)
 
-JWT_ALGORITHM = "HS256"
+from auth_models import User, UserAddress  # noqa: E402
+from auth_account_routes import (  # noqa: E402
+    _address_summary,
+    _current_user,
+    _set_default_address,
+    create_address,
+    delete_address,
+    get_profile,
+    list_addresses,
+    router as account_router,
+    update_address,
+    update_profile,
+)
+from auth_repository import get_user as repository_get_user  # noqa: E402
+from auth_repository import get_user_by_email, get_user_by_username  # noqa: E402
+from auth_repository import list_users as repository_list_users  # noqa: E402
+from auth_schemas import (  # noqa: E402
+    AddressRequest,
+    LoginRequest,
+    PasswordResetConfirmRequest,
+    PasswordResetRequest,
+    ProfileUpdateRequest,
+    RegisterRequest,
+)
+from auth_security import (  # noqa: E402
+    clear_auth_cookie,
+    create_access_token as _create_access_token,
+    decode_access_token,
+    hash_password,
+    is_legacy_password_hash,
+    legacy_hash_password,
+    password_needs_rehash,
+    set_auth_cookie as _set_auth_cookie,
+    verify_password,
+)
+from auth_serializers import serialize_address, serialize_user  # noqa: E402
+from shared.auth import current_user_claims  # noqa: E402
+from shared.config import settings  # noqa: E402
+from shared.db import Base, SessionLocal, get_db  # noqa: E402
+from shared.kafka import publish_event  # noqa: E402
+from shared.rate_limit import enforce_rate_limit  # noqa: E402
+from shared.service_app import create_base_app  # noqa: E402
+
+__all__ = [
+    "_address_summary",
+    "_current_user",
+    "_set_default_address",
+    "AddressRequest",
+    "Base",
+    "LoginRequest",
+    "PasswordResetConfirmRequest",
+    "PasswordResetRequest",
+    "ProfileUpdateRequest",
+    "RegisterRequest",
+    "User",
+    "UserAddress",
+    "create_address",
+    "delete_address",
+    "get_profile",
+    "is_legacy_password_hash",
+    "legacy_hash_password",
+    "list_addresses",
+    "serialize_address",
+    "serialize_user",
+    "update_address",
+    "update_profile",
+]
+
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@microshop.local")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
-AUTH_COOKIE_NAME = "access_token"
 PASSWORD_RESET_EXPIRE_MINUTES = int(os.getenv("PASSWORD_RESET_EXPIRE_MINUTES", "30"))
-password_hasher = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2)
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(100), unique=True, nullable=False, index=True)
-    email = Column(String(255), unique=True, nullable=False, index=True)
-    password = Column(String(255), nullable=False)
-    address = Column(String(255), nullable=False, default="")
-    reset_token_hash = Column(String(64), nullable=True)
-    reset_token_expires_at = Column(DateTime, nullable=True)
-    role = Column(String(50), nullable=False, default="customer")
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-
-class UserAddress(Base):
-    __tablename__ = "user_addresses"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    label = Column(String(80), nullable=False, default="Acasă")
-    recipient_name = Column(String(120), nullable=False)
-    line1 = Column(String(255), nullable=False)
-    city = Column(String(120), nullable=False)
-    postal_code = Column(String(20), nullable=False, default="")
-    country = Column(String(2), nullable=False, default="RO")
-    is_default = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-
-class RegisterRequest(BaseModel):
-    username: str = Field(min_length=3, max_length=100)
-    email: EmailStr
-    password: str = Field(min_length=6, max_length=255)
-    address: str = Field(min_length=5, max_length=255)
-
-
-class LoginRequest(BaseModel):
-    email: str = Field(min_length=3, max_length=255)
-    password: str = Field(min_length=6, max_length=255)
-
-
-class ProfileUpdateRequest(BaseModel):
-    username: str = Field(min_length=3, max_length=100)
-    email: EmailStr
-
-
-class AddressRequest(BaseModel):
-    label: str = Field(min_length=1, max_length=80)
-    recipient_name: str = Field(min_length=2, max_length=120)
-    line1: str = Field(min_length=5, max_length=255)
-    city: str = Field(min_length=2, max_length=120)
-    postal_code: str = Field(default="", max_length=20)
-    country: str = Field(default="RO", min_length=2, max_length=2)
-    is_default: bool = False
-
-
-class PasswordResetRequest(BaseModel):
-    email: EmailStr
-
-
-class PasswordResetConfirmRequest(BaseModel):
-    token: str = Field(min_length=16, max_length=255)
-    password: str = Field(min_length=8, max_length=255)
 
 
 def _run_migrations() -> None:
@@ -107,7 +111,7 @@ async def startup():
     if not ADMIN_PASSWORD:
         raise RuntimeError("ADMIN_PASSWORD must be set for auth-service startup")
     with SessionLocal() as db:
-        admin = db.query(User).filter(User.email == ADMIN_EMAIL).first()
+        admin = get_user_by_email(db, ADMIN_EMAIL)
         if not admin:
             db.add(
                 User(
@@ -139,6 +143,7 @@ async def startup():
 
 
 app = create_base_app("auth-service", startup_hook=startup, enable_kafka=True, check_db=True)
+app.include_router(account_router)
 
 
 def require_admin(claims: dict = Depends(current_user_claims)):
@@ -147,82 +152,12 @@ def require_admin(claims: dict = Depends(current_user_claims)):
     return claims
 
 
-def serialize_user(user: User) -> dict:
-    return {
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "address": user.address,
-        "role": user.role,
-        "created_at": user.created_at.isoformat() if user.created_at else None,
-    }
-
-
-def hash_password(value: str) -> str:
-    return password_hasher.hash(value)
-
-
-def legacy_hash_password(value: str) -> str:
-    return sha256(value.encode("utf-8")).hexdigest()
-
-
-def is_legacy_password_hash(value: str) -> bool:
-    return len(value) == 64 and all(char in "0123456789abcdef" for char in value.lower())
-
-
-def verify_password(plain_password: str, stored_hash: str) -> bool:
-    if is_legacy_password_hash(stored_hash):
-        return legacy_hash_password(plain_password) == stored_hash
-    try:
-        return password_hasher.verify(stored_hash, plain_password)
-    except (InvalidHashError, VerificationError, VerifyMismatchError):
-        return False
-
-
-def password_needs_rehash(stored_hash: str) -> bool:
-    if is_legacy_password_hash(stored_hash):
-        return True
-    try:
-        return password_hasher.check_needs_rehash(stored_hash)
-    except InvalidHashError:
-        return True
-
-
 def create_access_token(user: User) -> str:
-    now = datetime.now(timezone.utc)
-    expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    claims = {
-        "sub": str(user.id),
-        "email": user.email,
-        "role": user.role,
-        "iat": int(now.timestamp()),
-        "exp": expire,
-    }
-    return jwt.encode(claims, settings.jwt_secret, algorithm=JWT_ALGORITHM)
-
-
-def decode_access_token(token: str) -> dict:
-    try:
-        return jwt.decode(token, settings.jwt_secret, algorithms=[JWT_ALGORITHM])
-    except jwt.PyJWTError as exc:
-        raise HTTPException(status_code=401, detail="Invalid token") from exc
+    return _create_access_token(user, ACCESS_TOKEN_EXPIRE_MINUTES)
 
 
 def set_auth_cookie(response: Response, token: str, request: Request) -> None:
-    forwarded_proto = request.headers.get("x-forwarded-proto", request.url.scheme)
-    response.set_cookie(
-        key=AUTH_COOKIE_NAME,
-        value=token,
-        httponly=True,
-        secure=forwarded_proto == "https",
-        samesite="lax",
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path="/",
-    )
-
-
-def clear_auth_cookie(response: Response) -> None:
-    response.delete_cookie(key=AUTH_COOKIE_NAME, path="/")
+    _set_auth_cookie(response, token, request, ACCESS_TOKEN_EXPIRE_MINUTES)
 
 
 @app.post("/register")
@@ -238,11 +173,11 @@ async def register(payload: RegisterRequest, request: Request, db: Session = Dep
     if not normalized_address:
         raise HTTPException(status_code=400, detail="Address is required")
 
-    existing_username = db.query(User).filter(User.username == normalized_username).first()
+    existing_username = get_user_by_username(db, normalized_username)
     if existing_username:
         raise HTTPException(status_code=409, detail="Username already exists")
 
-    existing = db.query(User).filter(User.email == normalized_email).first()
+    existing = get_user_by_email(db, normalized_email)
     if existing:
         raise HTTPException(status_code=409, detail="User already exists")
 
@@ -289,7 +224,7 @@ def login(
     client_ip = request.client.host if request.client else "unknown"
     enforce_rate_limit(f"auth:login:{client_ip}", limit=12, window_seconds=300)
     normalized_email = payload.email.strip().lower()
-    user = db.query(User).filter(User.email == normalized_email).first()
+    user = get_user_by_email(db, normalized_email)
     if not user or not verify_password(payload.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
@@ -323,7 +258,7 @@ def session(
     db: Session = Depends(get_db),
 ):
     user_id = int(claims["sub"])
-    user = db.query(User).filter(User.id == user_id).first()
+    user = repository_get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=401, detail="User no longer exists")
     return {
@@ -339,7 +274,7 @@ def list_users(
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
-    users = db.query(User).order_by(User.created_at.desc(), User.id.desc()).all()
+    users = repository_list_users(db)
     return {"items": [serialize_user(user) for user in users], "total": len(users)}
 
 
@@ -349,7 +284,7 @@ def delete_user(
     db: Session = Depends(get_db),
     admin=Depends(require_admin),
 ):
-    user = db.query(User).filter(User.id == user_id).first()
+    user = repository_get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -382,7 +317,7 @@ async def request_password_reset(
     client_ip = request.client.host if request.client else "unknown"
     enforce_rate_limit(f"auth:password-reset:{client_ip}", limit=5, window_seconds=900)
 
-    user = db.query(User).filter(User.email == payload.email.strip().lower()).first()
+    user = get_user_by_email(db, payload.email.strip().lower())
     if user:
         token = secrets.token_urlsafe(32)
         user.reset_token_hash = sha256(token.encode("utf-8")).hexdigest()
@@ -427,176 +362,3 @@ def confirm_password_reset(
 @app.get("/validate/{token}")
 def validate_token_legacy(token: str):
     return _serialize_claims(decode_access_token(token))
-
-
-def _current_user(db: Session, claims: dict) -> User:
-    try:
-        user_id = int(claims.get("sub"))
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=401, detail="Invalid token") from exc
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
-def serialize_address(address: UserAddress) -> dict:
-    return {
-        "id": address.id,
-        "label": address.label,
-        "recipient_name": address.recipient_name,
-        "line1": address.line1,
-        "city": address.city,
-        "postal_code": address.postal_code,
-        "country": address.country,
-        "is_default": address.is_default,
-    }
-
-
-def _address_summary(address: UserAddress) -> str:
-    parts = [address.line1, address.city, address.postal_code, address.country]
-    return ", ".join(part for part in parts if part)
-
-
-def _set_default_address(db: Session, user: User, address: UserAddress) -> None:
-    db.query(UserAddress).filter(
-        UserAddress.user_id == user.id,
-        UserAddress.id != address.id,
-    ).update({UserAddress.is_default: False}, synchronize_session=False)
-    address.is_default = True
-    user.address = _address_summary(address)
-    db.add_all([user, address])
-
-
-@app.get("/profile")
-def get_profile(
-    claims: dict = Depends(current_user_claims),
-    db: Session = Depends(get_db),
-):
-    user = _current_user(db, claims)
-    return serialize_user(user)
-
-
-@app.put("/profile")
-def update_profile(
-    payload: ProfileUpdateRequest,
-    claims: dict = Depends(current_user_claims),
-    db: Session = Depends(get_db),
-):
-    user = _current_user(db, claims)
-    username = payload.username.strip()
-    email = payload.email.strip().lower()
-    username_owner = db.query(User).filter(User.username == username, User.id != user.id).first()
-    if username_owner:
-        raise HTTPException(status_code=409, detail="Username already exists")
-    email_owner = db.query(User).filter(User.email == email, User.id != user.id).first()
-    if email_owner:
-        raise HTTPException(status_code=409, detail="Email already exists")
-    user.username = username
-    user.email = email
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return serialize_user(user)
-
-
-@app.get("/addresses")
-def list_addresses(
-    claims: dict = Depends(current_user_claims),
-    db: Session = Depends(get_db),
-):
-    user = _current_user(db, claims)
-    addresses = (
-        db.query(UserAddress)
-        .filter(UserAddress.user_id == user.id)
-        .order_by(UserAddress.is_default.desc(), UserAddress.created_at.asc())
-        .all()
-    )
-    return {"items": [serialize_address(item) for item in addresses], "total": len(addresses)}
-
-
-@app.post("/addresses")
-def create_address(
-    payload: AddressRequest,
-    claims: dict = Depends(current_user_claims),
-    db: Session = Depends(get_db),
-):
-    user = _current_user(db, claims)
-    has_addresses = db.query(UserAddress).filter(UserAddress.user_id == user.id).first() is not None
-    address = UserAddress(
-        user_id=user.id,
-        label=payload.label.strip(),
-        recipient_name=payload.recipient_name.strip(),
-        line1=payload.line1.strip(),
-        city=payload.city.strip(),
-        postal_code=payload.postal_code.strip(),
-        country=payload.country.strip().upper(),
-        is_default=payload.is_default or not has_addresses,
-    )
-    db.add(address)
-    db.flush()
-    if address.is_default:
-        _set_default_address(db, user, address)
-    db.commit()
-    db.refresh(address)
-    return serialize_address(address)
-
-
-@app.put("/addresses/{address_id}")
-def update_address(
-    address_id: int,
-    payload: AddressRequest,
-    claims: dict = Depends(current_user_claims),
-    db: Session = Depends(get_db),
-):
-    user = _current_user(db, claims)
-    address = db.query(UserAddress).filter(
-        UserAddress.id == address_id,
-        UserAddress.user_id == user.id,
-    ).first()
-    if not address:
-        raise HTTPException(status_code=404, detail="Address not found")
-    for field in ("label", "recipient_name", "line1", "city", "postal_code", "country"):
-        value = getattr(payload, field).strip()
-        setattr(address, field, value.upper() if field == "country" else value)
-    if payload.is_default:
-        _set_default_address(db, user, address)
-    elif address.is_default:
-        user.address = _address_summary(address)
-        db.add(user)
-    db.add(address)
-    db.commit()
-    db.refresh(address)
-    return serialize_address(address)
-
-
-@app.delete("/addresses/{address_id}")
-def delete_address(
-    address_id: int,
-    claims: dict = Depends(current_user_claims),
-    db: Session = Depends(get_db),
-):
-    user = _current_user(db, claims)
-    address = db.query(UserAddress).filter(
-        UserAddress.id == address_id,
-        UserAddress.user_id == user.id,
-    ).first()
-    if not address:
-        raise HTTPException(status_code=404, detail="Address not found")
-    was_default = address.is_default
-    db.delete(address)
-    db.flush()
-    if was_default:
-        replacement = (
-            db.query(UserAddress)
-            .filter(UserAddress.user_id == user.id)
-            .order_by(UserAddress.created_at.asc())
-            .first()
-        )
-        if replacement:
-            _set_default_address(db, user, replacement)
-        else:
-            user.address = ""
-            db.add(user)
-    db.commit()
-    return {"message": "Address deleted", "address_id": address_id}

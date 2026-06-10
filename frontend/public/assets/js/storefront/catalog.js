@@ -51,8 +51,34 @@ export function renderCategories() {
 
 export function selectCategory(categoryId) {
   state.selectedCategoryId = categoryId;
+  document.getElementById("search-input").value = "";
   renderCategories();
   renderProducts();
+  document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function normalized(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+export function browseCatalog(query = "") {
+  const searchInput = document.getElementById("search-input");
+  const requested = normalized(query);
+  const matchingCategory = requested
+    ? state.categories.find((category) => {
+        const categoryName = normalized(category.name);
+        return categoryName.includes(requested) || requested.includes(categoryName);
+      })
+    : null;
+
+  state.selectedCategoryId = matchingCategory ? matchingCategory.id : null;
+  searchInput.value = matchingCategory ? "" : query;
+  renderCategories();
+  renderProducts();
+  document.getElementById("catalog")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export function filteredProducts() {
