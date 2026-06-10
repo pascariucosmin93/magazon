@@ -9,7 +9,7 @@ from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Session
 
 from shared.auth import current_user_claims
@@ -21,6 +21,14 @@ from shared.service_app import create_base_app
 
 
 PRODUCT_CACHE_KEY = "products:all"
+CATEGORY_ALIASES = {
+    "accessories": "Accesorii",
+    "accesories": "Accesorii",
+    "accesorii": "Accesorii",
+    "keyboards": "Periferice",
+    "mice": "Periferice",
+    "periferice": "Periferice",
+}
 
 
 class Category(Base):
@@ -71,9 +79,14 @@ async def startup():
         if db.query(Category).count() == 0:
             db.add_all(
                 [
-                    Category(name="Keyboards", description="Mechanical and productivity keyboards"),
-                    Category(name="Mice", description="Gaming and office mice"),
-                    Category(name="Accessories", description="Docks, cables and desk accessories"),
+                    Category(
+                        name="Periferice",
+                        description="Tastaturi, mouse-uri, căști și camere web",
+                    ),
+                    Category(
+                        name="Accesorii",
+                        description="Dock-uri, cabluri, suporturi și accesorii pentru birou",
+                    ),
                 ]
             )
             db.commit()
@@ -87,25 +100,26 @@ async def startup():
                         name="Mechanical Keyboard",
                         description="Tactile RGB keyboard",
                         price=119.0,
-                        category_id=categories.get("Keyboards"),
+                        category_id=categories.get("Periferice"),
                     ),
                     Product(
                         sku="MOUSE-GAMING-001",
                         name="Gaming Mouse",
                         description="Lightweight wireless mouse",
                         price=79.0,
-                        category_id=categories.get("Mice"),
+                        category_id=categories.get("Periferice"),
                     ),
                     Product(
                         sku="DOCK-USBC-001",
                         name="USB-C Dock",
                         description="Dock with HDMI and ethernet",
                         price=149.0,
-                        category_id=categories.get("Accessories"),
+                        category_id=categories.get("Accesorii"),
                     ),
                 ]
             )
             db.commit()
+    redis_client.delete(PRODUCT_CACHE_KEY)
 
 
 app = create_base_app("product-service", startup_hook=startup, check_db=True, check_redis=True)
@@ -144,6 +158,11 @@ def normalize_sku(value: str) -> str:
 def generate_sku(name: str, product_id: int) -> str:
     base = normalize_sku(name)[:64]
     return f"{base}-{product_id}"
+
+
+def canonical_category_name(value: str) -> str:
+    name = " ".join(value.split())
+    return CATEGORY_ALIASES.get(name.casefold(), name)
 
 
 @app.get("/categories")
@@ -260,10 +279,13 @@ def create_category(
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
-    existing = db.query(Category).filter(Category.name == payload.name).first()
+    name = canonical_category_name(payload.name)
+    if not name:
+        raise HTTPException(status_code=400, detail="Category name is required")
+    existing = db.query(Category).filter(func.lower(Category.name) == name.lower()).first()
     if existing:
         raise HTTPException(status_code=409, detail="Category already exists")
-    category = Category(**payload.model_dump())
+    category = Category(name=name, description=payload.description.strip())
     db.add(category)
     db.commit()
     db.refresh(category)

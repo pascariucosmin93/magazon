@@ -1,6 +1,6 @@
 import { endpoints } from "../shared/constants.js";
 import { request } from "../shared/http.js";
-import { formatPrice, toast } from "../shared/ui.js";
+import { toast } from "../shared/ui.js";
 import { state } from "./state.js";
 
 let addToCartHandler = null;
@@ -40,13 +40,15 @@ export function renderCategories() {
     </button>
   `;
 
-  state.categories.forEach((category) => {
-    const node = document.createElement("button");
-    node.className = `category-item ${state.selectedCategoryId === category.id ? "active" : ""}`;
-    node.onclick = () => selectCategory(category.id);
-    node.innerHTML = `${category.name} <span>${counts[category.id] || 0}</span>`;
-    root.appendChild(node);
-  });
+  state.categories
+    .filter((category) => (counts[category.id] || 0) > 0)
+    .forEach((category) => {
+      const node = document.createElement("button");
+      node.className = `category-item ${state.selectedCategoryId === category.id ? "active" : ""}`;
+      node.onclick = () => selectCategory(category.id);
+      node.innerHTML = `${category.name} <span>${counts[category.id] || 0}</span>`;
+      root.appendChild(node);
+    });
 }
 
 export function selectCategory(categoryId) {
@@ -148,6 +150,7 @@ function productPromo(product) {
 
 function productCardMarkup(product) {
   const promo = productPromo(product);
+  const price = Number(product.price || 0).toFixed(2);
   return `
     <div class="product-promo">-${promo}% în coș</div>
     <div class="product-media">${productSvg(product)}</div>
@@ -156,10 +159,13 @@ function productCardMarkup(product) {
       <h3 class="product-name">${product.name}</h3>
       <p class="product-description">${product.description}</p>
       <div class="price-row">
-        <span class="price">${formatPrice(product.price)}</span>
+        <div class="product-price">
+          <span class="price">${price}</span>
+          <span class="price-currency">EUR</span>
+        </div>
         <div class="product-actions">
           <a class="secondary product-details" href="/product.html?id=${product.id}">Detalii</a>
-          <button class="buy-button" data-action="add">Adaugă</button>
+          <button class="buy-button" data-action="add">Adaugă în coș</button>
         </div>
       </div>
     </div>
