@@ -1,12 +1,11 @@
-# syntax=docker/dockerfile:1
-FROM python:3.12-slim AS builder
+FROM public.ecr.aws/docker/library/python:3.12-slim AS builder
 
 WORKDIR /build
 COPY services/product-service/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir -r requirements.txt
 
-FROM python:3.12-slim AS runtime
+FROM public.ecr.aws/docker/library/python:3.12-slim AS runtime
 
 RUN apt-get update && \
     apt-get upgrade -y && \
