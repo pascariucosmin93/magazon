@@ -37,8 +37,8 @@
           <a href="#hero">Monitoare</a>
           <a href="#hero">Periferice</a>
           <a href="#hero">Accesorii</a>
-          <a href="#hero">Cont și coș</a>
-          <a href="#hero">Comenzi</a>
+          <a href="/account.html">Contul meu</a>
+          <a href="/checkout.html">Checkout</a>
           <a href="/admin.html" id="admin-nav" style="display:none;">Panou admin</a>
         </div>
       </nav>
@@ -56,7 +56,7 @@
             <button class="rail-item" onclick="selectCategory(null)">Laptopuri <span>office, business, mobile</span></button>
             <button class="rail-item" onclick="selectCategory(null)">Gaming <span>mouse, tastaturi, căști</span></button>
             <button class="rail-item" onclick="selectCategory(null)">Componente PC <span>SSD, dock, upgrade</span></button>
-            <button class="rail-item" onclick="focusCart()">Coș & checkout <span>guest order activ</span></button>
+            <button class="rail-item" onclick="focusCart()">Coș & checkout <span>finalizare în pași</span></button>
           </div>
         </aside>
 
@@ -196,18 +196,18 @@
       <section class="section storefront-hidden" id="workspace">
         <div class="workspace-head">
           <div>
-            <h2>Cont, coș și checkout</h2>
+            <h2>Cont și checkout</h2>
             <p>
-              Tot ce ține de autentificare și finalizarea comenzii este grupat aici, într-un flux mai apropiat de un magazin real.
+              Administrarea contului și finalizarea comenzii au pagini dedicate, mai clare și mai ușor de urmărit.
             </p>
           </div>
         </div>
 
         <div class="workspace-grid">
-          <section class="panel workspace-panel" id="account">
+          <section class="panel workspace-panel">
             <div class="panel-head">
               <h3 class="panel-title">Cont client</h3>
-              <button class="secondary" id="logout-button" onclick="logout()">Logout</button>
+              <button class="secondary" onclick="openAccount()">Deschide contul</button>
             </div>
             <div class="account-content">
               <div class="anonymous-only">
@@ -221,82 +221,27 @@
                 <strong id="user-state">Neautentificat</strong>
                 <span class="muted" id="user-role">Poți cumpăra ca guest sau te poți autentifica.</span>
               </div>
-              <div class="authenticated-only hidden account-management">
-                <h4>Profil</h4>
-                <div class="account-form">
-                  <input id="profile-username" placeholder="Nume utilizator" />
-                  <input id="profile-email" type="email" placeholder="Email" />
-                  <button class="secondary" onclick="saveProfile()">Salvează profilul</button>
-                </div>
-                <h4>Adrese de livrare</h4>
-                <div id="address-list" class="stack"></div>
-                <div class="account-form">
-                  <input id="address-label" placeholder="Etichetă, ex. Acasă" />
-                  <input id="address-recipient" placeholder="Nume destinatar" />
-                  <input id="address-line1" placeholder="Stradă, număr, apartament" />
-                  <input id="address-city" placeholder="Oraș" />
-                  <input id="address-postal-code" placeholder="Cod poștal" />
-                  <label><input id="address-default" type="checkbox" /> Adresă implicită</label>
-                  <button class="secondary" onclick="addAddress()">Adaugă adresa</button>
-                </div>
-              </div>
             </div>
           </section>
 
-          <section class="panel workspace-panel" id="cart">
+          <section class="panel workspace-panel">
             <div class="panel-head">
               <h3 class="panel-title">Coș și checkout</h3>
               <div class="cart-actions">
-                <button class="secondary" onclick="loadCart()">Refresh</button>
-                <button class="secondary" onclick="clearCart()">Golește coșul</button>
+                <button class="secondary" onclick="focusCart()">Deschide checkout</button>
               </div>
             </div>
             <div class="cart-content">
               <p class="workspace-copy">
                 Aici vezi produsele selectate, totalul actualizat și acțiunile rapide pentru modificarea cantității.
               </p>
-              <div id="cart-output">
-                <div class="empty">Coșul este gol.</div>
-              </div>
-              <div class="authenticated-only hidden member-checkout">
-                <label for="checkout-address">Adresă de livrare</label>
-                <select id="checkout-address"></select>
-              </div>
-              <p class="workspace-copy guest-note" id="guest-note">
-                Pentru comandă fără cont, completează datele de livrare de mai jos.
+              <p class="workspace-copy">
+                Checkout-ul separat verifică produsele, datele de livrare și sumarul înainte de trimiterea comenzii.
               </p>
-              <div class="guest-checkout" id="guest-checkout-fields">
-                <input id="guest-name" placeholder="Nume complet" autocomplete="name" />
-                <input id="guest-email" placeholder="Email" autocomplete="email" />
-                <input id="guest-address" placeholder="Adresă livrare" autocomplete="street-address" />
-              </div>
-              <button class="primary" style="width:100%; margin-top: 16px;" onclick="placeOrder()">Trimite comanda</button>
+              <button class="primary" style="width:100%;" onclick="focusCart()">Continuă la checkout</button>
             </div>
           </section>
         </div>
-      </section>
-
-      <section class="section storefront-hidden authenticated-only hidden">
-        <section class="panel order-panel">
-          <div class="panel-head">
-            <h3 class="panel-title">Istoric comenzi</h3>
-          </div>
-          <div class="order-content" id="order-history-output">
-            <div class="empty">Se încarcă istoricul...</div>
-          </div>
-        </section>
-      </section>
-
-      <section class="section storefront-hidden">
-        <section class="panel order-panel" id="orders">
-          <div class="panel-head">
-            <h3 class="panel-title">Status comandă</h3>
-            <button class="secondary" onclick="loadOrder()">Verifică statusul</button>
-          </div>
-          <div class="order-content" id="order-output">
-            <div class="empty">Nu există încă o comandă trimisă din sesiunea curentă.</div>
-          </div>
-        </section>
       </section>
 
       <footer class="footer storefront-hidden">

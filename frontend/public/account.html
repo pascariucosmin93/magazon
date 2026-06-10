@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contul meu | Magazon</title>
+    <link rel="stylesheet" href="/assets/css/pages.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="page-header">
+        <a class="logo" href="/">
+          <span class="logo-mark">M</span>
+          <span>Magazon</span>
+        </a>
+        <div class="page-actions">
+          <button class="secondary" onclick="window.location.href='/checkout.html'">Checkout</button>
+          <button class="secondary" id="logout-button" onclick="logoutFromAccount(this)">Logout</button>
+        </div>
+      </header>
+
+      <section class="page-intro">
+        <span class="eyebrow">Cont client</span>
+        <h1>Profil, adrese și comenzi.</h1>
+        <p id="account-summary">Încărcăm datele contului.</p>
+      </section>
+
+      <div class="page-grid">
+        <div>
+          <section class="panel">
+            <div class="panel-head"><h2 class="panel-title">Profil</h2></div>
+            <div class="panel-body account-form">
+              <input id="profile-username" placeholder="Nume utilizator" autocomplete="username" />
+              <input id="profile-email" type="email" placeholder="Email" autocomplete="email" />
+              <button class="primary" onclick="saveProfile(this)">Salvează profilul</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2 class="panel-title">Istoric comenzi</h2></div>
+            <div class="order-content" id="order-history-output">
+              <div class="loading-placeholder" aria-label="Se încarcă comenzile"></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head"><h2 class="panel-title">Adrese de livrare</h2></div>
+          <div class="panel-body">
+            <div id="address-list" class="stack">
+              <div class="loading-placeholder" aria-label="Se încarcă adresele"></div>
+            </div>
+            <h3>Adresă nouă</h3>
+            <div class="account-form">
+              <input id="address-label" placeholder="Etichetă, ex. Acasă" />
+              <input id="address-recipient" placeholder="Nume destinatar" autocomplete="name" />
+              <input id="address-line1" placeholder="Stradă, număr, apartament" autocomplete="street-address" />
+              <input id="address-city" placeholder="Oraș" autocomplete="address-level2" />
+              <input id="address-postal-code" placeholder="Cod poștal" autocomplete="postal-code" />
+              <label><input id="address-default" type="checkbox" /> Adresă implicită</label>
+              <button class="primary" onclick="addAddress(this)">Adaugă adresa</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+    <script type="module" src="/assets/js/account-page.js"></script>
+  </body>
+</html>

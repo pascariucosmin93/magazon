@@ -1,6 +1,6 @@
 import { endpoints } from "../shared/constants.js";
 import { request } from "../shared/http.js";
-import { formatPrice, toast } from "../shared/ui.js";
+import { formatPrice, setButtonLoading, toast } from "../shared/ui.js";
 import { state } from "./state.js";
 
 
@@ -15,8 +15,14 @@ function renderProfile() {
   if (!state.profile) {
     return;
   }
-  document.getElementById("profile-username").value = state.profile.username || "";
-  document.getElementById("profile-email").value = state.profile.email || "";
+  const username = document.getElementById("profile-username");
+  const email = document.getElementById("profile-email");
+  if (username) {
+    username.value = state.profile.username || "";
+  }
+  if (email) {
+    email.value = state.profile.email || "";
+  }
 }
 
 
@@ -25,26 +31,30 @@ function renderAddresses() {
   const select = document.getElementById("checkout-address");
   const addresses = state.addresses || [];
 
-  root.innerHTML = addresses.length
-    ? addresses.map((address) => `
+  if (root) {
+    root.innerHTML = addresses.length
+      ? addresses.map((address) => `
         <div class="line-item">
           <div>
             <strong>${address.label}${address.is_default ? " · implicită" : ""}</strong>
             <span>${address.recipient_name} · ${addressSummary(address)}</span>
           </div>
           <div class="inline-actions">
-            ${address.is_default ? "" : `<button class="secondary" onclick="setDefaultAddress(${address.id})">Implicită</button>`}
-            <button class="secondary" onclick="deleteAddress(${address.id})">Șterge</button>
+            ${address.is_default ? "" : `<button class="secondary" onclick="setDefaultAddress(${address.id}, this)">Implicită</button>`}
+            <button class="secondary" onclick="deleteAddress(${address.id}, this)">Șterge</button>
           </div>
         </div>
       `).join("")
-    : `<div class="empty">Nu ai nicio adresă salvată.</div>`;
+      : `<div class="empty">Nu ai nicio adresă salvată.</div>`;
+  }
 
-  select.innerHTML = addresses.map((address) => `
-    <option value="${address.id}" ${address.is_default ? "selected" : ""}>
-      ${address.label}: ${addressSummary(address)}
-    </option>
-  `).join("");
+  if (select) {
+    select.innerHTML = addresses.map((address) => `
+      <option value="${address.id}" ${address.is_default ? "selected" : ""}>
+        ${address.label}: ${addressSummary(address)}
+      </option>
+    `).join("");
+  }
 }
 
 
@@ -55,6 +65,9 @@ function canCancel(order) {
 
 export function renderOrderHistory() {
   const root = document.getElementById("order-history-output");
+  if (!root) {
+    return;
+  }
   const orders = state.orders || [];
   root.innerHTML = orders.length
     ? orders.map((order) => `
@@ -64,7 +77,7 @@ export function renderOrderHistory() {
             <span>Status: ${order.status} · ${order.created_at ? new Date(order.created_at).toLocaleString("ro-RO") : ""}</span>
             <div class="inline-actions">
               <button class="secondary" onclick="showHistoryOrder(${order.order_id})">Detalii</button>
-              ${canCancel(order) ? `<button class="secondary" onclick="cancelHistoryOrder(${order.order_id})">Anulează</button>` : ""}
+              ${canCancel(order) ? `<button class="secondary" onclick="cancelHistoryOrder(${order.order_id}, this)">Anulează</button>` : ""}
             </div>
           </div>
         </div>
@@ -91,7 +104,8 @@ export async function loadAccountData() {
 }
 
 
-export async function saveProfile() {
+export async function saveProfile(button) {
+  setButtonLoading(button, true, "Salvăm...");
   try {
     state.profile = await request(`${endpoints.auth}/profile`, {
       method: "PUT",
@@ -105,11 +119,14 @@ export async function saveProfile() {
     toast("Profilul a fost actualizat.");
   } catch (error) {
     toast(`Profilul nu a fost salvat: ${error.message}`);
+  } finally {
+    setButtonLoading(button, false);
   }
 }
 
 
-export async function addAddress() {
+export async function addAddress(button) {
+  setButtonLoading(button, true, "Adăugăm...");
   try {
     await request(`${endpoints.auth}/addresses`, {
       method: "POST",
@@ -127,47 +144,54 @@ export async function addAddress() {
     toast("Adresa a fost salvată.");
   } catch (error) {
     toast(`Adresa nu a fost salvată: ${error.message}`);
+  } finally {
+    setButtonLoading(button, false);
   }
 }
 
 
-export async function setDefaultAddress(addressId) {
+export async function setDefaultAddress(addressId, button) {
   const address = state.addresses.find((item) => item.id === addressId);
   if (!address) {
     return;
   }
-  await request(`${endpoints.auth}/addresses/${addressId}`, {
-    method: "PUT",
-    body: JSON.stringify({ ...address, is_default: true })
-  });
-  await loadAccountData();
-  toast("Adresa implicită a fost schimbată.");
+  setButtonLoading(button, true, "Salvăm...");
+  try {
+    await request(`${endpoints.auth}/addresses/${addressId}`, {
+      method: "PUT",
+      body: JSON.stringify({ ...address, is_default: true })
+    });
+    await loadAccountData();
+    toast("Adresa implicită a fost schimbată.");
+  } catch (error) {
+    toast(`Adresa implicită nu a fost schimbată: ${error.message}`);
+  } finally {
+    setButtonLoading(button, false);
+  }
 }
 
 
-export async function deleteAddress(addressId) {
-  await request(`${endpoints.auth}/addresses/${addressId}`, { method: "DELETE" });
-  await loadAccountData();
-  toast("Adresa a fost ștearsă.");
+export async function deleteAddress(addressId, button) {
+  setButtonLoading(button, true, "Ștergem...");
+  try {
+    await request(`${endpoints.auth}/addresses/${addressId}`, { method: "DELETE" });
+    await loadAccountData();
+    toast("Adresa a fost ștearsă.");
+  } catch (error) {
+    toast(`Adresa nu a fost ștearsă: ${error.message}`);
+  } finally {
+    setButtonLoading(button, false);
+  }
 }
 
 
 export function showHistoryOrder(orderId) {
-  const order = state.orders.find((item) => item.order_id === orderId);
-  if (!order) {
-    return;
-  }
-  state.lastOrderId = orderId;
-  document.getElementById("order-output").innerHTML = `
-    <strong>Comanda #${order.order_id}</strong>
-    <div class="muted" style="margin-top:4px;">Status: ${order.status}</div>
-    <div class="summary-row"><span>Total</span><span>${formatPrice(order.total)}</span></div>
-  `;
-  document.getElementById("orders").scrollIntoView({ behavior: "smooth" });
+  window.location.href = `/order.html?id=${encodeURIComponent(orderId)}`;
 }
 
 
-export async function cancelHistoryOrder(orderId) {
+export async function cancelHistoryOrder(orderId, button) {
+  setButtonLoading(button, true, "Anulăm...");
   try {
     await request(`${endpoints.orders}/orders/${orderId}/cancel`, {
       method: "POST",
@@ -177,6 +201,8 @@ export async function cancelHistoryOrder(orderId) {
     toast(`Comanda #${orderId} a fost anulată.`);
   } catch (error) {
     toast(`Comanda nu a putut fi anulată: ${error.message}`);
+  } finally {
+    setButtonLoading(button, false);
   }
 }
 
