@@ -97,6 +97,7 @@ def test_product_serializers_include_category_name():
     category = product_module.Category(id=7, name="Accessories", description="Desk gear")
     product = product_module.Product(
         id=11,
+        sku="DOCK-USBC-001",
         name="USB-C Dock",
         description="Dock",
         price=149.0,
@@ -108,7 +109,15 @@ def test_product_serializers_include_category_name():
 
     assert serialized_category["name"] == "Accessories"
     assert serialized_product["category_name"] == "Accessories"
+    assert serialized_product["sku"] == "DOCK-USBC-001"
     assert serialized_product["price"] == 149.0
+
+
+def test_product_sku_is_normalized_and_generated():
+    product_module = load_module("product_main_sku", "services/product-service/app/main.py")
+
+    assert product_module.normalize_sku(" dock usb-c / pro ") == "DOCK-USB-C-PRO"
+    assert product_module.generate_sku("USB-C Dock", 17) == "USB-C-DOCK-17"
 
 
 def test_cart_response_includes_totals(monkeypatch):
@@ -142,7 +151,13 @@ def test_order_serialize_includes_items():
 
     order = order_module.Order(id=12, user_id=7, status="created", total=298.0)
     order.items = [
-        order_module.OrderItem(product_id=1, quantity=2, price=149.0),
+        order_module.OrderItem(
+            product_id=1,
+            product_name="USB-C Dock",
+            product_sku="DOCK-USBC-001",
+            quantity=2,
+            price=149.0,
+        ),
     ]
 
     serialized = order_module.serialize_order(order)
@@ -150,6 +165,8 @@ def test_order_serialize_includes_items():
     assert serialized["order_id"] == 12
     assert serialized["user_id"] == 7
     assert serialized["items"][0]["product_id"] == 1
+    assert serialized["items"][0]["product_name"] == "USB-C Dock"
+    assert serialized["items"][0]["product_sku"] == "DOCK-USBC-001"
     assert serialized["items"][0]["quantity"] == 2
     assert serialized["items"][0]["price"] == 149.0
 

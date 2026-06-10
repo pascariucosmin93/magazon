@@ -75,7 +75,9 @@ function renderTable(containerId, columns, items, emptyMessage) {
 
 function productPayload() {
   const categoryValue = document.getElementById("admin-product-category-id").value;
+  const sku = document.getElementById("admin-product-sku").value.trim();
   return {
+    sku: sku || null,
     name: document.getElementById("admin-product-name").value.trim(),
     description: document.getElementById("admin-product-description").value.trim(),
     price: Number(document.getElementById("admin-product-price").value),
@@ -236,6 +238,7 @@ export async function loadAdminData() {
       "admin-products",
       [
         { key: "id", label: "ID" },
+        { key: "sku", label: "SKU" },
         { key: "name", label: "Produs" },
         { key: "category_name", label: "Categorie" },
         { key: "price", label: "Preț", format: (value) => `${Number(value).toFixed(2)} EUR` }

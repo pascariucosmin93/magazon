@@ -107,12 +107,13 @@ export function renderOrder(order) {
   const root = document.getElementById("order-output");
   const items = (order.items || []).map((item) => {
     const product = state.products.find((candidate) => candidate.id === item.product_id);
-    const name = product ? product.name : `Produs ${item.product_id}`;
+    const name = item.product_name || (product ? product.name : `Produs ${item.product_id}`);
+    const sku = item.product_sku || product?.sku || `PRODUCT-${item.product_id}`;
     return `
       <div class="line-item">
         <div>
           <strong>${name}</strong>
-          <span>${item.quantity} x ${formatPrice(item.price)}</span>
+          <span>${sku} · ${item.quantity} x ${formatPrice(item.price)}</span>
         </div>
         <strong>${formatPrice(item.quantity * item.price)}</strong>
       </div>

@@ -39,7 +39,12 @@ def test_create_order_writes_outbox_event(monkeypatch):
     monkeypatch.setattr(
         order_module,
         "fetch_product",
-        lambda product_id: {"id": product_id, "price": 149.0},
+        lambda product_id: {
+            "id": product_id,
+            "sku": "DOCK-USBC-001",
+            "name": "USB-C Dock",
+            "price": 149.0,
+        },
     )
 
     async def fake_publish_pending_outbox_events_once(limit: int = 20):
@@ -60,6 +65,8 @@ def test_create_order_writes_outbox_event(monkeypatch):
     outbox_event = db.query(order_module.OutboxEvent).one()
     assert result["status"] == "created"
     assert result["total"] == 298.0
+    assert result["items"][0]["product_name"] == "USB-C Dock"
+    assert result["items"][0]["product_sku"] == "DOCK-USBC-001"
     assert outbox_event.topic == "order.created"
     assert outbox_event.published is False
 

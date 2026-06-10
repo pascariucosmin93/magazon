@@ -38,8 +38,8 @@ function renderSummary(order, payment) {
   const items = (order.items || []).map((item) => `
     <div class="line-item">
       <div>
-        <strong>Produs #${item.product_id}</strong>
-        <span>${item.quantity} x ${formatPrice(item.price)}</span>
+        <strong>${item.product_name || `Produs #${item.product_id}`}</strong>
+        <span>${item.product_sku || `PRODUCT-${item.product_id}`} · ${item.quantity} x ${formatPrice(item.price)}</span>
       </div>
       <strong>${formatPrice(item.quantity * item.price)}</strong>
     </div>
