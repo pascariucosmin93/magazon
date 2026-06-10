@@ -1,7 +1,9 @@
 import os
 import json
+import re
 from datetime import datetime
 from decimal import Decimal
+from uuid import uuid4
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
@@ -34,6 +36,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
+    sku = Column(String(80), unique=True, nullable=False, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
     price = Column(Numeric(12, 2), nullable=False)
@@ -42,6 +45,7 @@ class Product(Base):
 
 
 class ProductRequest(BaseModel):
+    sku: str | None = Field(default=None, max_length=80)
     name: str = Field(min_length=1, max_length=255)
     description: str = Field(min_length=1)
     price: Decimal = Field(gt=0, decimal_places=2, max_digits=12)
@@ -79,18 +83,21 @@ async def startup():
             db.add_all(
                 [
                     Product(
+                        sku="KEYBOARD-MECH-001",
                         name="Mechanical Keyboard",
                         description="Tactile RGB keyboard",
                         price=119.0,
                         category_id=categories.get("Keyboards"),
                     ),
                     Product(
+                        sku="MOUSE-GAMING-001",
                         name="Gaming Mouse",
                         description="Lightweight wireless mouse",
                         price=79.0,
                         category_id=categories.get("Mice"),
                     ),
                     Product(
+                        sku="DOCK-USBC-001",
                         name="USB-C Dock",
                         description="Dock with HDMI and ethernet",
                         price=149.0,
@@ -114,6 +121,7 @@ def serialize_product(product: Product, categories_by_id: dict[int, Category]) -
     category = categories_by_id.get(product.category_id)
     return {
         "id": product.id,
+        "sku": product.sku,
         "name": product.name,
         "description": product.description,
         "price": money_json(product.price),
@@ -124,6 +132,18 @@ def serialize_product(product: Product, categories_by_id: dict[int, Category]) -
 
 def serialize_category(category: Category) -> dict:
     return {"id": category.id, "name": category.name, "description": category.description}
+
+
+def normalize_sku(value: str) -> str:
+    normalized = re.sub(r"[^A-Z0-9]+", "-", value.strip().upper()).strip("-")
+    if not normalized:
+        raise HTTPException(status_code=400, detail="SKU must contain letters or digits")
+    return normalized[:80]
+
+
+def generate_sku(name: str, product_id: int) -> str:
+    base = normalize_sku(name)[:64]
+    return f"{base}-{product_id}"
 
 
 @app.get("/categories")
@@ -164,8 +184,17 @@ def create_product(
             raise HTTPException(status_code=404, detail="Category not found")
     values = payload.model_dump()
     values["price"] = as_money(values["price"])
+    requested_sku = values.pop("sku", None)
+    if requested_sku:
+        requested_sku = normalize_sku(requested_sku)
+        if db.query(Product).filter(Product.sku == requested_sku).first():
+            raise HTTPException(status_code=409, detail="SKU already exists")
+    values["sku"] = requested_sku or f"TEMP-{uuid4()}"
     product = Product(**values)
     db.add(product)
+    db.flush()
+    if not requested_sku:
+        product.sku = generate_sku(product.name, product.id)
     db.commit()
     db.refresh(product)
     redis_client.delete(PRODUCT_CACHE_KEY)
@@ -190,6 +219,16 @@ def update_product(
 
     values = payload.model_dump()
     values["price"] = as_money(values["price"])
+    requested_sku = values.pop("sku", None)
+    if requested_sku:
+        requested_sku = normalize_sku(requested_sku)
+        existing = db.query(Product).filter(
+            Product.sku == requested_sku,
+            Product.id != product_id,
+        ).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="SKU already exists")
+        values["sku"] = requested_sku
     for field, value in values.items():
         setattr(product, field, value)
     db.add(product)

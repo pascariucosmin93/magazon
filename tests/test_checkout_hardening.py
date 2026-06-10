@@ -97,6 +97,7 @@ def test_completed_payment_refund_records_transaction(monkeypatch):
     )
     testing_session = build_session(payment_module)
     monkeypatch.setattr(payment_module, "STRIPE_SECRET_KEY", "sk_test")
+    monkeypatch.setattr(payment_module, "SessionLocal", testing_session)
 
     class FakeRefund:
         @staticmethod
@@ -108,7 +109,7 @@ def test_completed_payment_refund_records_transaction(monkeypatch):
 
     published = []
 
-    async def fake_publish(topic, payload):
+    async def fake_publish(topic, payload, **_kwargs):
         published.append((topic, payload))
 
     monkeypatch.setattr(payment_module, "publish_event", fake_publish)
@@ -146,13 +147,14 @@ def test_late_paid_webhook_refunds_cancelled_payment(monkeypatch):
     )
     testing_session = build_session(payment_module)
     monkeypatch.setattr(payment_module, "STRIPE_SECRET_KEY", "sk_test")
+    monkeypatch.setattr(payment_module, "SessionLocal", testing_session)
     monkeypatch.setattr(
         payment_module.stripe.Refund,
         "create",
         lambda **_kwargs: {"id": "re_late_1"},
     )
 
-    async def fake_publish(_topic, _payload):
+    async def fake_publish(_topic, _payload, **_kwargs):
         return None
 
     monkeypatch.setattr(payment_module, "publish_event", fake_publish)

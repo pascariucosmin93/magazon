@@ -1,14 +1,17 @@
 import asyncio
+import json
+import logging
 import os
 from datetime import datetime
 from decimal import Decimal
 from urllib.parse import urlparse
+from uuid import uuid4
 
 from fastapi import Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 import requests
 import stripe
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -24,6 +27,7 @@ PAYMENT_CURRENCY = os.getenv("PAYMENT_CURRENCY", "eur")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 stripe.api_key = STRIPE_SECRET_KEY or None
+logger = logging.getLogger(__name__)
 
 
 class Payment(Base):
@@ -59,6 +63,20 @@ class PaymentTransaction(Base):
     currency = Column(String(10), nullable=False, default=PAYMENT_CURRENCY)
     provider_reference = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class PaymentOutboxEvent(Base):
+    __tablename__ = "payment_outbox_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(String(64), nullable=False, unique=True, index=True)
+    topic = Column(String(255), nullable=False)
+    payload = Column(Text, nullable=False)
+    published = Column(Boolean, nullable=False, default=False)
+    publish_attempts = Column(Integer, nullable=False, default=0)
+    last_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    published_at = Column(DateTime, nullable=True)
 
 
 class CheckoutSessionRequest(BaseModel):
@@ -155,6 +173,76 @@ def _record_transaction(
     return transaction
 
 
+def _serialize_outbox_payload(payload: dict) -> str:
+    return json.dumps(payload, separators=(",", ":"), sort_keys=True)
+
+
+def _enqueue_payment_event(db: Session, topic: str, payload: dict) -> PaymentOutboxEvent:
+    event = PaymentOutboxEvent(
+        event_id=str(uuid4()),
+        topic=topic,
+        payload=_serialize_outbox_payload(payload),
+    )
+    db.add(event)
+    return event
+
+
+async def publish_pending_payment_events_once(limit: int = 20) -> None:
+    db = SessionLocal()
+    attempted_ids: list[int] = []
+    try:
+        for _ in range(limit):
+            query = db.query(PaymentOutboxEvent).filter(
+                PaymentOutboxEvent.published.is_(False)
+            )
+            if attempted_ids:
+                query = query.filter(PaymentOutboxEvent.id.notin_(attempted_ids))
+            event = (
+                query
+                .order_by(PaymentOutboxEvent.id.asc())
+                .with_for_update(skip_locked=True)
+                .first()
+            )
+            if not event:
+                break
+            attempted_ids.append(event.id)
+            event.publish_attempts += 1
+            try:
+                await publish_event(
+                    event.topic,
+                    json.loads(event.payload),
+                    event_id=event.event_id,
+                )
+                event.published = True
+                event.published_at = datetime.utcnow()
+                event.last_error = None
+            except Exception as exc:
+                event.last_error = str(exc)
+                logger.warning(
+                    "Payment outbox publish failed id=%s topic=%s error=%s",
+                    event.id,
+                    event.topic,
+                    exc,
+                )
+            db.add(event)
+            db.commit()
+    finally:
+        db.close()
+
+
+async def payment_outbox_publisher_loop() -> None:
+    while True:
+        await publish_pending_payment_events_once()
+        await asyncio.sleep(1)
+
+
+async def _publish_payment_outbox_best_effort() -> None:
+    try:
+        await publish_pending_payment_events_once(limit=5)
+    except Exception as exc:
+        logger.warning("Immediate payment outbox publish failed: %s", exc)
+
+
 async def finalize_payment(
     payment: Payment,
     db: Session,
@@ -185,11 +273,17 @@ async def finalize_payment(
     _record_transaction(
         db, payment, "payment", "completed", payment.amount, provider_reference, provider_event_id
     )
-    db.commit()
-    await publish_event(
+    _enqueue_payment_event(
+        db,
         "payment.completed",
-        {"order_id": payment.order_id, "status": "completed", "amount": money_json(payment.amount)},
+        {
+            "order_id": payment.order_id,
+            "status": "completed",
+            "amount": money_json(payment.amount),
+        },
     )
+    db.commit()
+    await _publish_payment_outbox_best_effort()
     if was_cancelled:
         await refund_payment(payment, db)
 
@@ -225,11 +319,17 @@ async def refund_payment(
         refund.get("id"),
         provider_event_id,
     )
-    db.commit()
-    await publish_event(
+    _enqueue_payment_event(
+        db,
         "payment.refunded",
-        {"order_id": payment.order_id, "status": payment.status, "amount": money_json(refundable)},
+        {
+            "order_id": payment.order_id,
+            "status": payment.status,
+            "amount": money_json(refundable),
+        },
     )
+    db.commit()
+    await _publish_payment_outbox_best_effort()
 
 
 async def refresh_payment_from_stripe(payment: Payment, db: Session) -> None:
@@ -293,6 +393,7 @@ def _payment_from_stripe_object(db: Session, stripe_object: dict) -> Payment | N
 
 
 consumer_task = None
+payment_outbox_task = None
 
 
 def _mark_event_processed(db: Session, topic: str) -> bool:
@@ -360,15 +461,22 @@ async def handle_payment_event(topic: str, payload: dict):
 
 
 async def startup():
-    global consumer_task
+    global consumer_task, payment_outbox_task
     consumer_task = asyncio.create_task(
         consume_topics(
             "payment-service", ["inventory.reserved", "order.cancelled"], handle_payment_event
         )
     )
+    payment_outbox_task = asyncio.create_task(payment_outbox_publisher_loop())
 
 
 async def shutdown():
+    if payment_outbox_task:
+        payment_outbox_task.cancel()
+        try:
+            await payment_outbox_task
+        except asyncio.CancelledError:
+            pass
     if consumer_task:
         consumer_task.cancel()
         try:
@@ -483,7 +591,13 @@ async def create_checkout_session(
             {
                 "price_data": {
                     "currency": PAYMENT_CURRENCY,
-                    "product_data": {"name": f"Produs #{item['product_id']}"},
+                    "product_data": {
+                        "name": item.get("product_name") or f"Produs #{item['product_id']}",
+                        "metadata": {
+                            "product_id": str(item["product_id"]),
+                            "sku": item.get("product_sku") or f"PRODUCT-{item['product_id']}",
+                        },
+                    },
                     "unit_amount": money_minor_units(item["price"]),
                 },
                 "quantity": int(item["quantity"]),
@@ -577,16 +691,7 @@ async def stripe_webhook(
         .first()
     )
     if duplicate:
-        payment = db.query(Payment).filter(Payment.id == duplicate.payment_id).first()
-        if payment and duplicate.transaction_type == "payment":
-            await publish_event(
-                "payment.completed",
-                {
-                    "order_id": payment.order_id,
-                    "status": "completed" if payment.status == "completed" else "failed",
-                    "amount": money_json(payment.amount),
-                },
-            )
+        await _publish_payment_outbox_best_effort()
         return {"received": True, "duplicate": True}
 
     event_type = event["type"]
@@ -624,8 +729,8 @@ async def stripe_webhook(
             stripe_object.get("payment_intent"),
             event_id,
         )
-        db.commit()
-        await publish_event(
+        _enqueue_payment_event(
+            db,
             "payment.completed",
             {
                 "order_id": payment.order_id,
@@ -633,7 +738,10 @@ async def stripe_webhook(
                 "amount": money_json(payment.amount),
             },
         )
+        db.commit()
+        await _publish_payment_outbox_best_effort()
     elif event_type == "charge.refunded":
+        previous_refunded = as_money(payment.refunded_amount)
         refunded = as_money(
             Decimal(str(stripe_object.get("amount_refunded", 0))) / Decimal("100")
         )
@@ -651,7 +759,18 @@ async def stripe_webhook(
             stripe_object.get("id"),
             event_id,
         )
+        if refunded > previous_refunded:
+            _enqueue_payment_event(
+                db,
+                "payment.refunded",
+                {
+                    "order_id": payment.order_id,
+                    "status": payment.status,
+                    "amount": money_json(refunded - previous_refunded),
+                },
+            )
         db.commit()
+        await _publish_payment_outbox_best_effort()
 
     return {"received": True}
 

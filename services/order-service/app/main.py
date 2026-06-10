@@ -60,6 +60,8 @@ class OrderItem(Base):
     id = Column(Integer, primary_key=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
     product_id = Column(Integer, nullable=False)
+    product_name = Column(String(255), nullable=False, default="Unknown product")
+    product_sku = Column(String(80), nullable=False, default="UNKNOWN")
     quantity = Column(Integer, nullable=False)
     price = Column(Numeric(12, 2), nullable=False)
     order = relationship("Order", back_populates="items")
@@ -265,6 +267,8 @@ def serialize_order(order: Order, include_guest_token: bool = True) -> dict:
         "items": [
             {
                 "product_id": item.product_id,
+                "product_name": item.product_name or f"Produs #{item.product_id}",
+                "product_sku": item.product_sku or f"PRODUCT-{item.product_id}",
                 "quantity": item.quantity,
                 "price": money_json(item.price),
             }
@@ -320,6 +324,8 @@ def _cancel_order(order: Order, reason: str | None, db: Session) -> None:
                     "items": [
                         {
                             "product_id": item.product_id,
+                            "product_name": item.product_name or f"Produs #{item.product_id}",
+                            "product_sku": item.product_sku or f"PRODUCT-{item.product_id}",
                             "quantity": item.quantity,
                             "price": money_json(item.price),
                         }
@@ -370,6 +376,8 @@ async def create_order(
         normalized_items.append(
             {
                 "product_id": item.product_id,
+                "product_name": product.get("name") or f"Produs #{item.product_id}",
+                "product_sku": product.get("sku") or f"PRODUCT-{item.product_id}",
                 "quantity": item.quantity,
                 "price": money_json(product["price"]),
             }
@@ -392,6 +400,8 @@ async def create_order(
             OrderItem(
                 order_id=order.id,
                 product_id=item["product_id"],
+                product_name=item["product_name"],
+                product_sku=item["product_sku"],
                 quantity=item["quantity"],
                 price=as_money(item["price"]),
             )

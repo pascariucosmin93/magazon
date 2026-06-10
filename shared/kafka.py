@@ -28,10 +28,11 @@ def build_event_envelope(
     topic: str,
     payload: dict[str, Any],
     *,
+    event_id: str | None = None,
     producer_name: str | None = None,
     correlation_id: str | None = None,
 ) -> dict[str, Any]:
-    event_id = str(uuid4())
+    event_id = event_id or str(uuid4())
     return {
         "event_id": event_id,
         "event_type": topic,
@@ -173,8 +174,13 @@ async def stop_producer():
         producer = None
 
 
-async def publish_event(topic: str, payload: dict[str, Any]):
-    message = build_event_envelope(topic, payload)
+async def publish_event(
+    topic: str,
+    payload: dict[str, Any],
+    *,
+    event_id: str | None = None,
+):
+    message = build_event_envelope(topic, payload, event_id=event_id)
     await _publish_raw(topic, message)
     logger.info("Published topic=%s event_id=%s", topic, message["event_id"])
 

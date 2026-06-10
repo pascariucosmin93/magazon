@@ -5,11 +5,11 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 ## Services
 
 - `auth-service`: register/login with Argon2 password hashes and JWT access tokens
-- `product-service`: product catalog and Redis cache
+- `product-service`: product catalog with stable SKUs and Redis cache
 - `cart-service`: shopping cart in Redis
-- `order-service`: order creation and order status updates
+- `order-service`: order creation with product snapshots and order status updates
 - `inventory-service`: stock reservation and inventory updates
-- `payment-service`: simulated payment flow
+- `payment-service`: Stripe payment/refund flow with a persistent Kafka outbox
 - `notification-service`: consumes Kafka events and logs notifications
 - `frontend`: storefront, dedicated product pages and a role-protected admin UI for products, users, orders, inventory and payments
 
