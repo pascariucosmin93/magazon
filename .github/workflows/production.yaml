@@ -45,7 +45,7 @@ jobs:
         run: pytest tests -q
 
       - name: Compile Python code
-        run: python -m compileall shared services
+        run: python -m compileall shared services scripts
 
       - name: Validate frontend JavaScript
         run: |
@@ -54,7 +54,7 @@ jobs:
           done < <(find frontend/public/assets/js -name '*.js' -print0)
 
       - name: Run flake8
-        run: flake8 shared services --max-line-length=120 --extend-ignore=E501
+        run: flake8 shared services scripts --max-line-length=120 --extend-ignore=E501
 
       - name: Run mypy
         env:

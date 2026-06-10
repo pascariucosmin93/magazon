@@ -85,6 +85,99 @@ function productPayload() {
   };
 }
 
+function validateProductPayload(payload) {
+  if (!payload.name || !payload.description) {
+    throw new Error("Completează numele și descrierea produsului");
+  }
+  if (!Number.isFinite(payload.price) || payload.price <= 0) {
+    throw new Error("Prețul trebuie să fie mai mare decât 0");
+  }
+}
+
+export function clearProductForm() {
+  document.getElementById("admin-product-id").value = "";
+  document.getElementById("admin-product-sku").value = "";
+  document.getElementById("admin-product-name").value = "";
+  document.getElementById("admin-product-description").value = "";
+  document.getElementById("admin-product-price").value = "";
+  document.getElementById("admin-product-category-id").value = "";
+  document.getElementById("admin-product-editor-title").textContent = "Produs nou";
+  document.getElementById("admin-product-create").hidden = false;
+  document.getElementById("admin-product-update").hidden = true;
+  document.getElementById("admin-product-delete").hidden = true;
+  document.getElementById("admin-product-cancel").hidden = true;
+}
+
+export function editProduct(product) {
+  document.getElementById("admin-product-id").value = product.id;
+  document.getElementById("admin-product-sku").value = product.sku || "";
+  document.getElementById("admin-product-name").value = product.name || "";
+  document.getElementById("admin-product-description").value = product.description || "";
+  document.getElementById("admin-product-price").value = Number(product.price).toFixed(2);
+  document.getElementById("admin-product-category-id").value = product.category_id ?? "";
+  document.getElementById("admin-product-editor-title").textContent = `Editezi produsul #${product.id}`;
+  document.getElementById("admin-product-create").hidden = true;
+  document.getElementById("admin-product-update").hidden = false;
+  document.getElementById("admin-product-delete").hidden = false;
+  document.getElementById("admin-product-cancel").hidden = false;
+  document.getElementById("admin-product-editor").scrollIntoView({ behavior: "smooth", block: "center" });
+  document.getElementById("admin-product-price").focus({ preventScroll: true });
+}
+
+function renderProducts(items) {
+  const container = document.getElementById("admin-products");
+  container.replaceChildren();
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Nu există produse.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "admin-table-wrap";
+  const table = document.createElement("table");
+  table.className = "admin-table";
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["ID", "SKU", "Produs", "Categorie", "Preț", "Acțiune"].forEach((label) => {
+    const cell = document.createElement("th");
+    cell.textContent = label;
+    headRow.appendChild(cell);
+  });
+  head.appendChild(headRow);
+
+  const body = document.createElement("tbody");
+  items.forEach((product) => {
+    const row = document.createElement("tr");
+    [
+      product.id,
+      product.sku,
+      product.name,
+      product.category_name || "Fără categorie",
+      `${Number(product.price).toFixed(2)} EUR`
+    ].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+    const actionCell = document.createElement("td");
+    const editButton = document.createElement("button");
+    editButton.className = "secondary admin-edit-button";
+    editButton.type = "button";
+    editButton.textContent = "Editează";
+    editButton.onclick = () => editProduct(product);
+    actionCell.appendChild(editButton);
+    row.appendChild(actionCell);
+    body.appendChild(row);
+  });
+
+  table.append(head, body);
+  wrapper.appendChild(table);
+  container.appendChild(wrapper);
+}
+
 function showAdminResult(result) {
   document.getElementById("admin-output").innerText = JSON.stringify(result, null, 2);
 }
@@ -234,18 +327,7 @@ export async function loadAdminData() {
     document.getElementById("admin-payment-count").textContent = payments.length;
     document.getElementById("admin-product-count").textContent = products.items.length;
 
-    renderTable(
-      "admin-products",
-      [
-        { key: "id", label: "ID" },
-        { key: "sku", label: "SKU" },
-        { key: "name", label: "Produs" },
-        { key: "category_name", label: "Categorie" },
-        { key: "price", label: "Preț", format: (value) => `${Number(value).toFixed(2)} EUR` }
-      ],
-      products.items,
-      "Nu există produse."
-    );
+    renderProducts(products.items);
 
     renderUsers(users.items);
     renderOrders(orders.items);
@@ -325,12 +407,16 @@ export async function createCategory() {
 
 export async function createProduct() {
   try {
+    const payload = productPayload();
+    validateProductPayload(payload);
     const result = await request(`${endpoints.products}/products`, {
       method: "POST",
-      body: JSON.stringify(productPayload())
+      body: JSON.stringify(payload)
     });
     showAdminResult(result);
     await reloadProducts();
+    clearProductForm();
+    await loadAdminData();
     toast("Produs adăugat.");
   } catch (error) {
     toast(`Produsul nu a fost creat: ${error.message}`);
@@ -341,15 +427,19 @@ export async function updateProduct() {
   try {
     const productId = Number(document.getElementById("admin-product-id").value);
     if (!productId) {
-      throw new Error("Completează ID-ul produsului");
+      throw new Error("Selectează un produs din tabel");
     }
+    const payload = productPayload();
+    validateProductPayload(payload);
     const result = await request(`${endpoints.products}/products/${productId}`, {
       method: "PUT",
-      body: JSON.stringify(productPayload())
+      body: JSON.stringify(payload)
     });
     showAdminResult(result);
     await reloadProducts();
-    toast("Produs actualizat.");
+    clearProductForm();
+    await loadAdminData();
+    toast("Produs actualizat. Noul preț este vizibil în catalog.");
   } catch (error) {
     toast(`Produsul nu a fost actualizat: ${error.message}`);
   }
@@ -359,13 +449,19 @@ export async function deleteProduct() {
   try {
     const productId = Number(document.getElementById("admin-product-id").value);
     if (!productId) {
-      throw new Error("Completează ID-ul produsului");
+      throw new Error("Selectează un produs din tabel");
+    }
+    const productName = document.getElementById("admin-product-name").value.trim();
+    if (!window.confirm(`Ștergi definitiv produsul „${productName}”?`)) {
+      return;
     }
     const result = await request(`${endpoints.products}/products/${productId}`, {
       method: "DELETE"
     });
     showAdminResult(result);
     await reloadProducts();
+    clearProductForm();
+    await loadAdminData();
     toast("Produs șters.");
   } catch (error) {
     toast(`Produsul nu a fost șters: ${error.message}`);
