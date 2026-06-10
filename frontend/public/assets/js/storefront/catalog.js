@@ -118,18 +118,25 @@ export function filteredProducts() {
 }
 
 function productSvg(product) {
-  const category = (product.category_name || "").toLowerCase();
-  const color = category.includes("keyboard") ? "#cf352f" : category.includes("mice") ? "#1da8e4" : "#2f3640";
-  const label = (product.name || "IT").slice(0, 2).toUpperCase();
+  const category = normalized(product.category_name);
+  const color = category.includes("gaming")
+    ? "#cf352f"
+    : category.includes("monitor")
+      ? "#1da8e4"
+      : category.includes("laptop")
+        ? "#6d5ce7"
+        : category.includes("componente")
+          ? "#e18728"
+          : "#238b68";
+  const label = (product.category_name || "IT").slice(0, 2).toUpperCase();
   return `
     <svg viewBox="0 0 120 120" role="img" aria-label="${product.name}">
-      <rect x="14" y="24" width="92" height="72" rx="12" fill="#ffffff" stroke="#d7d7d7" stroke-width="3"/>
-      <rect x="24" y="36" width="72" height="14" rx="4" fill="${color}" opacity="0.9"/>
-      <rect x="25" y="60" width="14" height="10" rx="2" fill="#e5e7eb"/>
-      <rect x="44" y="60" width="14" height="10" rx="2" fill="#e5e7eb"/>
-      <rect x="63" y="60" width="14" height="10" rx="2" fill="#e5e7eb"/>
-      <rect x="82" y="60" width="14" height="10" rx="2" fill="#e5e7eb"/>
-      <text x="60" y="88" text-anchor="middle" font-size="18" font-weight="800" fill="#18202b">${label}</text>
+      <circle cx="60" cy="60" r="48" fill="${color}" opacity="0.1"/>
+      <rect x="20" y="28" width="80" height="58" rx="11" fill="#fff" stroke="${color}" stroke-width="3"/>
+      <rect x="28" y="37" width="64" height="31" rx="6" fill="${color}" opacity="0.92"/>
+      <path d="M14 90h92l-8 10H22z" fill="#fff" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>
+      <circle cx="60" cy="53" r="12" fill="#fff" opacity="0.18"/>
+      <text x="60" y="58" text-anchor="middle" font-size="13" font-weight="900" fill="#fff">${label}</text>
     </svg>
   `;
 }
@@ -142,7 +149,7 @@ function productPromo(product) {
 function productCardMarkup(product) {
   const promo = productPromo(product);
   return `
-    <div class="product-promo">${promo}% reducere in cos</div>
+    <div class="product-promo">-${promo}% în coș</div>
     <div class="product-media">${productSvg(product)}</div>
     <div class="product-body">
       <div class="product-category">${product.category_name || "Necategorizat"}</div>

@@ -172,6 +172,23 @@ Helm image values use explicit `repository` + `tag` pairs, and the production pi
 - `inventory.released`
 - `notification.sent`
 
+## Generate demo products
+
+The seed script creates categories, generated products, and inventory through
+the same admin APIs used by the frontend. It is idempotent: rerunning it skips
+products that already have the generated `DEMO-*` SKU.
+
+```bash
+MAGAZON_ADMIN_PASSWORD='<admin-password>' \
+python3 scripts/seed_products.py \
+  --base-url http://192.168.1.8:8081 \
+  --count 120 \
+  --stock 50
+```
+
+Use `--dry-run` to preview the generated catalog or `--skip-inventory` when
+only product records are needed.
+
 ## Notes
 
 - The project is intentionally simple but follows realistic microservice boundaries.

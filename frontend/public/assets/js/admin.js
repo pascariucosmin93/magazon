@@ -1,4 +1,5 @@
 import {
+  clearProductForm,
   configureAdmin,
   createCategory,
   createProduct,
@@ -40,6 +41,7 @@ async function adminLogout() {
 
 Object.assign(window, {
   adminLogout,
+  clearProductForm,
   createCategory,
   createProduct,
   deleteProduct,
