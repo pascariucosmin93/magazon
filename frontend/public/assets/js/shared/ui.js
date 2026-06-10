@@ -2,6 +2,15 @@ export function formatPrice(value) {
   return `${Number(value || 0).toFixed(2)} EUR`;
 }
 
+export function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export function toast(message) {
   const node = document.getElementById("toast");
   if (!node) {

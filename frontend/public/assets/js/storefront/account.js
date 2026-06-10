@@ -1,6 +1,6 @@
 import { endpoints } from "../shared/constants.js";
 import { request } from "../shared/http.js";
-import { formatPrice, setButtonLoading, toast } from "../shared/ui.js";
+import { escapeHtml, formatPrice, setButtonLoading, toast } from "../shared/ui.js";
 import { state } from "./state.js";
 
 
@@ -36,8 +36,8 @@ function renderAddresses() {
       ? addresses.map((address) => `
         <div class="line-item">
           <div>
-            <strong>${address.label}${address.is_default ? " · implicită" : ""}</strong>
-            <span>${address.recipient_name} · ${addressSummary(address)}</span>
+            <strong>${escapeHtml(address.label)}${address.is_default ? " · implicită" : ""}</strong>
+            <span>${escapeHtml(address.recipient_name)} · ${escapeHtml(addressSummary(address))}</span>
           </div>
           <div class="inline-actions">
             ${address.is_default ? "" : `<button class="secondary" onclick="setDefaultAddress(${address.id}, this)">Implicită</button>`}
@@ -51,7 +51,7 @@ function renderAddresses() {
   if (select) {
     select.innerHTML = addresses.map((address) => `
       <option value="${address.id}" ${address.is_default ? "selected" : ""}>
-        ${address.label}: ${addressSummary(address)}
+        ${escapeHtml(address.label)}: ${escapeHtml(addressSummary(address))}
       </option>
     `).join("");
   }
@@ -74,7 +74,7 @@ export function renderOrderHistory() {
         <div class="line-item">
           <div>
             <strong>Comanda #${order.order_id} · ${formatPrice(order.total)}</strong>
-            <span>Status: ${order.status} · ${order.created_at ? new Date(order.created_at).toLocaleString("ro-RO") : ""}</span>
+            <span>Status: ${escapeHtml(order.status)} · ${order.created_at ? new Date(order.created_at).toLocaleString("ro-RO") : ""}</span>
             <div class="inline-actions">
               <button class="secondary" onclick="showHistoryOrder(${order.order_id})">Detalii</button>
               ${canCancel(order) ? `<button class="secondary" onclick="cancelHistoryOrder(${order.order_id}, this)">Anulează</button>` : ""}

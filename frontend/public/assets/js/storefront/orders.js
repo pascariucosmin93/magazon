@@ -1,6 +1,6 @@
 import { endpoints } from "../shared/constants.js";
 import { request } from "../shared/http.js";
-import { formatPrice, toast } from "../shared/ui.js";
+import { escapeHtml, formatPrice, toast } from "../shared/ui.js";
 import { state } from "./state.js";
 import { clearCart, loadCart } from "./cart.js";
 import { saveLastOrderContext } from "./storage.js";
@@ -112,8 +112,8 @@ export function renderOrder(order) {
     return `
       <div class="line-item">
         <div>
-          <strong>${name}</strong>
-          <span>${sku} · ${item.quantity} x ${formatPrice(item.price)}</span>
+          <strong>${escapeHtml(name)}</strong>
+          <span>${escapeHtml(sku)} · ${item.quantity} x ${formatPrice(item.price)}</span>
         </div>
         <strong>${formatPrice(item.quantity * item.price)}</strong>
       </div>
@@ -126,7 +126,7 @@ export function renderOrder(order) {
 
   root.innerHTML = `
     <strong>Comanda #${order.order_id}</strong>
-    <div class="muted" style="margin-top:4px;">Status: ${order.status}</div>
+    <div class="muted" style="margin-top:4px;">Status: ${escapeHtml(order.status)}</div>
     <div class="order-items">${items || `<div class="empty">Nu există linii de comandă.</div>`}</div>
     <div class="summary-row">
       <span>Total</span>

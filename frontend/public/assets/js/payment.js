@@ -1,6 +1,6 @@
 import { endpoints, LAST_ORDER_STORAGE_KEY } from "./shared/constants.js";
 import { request } from "./shared/http.js";
-import { formatPrice, setButtonLoading, toast } from "./shared/ui.js";
+import { escapeHtml, formatPrice, setButtonLoading, toast } from "./shared/ui.js";
 
 const params = new URLSearchParams(window.location.search);
 const queryOrderId = params.get("order_id");
@@ -38,8 +38,8 @@ function renderSummary(order, payment) {
   const items = (order.items || []).map((item) => `
     <div class="line-item">
       <div>
-        <strong>${item.product_name || `Produs #${item.product_id}`}</strong>
-        <span>${item.product_sku || `PRODUCT-${item.product_id}`} · ${item.quantity} x ${formatPrice(item.price)}</span>
+        <strong>${escapeHtml(item.product_name || `Produs #${item.product_id}`)}</strong>
+        <span>${escapeHtml(item.product_sku || `PRODUCT-${item.product_id}`)} · ${item.quantity} x ${formatPrice(item.price)}</span>
       </div>
       <strong>${formatPrice(item.quantity * item.price)}</strong>
     </div>
@@ -47,8 +47,8 @@ function renderSummary(order, payment) {
 
   document.getElementById("payment-order-output").innerHTML = `
     <strong>Comanda #${order.order_id}</strong>
-    <div class="muted" style="margin-top:4px;">Status comandă: ${order.status}</div>
-    <div class="muted" style="margin-top:4px;">Status plată: ${payment.status}</div>
+    <div class="muted" style="margin-top:4px;">Status comandă: ${escapeHtml(order.status)}</div>
+    <div class="muted" style="margin-top:4px;">Status plată: ${escapeHtml(payment.status)}</div>
     <div class="order-items" style="margin-top:16px;">${items}</div>
     <div class="summary-row">
       <span>Total de plată</span>

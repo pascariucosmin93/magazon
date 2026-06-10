@@ -1,6 +1,6 @@
 import { endpoints } from "./shared/constants.js";
 import { request } from "./shared/http.js";
-import { formatPrice, setButtonLoading, toast } from "./shared/ui.js";
+import { escapeHtml, formatPrice, setButtonLoading, toast } from "./shared/ui.js";
 import {
   changeCartQuantity,
   clearCart,
@@ -67,7 +67,7 @@ function renderAddresses() {
   const select = document.getElementById("checkout-address");
   select.innerHTML = state.addresses.map((address) => `
     <option value="${address.id}" ${address.is_default ? "selected" : ""}>
-      ${address.label}: ${address.line1}, ${address.city}
+      ${escapeHtml(address.label)}: ${escapeHtml(address.line1)}, ${escapeHtml(address.city)}
     </option>
   `).join("");
 }
@@ -77,7 +77,7 @@ function renderReview() {
   const items = currentCart.items.map((item) => `
     <div class="line-item">
       <div>
-        <strong>${item.name}</strong>
+        <strong>${escapeHtml(item.name)}</strong>
         <span>${item.quantity} x ${formatPrice(item.price)}</span>
       </div>
       <strong>${formatPrice(item.subtotal)}</strong>
@@ -86,9 +86,9 @@ function renderReview() {
   document.getElementById("checkout-review").innerHTML = `
     <div class="order-items">${items}</div>
     <div class="detail-list">
-      <div class="detail-row"><span>Client</span><strong>${delivery.customer_name}</strong></div>
-      <div class="detail-row"><span>Email</span><strong>${delivery.customer_email}</strong></div>
-      <div class="detail-row"><span>Livrare</span><strong>${delivery.shipping_address}</strong></div>
+      <div class="detail-row"><span>Client</span><strong>${escapeHtml(delivery.customer_name)}</strong></div>
+      <div class="detail-row"><span>Email</span><strong>${escapeHtml(delivery.customer_email)}</strong></div>
+      <div class="detail-row"><span>Livrare</span><strong>${escapeHtml(delivery.shipping_address)}</strong></div>
     </div>
     <div class="summary-row"><span>Total</span><span>${formatPrice(currentCart.total)}</span></div>
   `;
@@ -224,7 +224,7 @@ async function bootstrapCheckout() {
   } catch (error) {
     toast(`Checkout-ul nu a putut fi încărcat: ${error.message}`);
     document.getElementById("cart-output").innerHTML =
-      `<div class="empty status-error">${error.message}</div>`;
+      `<div class="empty status-error">${escapeHtml(error.message)}</div>`;
   }
 }
 

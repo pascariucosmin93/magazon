@@ -1,14 +1,16 @@
-# syntax=docker/dockerfile:1
-FROM python:3.12-slim AS builder
+FROM public.ecr.aws/docker/library/python:3.12-slim AS builder
 
 WORKDIR /build
 COPY services/cart-service/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir -r requirements.txt
 
-FROM python:3.12-slim AS runtime
+FROM public.ecr.aws/docker/library/python:3.12-slim AS runtime
 
-RUN groupadd --gid 1000 app && \
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --gid 1000 app && \
     useradd --uid 1000 --gid 1000 --no-create-home --shell /bin/false app
 
 WORKDIR /app

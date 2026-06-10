@@ -1,6 +1,6 @@
 import { endpoints } from "../shared/constants.js";
 import { request } from "../shared/http.js";
-import { toast } from "../shared/ui.js";
+import { escapeHtml, toast } from "../shared/ui.js";
 import { state } from "./state.js";
 
 let addToCartHandler = null;
@@ -46,7 +46,7 @@ export function renderCategories() {
       const node = document.createElement("button");
       node.className = `category-item ${state.selectedCategoryId === category.id ? "active" : ""}`;
       node.onclick = () => selectCategory(category.id);
-      node.innerHTML = `${category.name} <span>${counts[category.id] || 0}</span>`;
+      node.innerHTML = `${escapeHtml(category.name)} <span>${counts[category.id] || 0}</span>`;
       root.appendChild(node);
     });
 }
@@ -131,14 +131,16 @@ function productSvg(product) {
           ? "#e18728"
           : "#238b68";
   const label = (product.category_name || "IT").slice(0, 2).toUpperCase();
+  const productName = escapeHtml(product.name);
+  const productLabel = escapeHtml(label);
   return `
-    <svg viewBox="0 0 120 120" role="img" aria-label="${product.name}">
+    <svg viewBox="0 0 120 120" role="img" aria-label="${productName}">
       <circle cx="60" cy="60" r="48" fill="${color}" opacity="0.1"/>
       <rect x="20" y="28" width="80" height="58" rx="11" fill="#fff" stroke="${color}" stroke-width="3"/>
       <rect x="28" y="37" width="64" height="31" rx="6" fill="${color}" opacity="0.92"/>
       <path d="M14 90h92l-8 10H22z" fill="#fff" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>
       <circle cx="60" cy="53" r="12" fill="#fff" opacity="0.18"/>
-      <text x="60" y="58" text-anchor="middle" font-size="13" font-weight="900" fill="#fff">${label}</text>
+      <text x="60" y="58" text-anchor="middle" font-size="13" font-weight="900" fill="#fff">${productLabel}</text>
     </svg>
   `;
 }
@@ -155,9 +157,9 @@ function productCardMarkup(product) {
     <div class="product-promo">-${promo}% în coș</div>
     <div class="product-media">${productSvg(product)}</div>
     <div class="product-body">
-      <div class="product-category">${product.category_name || "Necategorizat"}</div>
-      <h3 class="product-name">${product.name}</h3>
-      <p class="product-description">${product.description}</p>
+      <div class="product-category">${escapeHtml(product.category_name || "Necategorizat")}</div>
+      <h3 class="product-name">${escapeHtml(product.name)}</h3>
+      <p class="product-description">${escapeHtml(product.description)}</p>
       <div class="price-row">
         <div class="product-price">
           <span class="price">${price}</span>

@@ -1,6 +1,6 @@
 import { endpoints } from "../shared/constants.js";
 import { request } from "../shared/http.js";
-import { formatPrice, toast } from "../shared/ui.js";
+import { escapeHtml, formatPrice, toast } from "../shared/ui.js";
 import { state } from "./state.js";
 import {
   clearGuestCartPayload,
@@ -107,7 +107,7 @@ export function renderCart(cart) {
   const items = resolvedCart.items.map((item) => `
     <div class="line-item">
       <div>
-        <strong>${item.name}</strong>
+        <strong>${escapeHtml(item.name)}</strong>
         <span>${item.quantity} x ${formatPrice(item.price)}</span>
         <div class="inline-actions">
           <button class="secondary" onclick="changeCartQuantity(${item.product_id}, ${item.quantity - 1})">-</button>
