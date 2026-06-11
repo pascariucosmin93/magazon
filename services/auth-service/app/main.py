@@ -318,9 +318,10 @@ async def request_password_reset(
     enforce_rate_limit(f"auth:password-reset:{client_ip}", limit=5, window_seconds=900)
 
     user = get_user_by_email(db, payload.email.strip().lower())
+    reset_token = None
     if user:
-        token = secrets.token_urlsafe(32)
-        user.reset_token_hash = sha256(token.encode("utf-8")).hexdigest()
+        reset_token = secrets.token_urlsafe(32)
+        user.reset_token_hash = sha256(reset_token.encode("utf-8")).hexdigest()
         user.reset_token_expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES)
         db.add(user)
         db.commit()
@@ -329,12 +330,15 @@ async def request_password_reset(
             {
                 "user_id": user.id,
                 "email": user.email,
-                "reset_token": token,
+                "reset_token": reset_token,
                 "expires_in_minutes": PASSWORD_RESET_EXPIRE_MINUTES,
             },
         )
 
-    return {"message": "If the account exists, reset instructions were generated."}
+    return {
+        "message": "If the account exists, reset instructions were generated.",
+        "reset_token": reset_token,
+    }
 
 
 @app.post("/password-reset/confirm")

@@ -99,9 +99,34 @@ jobs:
 
       - name: Run pip-audit
         run: |
+          audit_with_retry() {
+            local file="$1"
+            local attempt output status
+            for attempt in 1 2 3; do
+              output="$(mktemp)"
+              if pip-audit -r "${file}" >"${output}" 2>&1; then
+                cat "${output}"
+                rm -f "${output}"
+                return 0
+              fi
+
+              status=$?
+              cat "${output}"
+              if grep -Eq "ServiceError|503 Server Error|502 Server Error|504 Server Error|Backend is unhealthy|ReadTimeout|ConnectTimeout" "${output}" && [[ "${attempt}" -lt 3 ]]; then
+                echo "Transient pip-audit service failure for ${file}; retrying in 10s (attempt ${attempt}/3)..."
+                rm -f "${output}"
+                sleep 10
+                continue
+              fi
+
+              rm -f "${output}"
+              return "${status}"
+            done
+          }
+
           find services -name requirements.txt -print0 | while IFS= read -r -d '' file; do
             echo "Auditing ${file}"
-            pip-audit -r "${file}"
+            audit_with_retry "${file}"
           done
 
       - name: Run Trivy filesystem scan
