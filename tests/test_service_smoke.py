@@ -258,6 +258,7 @@ def test_product_import_apply_updates_products_and_archives(monkeypatch):
         "_sync_inventory_bulk",
         lambda items: inventory_updates.extend(items),
     )
+    monkeypatch.setattr(product_module.redis_client, "delete", lambda *_args, **_kwargs: 1)
 
     with Session(engine) as db:
         category = product_module.Category(name="Periferice", description="Peripherals")
