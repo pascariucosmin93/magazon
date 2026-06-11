@@ -5,7 +5,10 @@ import {
   createProduct,
   deleteProduct,
   deleteUser,
+  downloadImportTemplate,
   loadAdminData,
+  applyProductImport,
+  previewProductImport,
   updateInventory,
   updateOrderStatus,
   updateProduct
@@ -46,7 +49,10 @@ Object.assign(window, {
   createProduct,
   deleteProduct,
   deleteUser,
+  downloadImportTemplate,
   loadAdminData,
+  applyProductImport,
+  previewProductImport,
   updateInventory,
   updateOrderStatus,
   updateProduct

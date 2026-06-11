@@ -169,6 +169,159 @@ def test_product_sku_is_normalized_and_generated():
     assert product_module.generate_sku("USB-C Dock", 17) == "USB-C-DOCK-17"
 
 
+def test_product_import_preview_classifies_create_update_and_archive():
+    product_module = load_module("product_main_import_preview", "services/product-service/app/main.py")
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    with Session(engine) as db:
+        category = product_module.Category(name="Periferice", description="Peripherals")
+        archived_category = product_module.Category(name="Accesorii", description="Accessories")
+        db.add_all([category, archived_category])
+        db.flush()
+        db.add_all(
+            [
+                product_module.Product(
+                    sku="KB-001",
+                    name="Old Keyboard",
+                    description="Old",
+                    price=99.0,
+                    category_id=category.id,
+                ),
+                product_module.Product(
+                    sku="MOUSE-OLD",
+                    name="Old Mouse",
+                    description="Old",
+                    price=49.0,
+                    category_id=archived_category.id,
+                ),
+            ]
+        )
+        db.commit()
+
+        preview = product_module._build_import_preview(
+            [
+                {
+                    "row_number": 2,
+                    "sku": "KB-001",
+                    "name": "Mechanical Keyboard",
+                    "description": "Hot swap",
+                    "price": "119.00",
+                    "category": "Periferice",
+                    "stock": "10",
+                    "active": "true",
+                    "operation": "upsert",
+                },
+                {
+                    "row_number": 3,
+                    "sku": "DOCK-NEW",
+                    "name": "USB-C Dock",
+                    "description": "Dock",
+                    "price": "149.99",
+                    "category": "Accesorii",
+                    "stock": "20",
+                    "active": "true",
+                    "operation": "upsert",
+                },
+                {
+                    "row_number": 4,
+                    "sku": "MOUSE-OLD",
+                    "name": "Old Mouse",
+                    "description": "Old",
+                    "price": "49.00",
+                    "category": "Accesorii",
+                    "stock": "0",
+                    "active": "false",
+                    "operation": "archive",
+                },
+            ],
+            db,
+        )
+
+        assert preview["summary"] == {
+            "create": 1,
+            "update": 1,
+            "archive": 1,
+            "skip": 0,
+            "error": 0,
+        }
+
+
+def test_product_import_apply_updates_products_and_archives(monkeypatch):
+    product_module = load_module("product_main_import_apply", "services/product-service/app/main.py")
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    inventory_updates = []
+
+    monkeypatch.setattr(
+        product_module,
+        "_sync_inventory_bulk",
+        lambda items: inventory_updates.extend(items),
+    )
+
+    with Session(engine) as db:
+        category = product_module.Category(name="Periferice", description="Peripherals")
+        db.add(category)
+        db.flush()
+        db.add(
+            product_module.Product(
+                sku="KB-001",
+                name="Keyboard",
+                description="Old",
+                price=99.0,
+                category_id=category.id,
+            )
+        )
+        db.commit()
+
+        preview = {
+            "summary": {"create": 1, "update": 1, "archive": 0, "skip": 0, "error": 0},
+            "rows": [
+                {
+                    "row_number": 2,
+                    "action": "update",
+                    "sku": "KB-001",
+                    "name": "Keyboard Pro",
+                    "description": "Updated",
+                    "price": 129.0,
+                    "category": "Periferice",
+                    "stock": 14,
+                },
+                {
+                    "row_number": 3,
+                    "action": "create",
+                    "sku": "DOCK-001",
+                    "name": "Dock",
+                    "description": "New dock",
+                    "price": 149.0,
+                    "category": "Accesorii",
+                    "stock": 8,
+                },
+                {
+                    "row_number": 4,
+                    "action": "archive",
+                    "sku": "KB-001",
+                    "name": "Keyboard Pro",
+                    "description": "Updated",
+                    "price": 129.0,
+                    "category": "Periferice",
+                    "stock": 0,
+                },
+            ],
+        }
+
+        result = product_module._apply_import(preview, db)
+        products = db.query(product_module.Product).order_by(product_module.Product.sku).all()
+
+        assert result["summary"]["created"] == 1
+        assert result["summary"]["updated"] == 1
+        assert result["summary"]["archived"] == 1
+        assert any(product.sku == "DOCK-001" for product in products)
+        archived = db.query(product_module.Product).filter(product_module.Product.sku == "KB-001").one()
+        assert archived.archived_at is not None
+        assert inventory_updates
+
+
 def test_cart_response_includes_totals(monkeypatch):
     cart_module = load_module("cart_main", "services/cart-service/app/main.py")
 

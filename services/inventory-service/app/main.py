@@ -31,6 +31,15 @@ class InventorySeedRequest(BaseModel):
     stock: int
 
 
+class BulkInventorySeedItem(BaseModel):
+    product_id: int
+    stock: int
+
+
+class BulkInventorySeedRequest(BaseModel):
+    items: list[BulkInventorySeedItem]
+
+
 class InventoryReservation(Base):
     __tablename__ = "inventory_reservations"
 
@@ -247,3 +256,42 @@ def seed_inventory(
         db.add(Inventory(product_id=payload.product_id, stock=payload.stock))
     db.commit()
     return {"message": "Inventory updated"}
+
+
+@app.post("/inventory/bulk-seed")
+def bulk_seed_inventory(
+    payload: BulkInventorySeedRequest,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    updated = 0
+    for item in payload.items:
+        if item.stock < 0:
+            raise HTTPException(status_code=400, detail=f"Stock must be >= 0 for product_id {item.product_id}")
+        record = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
+        if record:
+            record.stock = item.stock
+        else:
+            db.add(Inventory(product_id=item.product_id, stock=item.stock))
+        updated += 1
+    db.commit()
+    return {"message": "Inventory updated", "updated": updated}
+
+
+@app.post("/inventory/internal/bulk-seed")
+def internal_bulk_seed_inventory(
+    payload: BulkInventorySeedRequest,
+    db: Session = Depends(get_db),
+):
+    updated = 0
+    for item in payload.items:
+        if item.stock < 0:
+            raise HTTPException(status_code=400, detail=f"Stock must be >= 0 for product_id {item.product_id}")
+        record = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
+        if record:
+            record.stock = item.stock
+        else:
+            db.add(Inventory(product_id=item.product_id, stock=item.stock))
+        updated += 1
+    db.commit()
+    return {"message": "Inventory updated", "updated": updated}

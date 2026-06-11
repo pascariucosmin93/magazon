@@ -72,6 +72,20 @@
               <input id="admin-stock-value" placeholder="Cantitate în stoc" type="number" min="0" />
               <button class="primary" onclick="updateInventory()">Salvează stocul</button>
             </div>
+            <div class="stack admin-import-panel">
+              <strong>Import produse din Excel</strong>
+              <p class="panel-subtitle">Folosește un fișier `.xlsx` cu coloanele: `sku`, `name`, `description`, `price`, `category`, `stock`, `active`, opțional `operation`.</p>
+              <input id="admin-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+              <div class="admin-button-row">
+                <button class="secondary" type="button" onclick="downloadImportTemplate()">Descarcă template</button>
+                <button class="secondary" type="button" onclick="previewProductImport()">Preview import</button>
+                <button class="primary" type="button" onclick="applyProductImport()">Aplică importul</button>
+              </div>
+              <div class="stack">
+                <div class="admin-import-summary" id="admin-import-preview-summary">Încarcă un fișier și rulează preview.</div>
+                <div id="admin-import-preview-table"><div class="empty">Preview-ul importului va apărea aici.</div></div>
+              </div>
+            </div>
           </div>
           <pre class="admin-result" id="admin-output">Acțiunile admin vor apărea aici.</pre>
         </div>
