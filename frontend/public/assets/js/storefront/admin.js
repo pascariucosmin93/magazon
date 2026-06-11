@@ -30,6 +30,11 @@ export function configureAdmin({ onReloadProducts }) {
   reloadProducts = onReloadProducts;
 }
 
+function selectedImportFile() {
+  const input = document.getElementById("admin-import-file");
+  return input?.files?.[0] || null;
+}
+
 function renderTable(containerId, columns, items, emptyMessage) {
   const container = document.getElementById(containerId);
   container.replaceChildren();
@@ -141,7 +146,7 @@ function renderProducts(items) {
   table.className = "admin-table";
   const head = document.createElement("thead");
   const headRow = document.createElement("tr");
-  ["ID", "SKU", "Produs", "Categorie", "Preț", "Acțiune"].forEach((label) => {
+  ["ID", "SKU", "Produs", "Categorie", "Preț", "Status", "Acțiune"].forEach((label) => {
     const cell = document.createElement("th");
     cell.textContent = label;
     headRow.appendChild(cell);
@@ -156,7 +161,8 @@ function renderProducts(items) {
       product.sku,
       product.name,
       product.category_name || "Fără categorie",
-      `${Number(product.price).toFixed(2)} EUR`
+      `${Number(product.price).toFixed(2)} EUR`,
+      product.archived ? "Arhivat" : "Activ"
     ].forEach((value) => {
       const cell = document.createElement("td");
       cell.textContent = value;
@@ -176,6 +182,28 @@ function renderProducts(items) {
   table.append(head, body);
   wrapper.appendChild(table);
   container.appendChild(wrapper);
+}
+
+function renderImportPreview(preview) {
+  const summary = document.getElementById("admin-import-preview-summary");
+  summary.textContent =
+    `Create: ${preview.summary.create}, Update: ${preview.summary.update}, ` +
+    `Archive: ${preview.summary.archive}, Skip: ${preview.summary.skip}, Error: ${preview.summary.error}`;
+
+  renderTable(
+    "admin-import-preview-table",
+    [
+      { key: "row_number", label: "Rând" },
+      { key: "action", label: "Acțiune" },
+      { key: "sku", label: "SKU" },
+      { key: "name", label: "Produs" },
+      { key: "category", label: "Categorie" },
+      { key: "stock", label: "Stoc" },
+      { key: "message", label: "Mesaj" }
+    ],
+    preview.rows,
+    "Preview indisponibil."
+  );
 }
 
 function showAdminResult(result) {
@@ -318,7 +346,7 @@ export async function loadAdminData() {
       request(`${endpoints.orders}/orders`),
       request(`${endpoints.inventory}/inventory`),
       request(`${endpoints.payments}/payments`),
-      request(`${endpoints.products}/products`)
+      request(`${endpoints.products}/products?include_archived=true`)
     ]);
 
     document.getElementById("admin-user-count").textContent = users.total;
@@ -484,5 +512,60 @@ export async function updateInventory() {
     toast("Stoc actualizat.");
   } catch (error) {
     toast(`Stocul nu a fost actualizat: ${error.message}`);
+  }
+}
+
+export function downloadImportTemplate() {
+  window.location.href = `${endpoints.products}/products/import/template`;
+}
+
+export async function previewProductImport() {
+  try {
+    const file = selectedImportFile();
+    if (!file) {
+      throw new Error("Selectează un fișier Excel .xlsx");
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    const result = await request(`${endpoints.products}/products/import/preview`, {
+      method: "POST",
+      body: formData
+    });
+    renderImportPreview(result);
+    showAdminResult(result);
+    toast("Preview generat.");
+  } catch (error) {
+    toast(`Preview-ul importului a eșuat: ${error.message}`);
+  }
+}
+
+export async function applyProductImport() {
+  try {
+    const file = selectedImportFile();
+    if (!file) {
+      throw new Error("Selectează un fișier Excel .xlsx");
+    }
+    const formData = new FormData();
+    formData.append("file", file);
+    const result = await request(`${endpoints.products}/products/import/apply`, {
+      method: "POST",
+      body: formData
+    });
+    renderImportPreview({
+      summary: {
+        create: result.summary.created,
+        update: result.summary.updated,
+        archive: result.summary.archived,
+        skip: 0,
+        error: 0
+      },
+      rows: result.rows
+    });
+    showAdminResult(result);
+    await reloadProducts();
+    await loadAdminData();
+    toast("Importul din Excel a fost aplicat.");
+  } catch (error) {
+    toast(`Importul nu a fost aplicat: ${error.message}`);
   }
 }
