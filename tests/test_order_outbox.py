@@ -36,16 +36,15 @@ def test_create_order_writes_outbox_event(monkeypatch):
     order_module = load_module("order_main_outbox_create", "services/order-service/app/main.py")
     testing_session = build_test_session(order_module)
     monkeypatch.setattr(order_module, "SessionLocal", testing_session)
-    monkeypatch.setattr(
-        order_module,
-        "fetch_product",
-        lambda product_id: {
+    async def fake_fetch_product(product_id):
+        return {
             "id": product_id,
             "sku": "DOCK-USBC-001",
             "name": "USB-C Dock",
             "price": 149.0,
-        },
-    )
+        }
+
+    monkeypatch.setattr(order_module, "fetch_product", fake_fetch_product)
 
     async def fake_publish_pending_outbox_events_once(limit: int = 20):
         return None

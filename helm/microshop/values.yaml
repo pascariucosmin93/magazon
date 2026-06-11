@@ -9,6 +9,7 @@ config:
   ADMIN_EMAIL: admin@microshop.local
   REDIS_URL: redis://redis:6379/0
   KAFKA_BOOTSTRAP_SERVERS: kafka.kafka.svc.cluster.local:9092
+  PUBLIC_BASE_URL: ""
 
 # Secret management strategy:
 #
@@ -78,12 +79,12 @@ services:
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
-    replicas: 1
+    replicas: 2
     autoscaling:
       enabled: true
-      minReplicas: 1
+      minReplicas: 2
       maxReplicas: 2
-      targetCPUUtilizationPercentage: 85
+      targetCPUUtilizationPercentage: 95
     resources:
       requests:
         cpu: 150m
@@ -102,12 +103,12 @@ services:
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
-    replicas: 1
+    replicas: 2
     autoscaling:
       enabled: true
-      minReplicas: 1
+      minReplicas: 2
       maxReplicas: 2
-      targetCPUUtilizationPercentage: 85
+      targetCPUUtilizationPercentage: 95
     resources:
       requests:
         cpu: 150m
@@ -145,12 +146,12 @@ services:
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
-    replicas: 1
+    replicas: 2
     autoscaling:
       enabled: true
-      minReplicas: 1
+      minReplicas: 2
       maxReplicas: 2
-      targetCPUUtilizationPercentage: 85
+      targetCPUUtilizationPercentage: 95
     resources:
       requests:
         cpu: 150m
@@ -193,12 +194,12 @@ services:
     containerPort: 8000
     servicePort: 8000
     serviceType: ClusterIP
-    replicas: 1
+    replicas: 2
     autoscaling:
       enabled: true
-      minReplicas: 1
+      minReplicas: 2
       maxReplicas: 2
-      targetCPUUtilizationPercentage: 85
+      targetCPUUtilizationPercentage: 95
     resources:
       requests:
         cpu: 150m
@@ -238,12 +239,12 @@ services:
     serviceType: LoadBalancer
     externalTrafficPolicy: Local
     loadBalancerIP: 10.10.2.50
-    replicas: 1
+    replicas: 2
     autoscaling:
       enabled: true
-      minReplicas: 1
+      minReplicas: 2
       maxReplicas: 2
-      targetCPUUtilizationPercentage: 85
+      targetCPUUtilizationPercentage: 95
     resources:
       requests:
         cpu: 75m

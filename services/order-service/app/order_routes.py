@@ -51,7 +51,7 @@ def register_routes(app, dependencies):
 
         normalized_items = []
         for item in payload.items:
-            product = deps["fetch_product"](item.product_id)
+            product = await deps["fetch_product"](item.product_id)
             normalized_items.append(
                 {
                     "product_id": item.product_id,

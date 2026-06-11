@@ -11,3 +11,4 @@ data:
   ADMIN_EMAIL: {{ .Values.config.ADMIN_EMAIL | quote }}
   REDIS_URL: {{ .Values.config.REDIS_URL | quote }}
   KAFKA_BOOTSTRAP_SERVERS: {{ .Values.config.KAFKA_BOOTSTRAP_SERVERS | quote }}
+  PUBLIC_BASE_URL: {{ .Values.config.PUBLIC_BASE_URL | quote }}

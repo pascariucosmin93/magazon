@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     kafka_retry_backoff_seconds: float = 1.0
     kafka_event_version: int = 1
     kafka_dlq_suffix: str = ".dlq"
+    public_base_url: str | None = None
     jwt_secret: str  # Required
 
     @computed_field
