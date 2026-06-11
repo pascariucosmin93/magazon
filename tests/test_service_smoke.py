@@ -1,5 +1,6 @@
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+import asyncio
 
 import pytest
 from fastapi import HTTPException
@@ -89,6 +90,54 @@ def test_admin_can_delete_customer_but_not_admin_account():
         with pytest.raises(HTTPException) as exc:
             auth_module.delete_user(admin.id, db, {"sub": str(admin.id), "role": "admin"})
         assert exc.value.status_code == 409
+
+
+def test_password_reset_request_returns_token_for_existing_account(monkeypatch):
+    auth_module = load_module("auth_main_password_reset", "services/auth-service/app/main.py")
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+
+    published = []
+
+    async def fake_publish_event(topic, payload, **_kwargs):
+        published.append((topic, payload))
+
+    monkeypatch.setattr(auth_module, "publish_event", fake_publish_event)
+
+    class DummyClient:
+        host = "127.0.0.1"
+
+    class DummyRequest:
+        client = DummyClient()
+
+    with Session(engine) as db:
+        user = auth_module.User(
+            username="customer",
+            email="customer@example.com",
+            password="unused",
+            address="Test Address",
+            role="customer",
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        response = asyncio.run(
+            auth_module.request_password_reset(
+                auth_module.PasswordResetRequest(email="customer@example.com"),
+                DummyRequest(),
+                db,
+            )
+        )
+
+        db.refresh(user)
+        assert response["reset_token"]
+        assert user.reset_token_hash == auth_module.sha256(
+            response["reset_token"].encode("utf-8")
+        ).hexdigest()
+        assert user.reset_token_expires_at is not None
+        assert published[0][0] == "user.password_reset_requested"
+        assert published[0][1]["reset_token"] == response["reset_token"]
 
 
 def test_product_serializers_include_category_name():

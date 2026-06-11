@@ -96,12 +96,19 @@ export async function register() {
 
 export async function requestPasswordReset() {
   try {
-    await request("/api/auth/password-reset/request", {
+    const response = await request("/api/auth/password-reset/request", {
       method: "POST",
       body: JSON.stringify({
         email: document.getElementById("reset-email").value.trim()
       })
     });
+    const resetTokenInput = document.getElementById("reset-token");
+    if (response.reset_token) {
+      resetTokenInput.value = response.reset_token;
+      toast(`Token generat: ${response.reset_token}`);
+      return;
+    }
+    resetTokenInput.value = "";
     toast("Dacă emailul există, tokenul de resetare a fost generat.");
   } catch (error) {
     toast(`Reset password eșuat: ${error.message}`);
