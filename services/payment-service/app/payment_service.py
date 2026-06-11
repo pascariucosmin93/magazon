@@ -1,3 +1,4 @@
+import asyncio
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -47,7 +48,8 @@ async def refund(
         db.commit()
         return
 
-    stripe_refund = stripe_client.Refund.create(
+    stripe_refund = await asyncio.to_thread(
+        stripe_client.Refund.create,
         payment_intent=payment.payment_intent_id,
         amount=money_minor_units(refundable),
         metadata={"order_id": str(payment.order_id)},
@@ -150,6 +152,9 @@ async def refresh_from_stripe(
         or not stripe_secret_key
     ):
         return
-    session = stripe_client.checkout.Session.retrieve(payment.checkout_session_id)
+    session = await asyncio.to_thread(
+        stripe_client.checkout.Session.retrieve,
+        payment.checkout_session_id,
+    )
     if session.get("payment_status") == "paid":
         await finalize_payment(payment, db, session.get("payment_intent"))

@@ -177,7 +177,7 @@ def require_admin(claims: dict = Depends(current_user_claims)):
     return claims
 
 
-def fetch_product(product_id: int) -> dict:
+def _fetch_product_sync(product_id: int) -> dict:
     try:
         response = requests.get(f"{PRODUCT_SERVICE_URL}/products/{product_id}", timeout=3)
     except requests.RequestException as exc:
@@ -187,6 +187,10 @@ def fetch_product(product_id: int) -> dict:
     if response.status_code != 200:
         raise HTTPException(status_code=502, detail="Product service returned an error")
     return response.json()
+
+
+async def fetch_product(product_id: int) -> dict:
+    return await asyncio.to_thread(_fetch_product_sync, product_id)
 
 
 def _claims_user_id(claims: dict) -> int:

@@ -40,6 +40,7 @@ from payment_service import refresh_from_stripe  # noqa: E402
 from payment_service import refund as refund_payment_state  # noqa: E402
 from payment_serializers import serialize_payment, serialize_transaction  # noqa: E402
 from shared.auth import current_user_claims, optional_user_claims, require_user_id  # noqa: E402
+from shared.config import settings  # noqa: E402
 from shared.db import Base, SessionLocal, get_db  # noqa: E402
 from shared.kafka import consume_topics, get_current_event, publish_event  # noqa: E402
 from shared.money import as_money, money_json, money_minor_units  # noqa: E402
@@ -65,7 +66,7 @@ def _request_headers(authorization: str | None = None, x_guest_token: str | None
     return headers
 
 
-def fetch_order(
+def _fetch_order_sync(
     order_id: int,
     authorization: str | None = None,
     x_guest_token: str | None = None,
@@ -86,6 +87,19 @@ def fetch_order(
     if response.status_code != 200:
         raise HTTPException(status_code=502, detail="Order service returned an error")
     return response.json()
+
+
+async def fetch_order(
+    order_id: int,
+    authorization: str | None = None,
+    x_guest_token: str | None = None,
+) -> dict:
+    return await asyncio.to_thread(
+        _fetch_order_sync,
+        order_id,
+        authorization,
+        x_guest_token,
+    )
 
 
 def ensure_order_access(order: dict, claims: dict | None, x_guest_token: str | None) -> None:
@@ -203,11 +217,29 @@ async def refresh_payment_from_stripe(payment: Payment, db: Session) -> None:
     )
 
 
-def validate_return_base_url(return_base_url: str) -> str:
-    parsed = urlparse(return_base_url)
+def _normalize_base_url(value: str, *, setting_name: str) -> str:
+    parsed = urlparse(value)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise HTTPException(status_code=400, detail="Invalid return_base_url")
-    return return_base_url.rstrip("/")
+        raise HTTPException(status_code=400, detail=f"Invalid {setting_name}")
+    if parsed.params or parsed.query or parsed.fragment or parsed.path not in {"", "/"}:
+        raise HTTPException(status_code=400, detail=f"Invalid {setting_name}")
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def validate_return_base_url(return_base_url: str) -> str:
+    if not settings.public_base_url:
+        raise HTTPException(status_code=503, detail="PUBLIC_BASE_URL is not configured")
+    normalized_configured = _normalize_base_url(
+        settings.public_base_url,
+        setting_name="PUBLIC_BASE_URL",
+    )
+    normalized_requested = _normalize_base_url(
+        return_base_url,
+        setting_name="return_base_url",
+    )
+    if normalized_requested != normalized_configured:
+        raise HTTPException(status_code=400, detail="return_base_url must match PUBLIC_BASE_URL")
+    return normalized_requested
 
 
 def _payment_from_stripe_object(db: Session, stripe_object: dict) -> Payment | None:
@@ -339,7 +371,7 @@ async def get_payment_for_order(
     claims: dict | None = Depends(optional_user_claims),
     db: Session = Depends(get_db),
 ):
-    order = fetch_order(order_id, authorization, x_guest_token)
+    order = await fetch_order(order_id, authorization, x_guest_token)
     ensure_order_access(order, claims, x_guest_token)
 
     payment = get_payment_by_order(db, order_id)
@@ -385,7 +417,7 @@ async def create_checkout_session(
     if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=503, detail="Stripe is not configured yet")
 
-    order = fetch_order(order_id, authorization, x_guest_token)
+    order = await fetch_order(order_id, authorization, x_guest_token)
     ensure_order_access(order, claims, x_guest_token)
     if order["status"] == "paid":
         payment = ensure_payment_record(db, order)
@@ -426,7 +458,8 @@ async def create_checkout_session(
             }
         )
 
-    checkout_session = stripe.checkout.Session.create(
+    checkout_session = await asyncio.to_thread(
+        stripe.checkout.Session.create,
         mode="payment",
         success_url=f"{return_base_url}/payment.html?order_id={order_id}&checkout=success",
         cancel_url=f"{return_base_url}/payment.html?order_id={order_id}&checkout=cancel",
@@ -458,7 +491,7 @@ async def confirm_checkout_session(
     if not STRIPE_SECRET_KEY:
         raise HTTPException(status_code=503, detail="Stripe is not configured yet")
 
-    order = fetch_order(order_id, authorization, x_guest_token)
+    order = await fetch_order(order_id, authorization, x_guest_token)
     ensure_order_access(order, claims, x_guest_token)
     payment = get_payment_by_order(db, order_id)
     if not payment:
@@ -466,7 +499,10 @@ async def confirm_checkout_session(
     if not payment.checkout_session_id:
         raise HTTPException(status_code=409, detail="Checkout session not created yet")
 
-    session = stripe.checkout.Session.retrieve(payment.checkout_session_id)
+    session = await asyncio.to_thread(
+        stripe.checkout.Session.retrieve,
+        payment.checkout_session_id,
+    )
     if session.get("payment_status") == "paid":
         await finalize_payment(payment, db, session.get("payment_intent"))
         db.add(payment)

@@ -1,6 +1,7 @@
 import asyncio
 from decimal import Decimal
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -19,6 +20,28 @@ def test_money_helpers_round_with_decimal_rules():
     assert as_money("10.005") == Decimal("10.01")
     assert as_money(0.1) + as_money(0.2) == Decimal("0.30")
     assert money_minor_units("149.99") == 14999
+
+
+def test_payment_checkout_requires_configured_public_base_url(monkeypatch):
+    payment_module = load_module(
+        "payment_main_public_base_url",
+        "services/payment-service/app/main.py",
+    )
+
+    monkeypatch.setattr(payment_module.settings, "public_base_url", "https://shop.example.com")
+    assert (
+        payment_module.validate_return_base_url("https://shop.example.com")
+        == "https://shop.example.com"
+    )
+
+    with pytest.raises(payment_module.HTTPException) as exc:
+        payment_module.validate_return_base_url("https://attacker.example.com")
+    assert exc.value.status_code == 400
+
+    monkeypatch.setattr(payment_module.settings, "public_base_url", None)
+    with pytest.raises(payment_module.HTTPException) as exc:
+        payment_module.validate_return_base_url("https://shop.example.com")
+    assert exc.value.status_code == 503
 
 
 def test_customer_cancellation_writes_outbox_once():
