@@ -62,6 +62,10 @@ class ProcessedMessage(Base):
 consumer_task = None
 
 
+def _set_inventory_stock(record: Inventory, stock: int) -> None:
+    setattr(record, "stock", stock)
+
+
 def _mark_event_processed(db: Session, topic: str) -> bool:
     event = get_current_event()
     if not event:
@@ -251,7 +255,7 @@ def seed_inventory(
         raise HTTPException(status_code=400, detail="Stock must be >= 0")
     record = db.query(Inventory).filter(Inventory.product_id == payload.product_id).first()
     if record:
-        record.stock = payload.stock
+        _set_inventory_stock(record, payload.stock)
     else:
         db.add(Inventory(product_id=payload.product_id, stock=payload.stock))
     db.commit()
@@ -270,7 +274,7 @@ def bulk_seed_inventory(
             raise HTTPException(status_code=400, detail=f"Stock must be >= 0 for product_id {item.product_id}")
         record = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
         if record:
-            record.stock = item.stock
+            _set_inventory_stock(record, item.stock)
         else:
             db.add(Inventory(product_id=item.product_id, stock=item.stock))
         updated += 1
@@ -290,7 +294,7 @@ def internal_bulk_seed_inventory(
             raise HTTPException(status_code=400, detail=f"Stock must be >= 0 for product_id {item.product_id}")
         record = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
         if record:
-            record.stock = item.stock
+            _set_inventory_stock(record, item.stock)
         else:
             db.add(Inventory(product_id=item.product_id, stock=item.stock))
         updated += 1
