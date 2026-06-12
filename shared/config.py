@@ -1,4 +1,3 @@
-from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,7 +27,6 @@ class Settings(BaseSettings):
     admin_import_max_bytes: int = 2 * 1024 * 1024
     jwt_secret: str  # Required
 
-    @computed_field
     @property
     def database_url(self) -> str:
         return (
@@ -37,4 +35,4 @@ class Settings(BaseSettings):
         )
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]
