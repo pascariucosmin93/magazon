@@ -67,6 +67,7 @@ kubectl create secret generic microshop-secret \
   --from-literal=PAYMENT_POSTGRES_PASSWORD='<payment-password>' \
   --from-literal=ADMIN_PASSWORD='<admin-password>' \
   --from-literal=JWT_SECRET='<jwt-secret>' \
+  --from-literal=INTERNAL_API_TOKEN='<internal-token>' \
   --from-literal=STRIPE_SECRET_KEY='<stripe-secret>' \
   --from-literal=STRIPE_WEBHOOK_SECRET='<stripe-webhook-secret>'
 ```
@@ -79,6 +80,9 @@ password hashes are accepted only to migrate existing users on their next succes
 
 Configure Stripe to send checkout and refund events to
 `https://<store-host>/api/payments/webhooks/stripe`.
+
+`INTERNAL_API_TOKEN` should be shared between services for internal-only calls
+such as the product import stock sync into `inventory-service`.
 
 ### Kubernetes with Helm
 
@@ -188,6 +192,29 @@ python3 scripts/seed_products.py \
 
 Use `--dry-run` to preview the generated catalog or `--skip-inventory` when
 only product records are needed.
+
+## Admin Catalog Operations
+
+The admin UI at `/admin.html` supports:
+
+- single-product create/update/delete
+- Excel product import with preview and apply
+- Excel product export
+- archived product visibility in admin
+- import history for the latest applied jobs
+
+The Excel import expects a `.xlsx` file with these columns:
+
+```text
+sku | name | description | price | category | stock | active | operation
+```
+
+Notes:
+
+- `operation` is optional and supports `upsert` or `archive`
+- when `operation` is omitted, `active=false` archives the SKU
+- imports are rate-limited per client IP
+- upload size is limited by `ADMIN_IMPORT_MAX_BYTES` and defaults to 2 MiB
 
 ## Notes
 

@@ -10,7 +10,7 @@ from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from shared.auth import current_user_claims
+from shared.auth import current_user_claims, require_internal_api_token
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, get_current_event, publish_event
@@ -60,6 +60,10 @@ class ProcessedMessage(Base):
 
 
 consumer_task = None
+
+
+def _set_inventory_stock(record: Inventory, stock: int) -> None:
+    setattr(record, "stock", stock)
 
 
 def _mark_event_processed(db: Session, topic: str) -> bool:
@@ -251,7 +255,7 @@ def seed_inventory(
         raise HTTPException(status_code=400, detail="Stock must be >= 0")
     record = db.query(Inventory).filter(Inventory.product_id == payload.product_id).first()
     if record:
-        record.stock = payload.stock
+        _set_inventory_stock(record, payload.stock)
     else:
         db.add(Inventory(product_id=payload.product_id, stock=payload.stock))
     db.commit()
@@ -270,7 +274,7 @@ def bulk_seed_inventory(
             raise HTTPException(status_code=400, detail=f"Stock must be >= 0 for product_id {item.product_id}")
         record = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
         if record:
-            record.stock = item.stock
+            _set_inventory_stock(record, item.stock)
         else:
             db.add(Inventory(product_id=item.product_id, stock=item.stock))
         updated += 1
@@ -282,6 +286,7 @@ def bulk_seed_inventory(
 def internal_bulk_seed_inventory(
     payload: BulkInventorySeedRequest,
     db: Session = Depends(get_db),
+    _internal=Depends(require_internal_api_token),
 ):
     updated = 0
     for item in payload.items:
@@ -289,7 +294,7 @@ def internal_bulk_seed_inventory(
             raise HTTPException(status_code=400, detail=f"Stock must be >= 0 for product_id {item.product_id}")
         record = db.query(Inventory).filter(Inventory.product_id == item.product_id).first()
         if record:
-            record.stock = item.stock
+            _set_inventory_stock(record, item.stock)
         else:
             db.add(Inventory(product_id=item.product_id, stock=item.stock))
         updated += 1

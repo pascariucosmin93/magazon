@@ -4,6 +4,7 @@ import os
 import sys
 from decimal import Decimal
 from pathlib import Path
+from typing import Any, cast
 from urllib.parse import urlparse
 
 from fastapi import Depends, Header, HTTPException, Request
@@ -466,7 +467,7 @@ async def create_checkout_session(
         customer_email=order.get("customer_email") or None,
         metadata={"order_id": str(order_id)},
         payment_intent_data={"metadata": {"order_id": str(order_id)}},
-        line_items=line_items,
+        line_items=cast(Any, line_items),
     )
 
     payment.checkout_session_id = checkout_session["id"]

@@ -1,4 +1,3 @@
-from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,9 +23,10 @@ class Settings(BaseSettings):
     kafka_event_version: int = 1
     kafka_dlq_suffix: str = ".dlq"
     public_base_url: str | None = None
+    internal_api_token: str | None = None
+    admin_import_max_bytes: int = 2 * 1024 * 1024
     jwt_secret: str  # Required
 
-    @computed_field
     @property
     def database_url(self) -> str:
         return (
@@ -35,4 +35,4 @@ class Settings(BaseSettings):
         )
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

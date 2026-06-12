@@ -339,14 +339,39 @@ function renderUsers(items) {
   container.appendChild(wrapper);
 }
 
+function renderImportJobs(items) {
+  renderTable(
+    "admin-import-jobs",
+    [
+      { key: "id", label: "Job" },
+      { key: "filename", label: "Fișier" },
+      { key: "created_by", label: "Operator" },
+      {
+        key: "summary",
+        label: "Rezultat",
+        format: (value) =>
+          `Create ${value.created || 0}, Update ${value.updated || 0}, Archive ${value.archived || 0}, Restore ${value.restored || 0}, Stock ${value.stock_updates || 0}`
+      },
+      {
+        key: "created_at",
+        label: "Aplicat",
+        format: (value) => value ? new Date(value).toLocaleString("ro-RO") : "-"
+      }
+    ],
+    items,
+    "Nu există importuri aplicate încă."
+  );
+}
+
 export async function loadAdminData() {
   try {
-    const [users, orders, inventory, payments, products] = await Promise.all([
+    const [users, orders, inventory, payments, products, importJobs] = await Promise.all([
       request(`${endpoints.auth}/users`),
       request(`${endpoints.orders}/orders`),
       request(`${endpoints.inventory}/inventory`),
       request(`${endpoints.payments}/payments`),
-      request(`${endpoints.products}/products?include_archived=true`)
+      request(`${endpoints.products}/products?include_archived=true`),
+      request(`${endpoints.products}/products/import/jobs`)
     ]);
 
     document.getElementById("admin-user-count").textContent = users.total;
@@ -356,6 +381,7 @@ export async function loadAdminData() {
     document.getElementById("admin-product-count").textContent = products.items.length;
 
     renderProducts(products.items);
+    renderImportJobs(importJobs.items);
 
     renderUsers(users.items);
     renderOrders(orders.items);
@@ -517,6 +543,10 @@ export async function updateInventory() {
 
 export function downloadImportTemplate() {
   window.location.href = `${endpoints.products}/products/import/template`;
+}
+
+export function exportProductsExcel() {
+  window.location.href = `${endpoints.products}/products/export`;
 }
 
 export async function previewProductImport() {

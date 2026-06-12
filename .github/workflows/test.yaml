@@ -75,7 +75,6 @@ jobs:
               )
             fi
           done
-        continue-on-error: true
 
       - name: Lint deploy script
         run: bash -n deploy.sh

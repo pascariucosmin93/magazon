@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 from fastapi import HTTPException
 
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def enforce_rate_limit(key: str, limit: int, window_seconds: int) -> None:
     try:
-        current = redis_client.incr(key)
+        current = cast(int, redis_client.incr(key))
         if current == 1:
             redis_client.expire(key, window_seconds)
         if current > limit:
