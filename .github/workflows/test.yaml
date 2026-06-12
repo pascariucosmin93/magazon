@@ -150,7 +150,7 @@ jobs:
   build-images:
     name: Build Images
     runs-on: ubuntu-latest
-    needs: validate
+    needs: [validate, e2e]
     strategy:
       fail-fast: false
       max-parallel: 3
@@ -191,3 +191,41 @@ jobs:
           pull: true
           push: false
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.name }}:test-${{ github.sha }}
+
+  e2e:
+    name: End-to-End Critical Flow
+    runs-on: ubuntu-latest
+    needs: validate
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install E2E tooling and service dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          find services -name requirements.txt -print0 | xargs -0 -n1 pip install -r
+
+      - name: Start E2E infrastructure
+        run: docker compose -f tests/e2e/docker-compose.infra.yml up -d --wait
+
+      - name: Run E2E pytest
+        env:
+          PYTHONPATH: .
+        run: pytest tests/e2e -q
+
+      - name: Show E2E infrastructure logs on failure
+        if: failure()
+        run: docker compose -f tests/e2e/docker-compose.infra.yml logs --no-color
+
+      - name: Stop E2E infrastructure
+        if: always()
+        run: docker compose -f tests/e2e/docker-compose.infra.yml down -v --remove-orphans

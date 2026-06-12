@@ -128,6 +128,17 @@ GitHub Actions is used only for CI and container image publishing for Kubernetes
 - `.github/workflows/production.yaml`
   - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values.yaml` to that version, and pushes all images to GHCR with that exact tag
 
+End-to-end critical flow tests:
+
+- start real infra locally:
+  `docker compose -f tests/e2e/docker-compose.infra.yml up -d --wait`
+- run the E2E suite:
+  `PYTHONPATH=. pytest tests/e2e -q`
+- stop and clean infra:
+  `docker compose -f tests/e2e/docker-compose.infra.yml down -v --remove-orphans`
+- the suite starts local `uvicorn` processes for `auth-service`, `product-service`, `cart-service`, `order-service`, `inventory-service`, and `payment-service`, then verifies:
+  `auth -> cart -> order -> inventory reservation -> payment -> Stripe webhook -> order paid`
+
 Argo CD should handle deployment by syncing this repo or a separate GitOps repo after images are published.
 
 Published image format:
