@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from alembic.config import Config as AlembicConfig
 from alembic import command as alembic_command
-from fastapi import Depends, File, HTTPException, Query, UploadFile
+from fastapi import Depends, File, HTTPException, Query, Request, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Session
@@ -19,6 +19,7 @@ from shared.auth import current_user_claims
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.money import as_money, money_json
+from shared.rate_limit import enforce_rate_limit
 from shared.redis_client import redis_client
 from shared.service_app import create_base_app
 
@@ -87,6 +88,16 @@ class ProductRequest(BaseModel):
 class CategoryRequest(BaseModel):
     name: str
     description: str
+
+
+class ProductImportJob(Base):
+    __tablename__ = "product_import_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(255), nullable=False)
+    summary_json = Column(Text, nullable=False)
+    created_by = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
 
 def _run_migrations() -> None:
@@ -174,6 +185,16 @@ def serialize_category(category: Category) -> dict:
     return {"id": category.id, "name": category.name, "description": category.description}
 
 
+def serialize_import_job(job: ProductImportJob) -> dict:
+    return {
+        "id": job.id,
+        "filename": job.filename,
+        "summary": json.loads(job.summary_json),
+        "created_by": job.created_by,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+    }
+
+
 def normalize_sku(value: str) -> str:
     normalized = re.sub(r"[^A-Z0-9]+", "-", value.strip().upper()).strip("-")
     if not normalized:
@@ -243,9 +264,25 @@ def _sync_inventory_bulk(items: list[dict]) -> None:
         f"{INVENTORY_SERVICE_URL}/inventory/internal/bulk-seed",
         json={"items": items},
         timeout=10,
+        headers={"X-Internal-Api-Token": settings.internal_api_token or ""},
     )
     if response.status_code != 200:
         raise HTTPException(status_code=502, detail="Inventory service rejected bulk stock update")
+
+
+def _enforce_import_upload(file: UploadFile, file_bytes: bytes) -> None:
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Upload an .xlsx file")
+    if len(file_bytes) > settings.admin_import_max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Excel file exceeds {settings.admin_import_max_bytes} bytes",
+        )
+    if file.content_type not in {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/octet-stream",
+    }:
+        raise HTTPException(status_code=400, detail="Unsupported upload content type")
 
 
 def _load_import_rows(file_bytes: bytes) -> list[dict]:
@@ -360,7 +397,7 @@ def _build_import_preview(rows: list[dict], db: Session) -> dict:
     return {"summary": summary, "rows": preview_rows}
 
 
-def _apply_import(preview: dict, db: Session) -> dict:
+def _apply_import(preview: dict, db: Session, *, filename: str, created_by: str) -> dict:
     if preview["summary"]["error"]:
         raise HTTPException(status_code=400, detail="Fix import errors before apply")
 
@@ -424,11 +461,20 @@ def _apply_import(preview: dict, db: Session) -> dict:
     if inventory_updates:
         _sync_inventory_bulk(inventory_updates)
     redis_client.delete(PRODUCT_CACHE_KEY)
-    return {
+    result = {
         "message": "Import completed",
         "summary": applied,
         "rows": preview["rows"],
     }
+    db.add(
+        ProductImportJob(
+            filename=filename[:255],
+            summary_json=json.dumps(result["summary"]),
+            created_by=created_by[:255],
+        )
+    )
+    db.commit()
+    return result
 
 
 @app.get("/categories")
@@ -453,6 +499,57 @@ def list_products(
     if not include_archived:
         redis_client.setex(PRODUCT_CACHE_KEY, 120, json.dumps(products))
     return {"source": "database", "items": products}
+
+
+@app.get("/products/export")
+def export_products_excel(
+    include_archived: bool = Query(default=True),
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    from openpyxl import Workbook
+
+    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    query = db.query(Product)
+    if not include_archived:
+        query = query.filter(Product.archived_at.is_(None))
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Produse"
+    sheet.append(
+        [
+            "sku",
+            "name",
+            "description",
+            "price",
+            "category",
+            "active",
+            "archived_at",
+        ]
+    )
+    for product in query.order_by(Product.id).all():
+        category = categories_by_id.get(product.category_id)
+        sheet.append(
+            [
+                product.sku,
+                product.name,
+                product.description,
+                money_json(product.price),
+                category.name if category else "",
+                "true" if product.archived_at is None else "false",
+                product.archived_at.isoformat() if product.archived_at else "",
+            ]
+        )
+
+    payload = BytesIO()
+    workbook.save(payload)
+    payload.seek(0)
+    return StreamingResponse(
+        payload,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="magazon-products.xlsx"'},
+    )
 
 
 @app.get("/products/{product_id}")
@@ -587,25 +684,47 @@ def download_import_template(_admin=Depends(require_admin)):
     )
 
 
-@app.post("/products/import/preview")
-async def preview_product_import(
-    file: UploadFile = File(...),
+@app.get("/products/import/jobs")
+def list_product_import_jobs(
+    limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
     _admin=Depends(require_admin),
 ):
-    if not file.filename or not file.filename.lower().endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="Upload an .xlsx file")
-    preview = _build_import_preview(_load_import_rows(await file.read()), db)
+    jobs = (
+        db.query(ProductImportJob)
+        .order_by(ProductImportJob.created_at.desc(), ProductImportJob.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return {"items": [serialize_import_job(job) for job in jobs], "total": len(jobs)}
+
+
+@app.post("/products/import/preview")
+async def preview_product_import(
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin_claims: dict = Depends(require_admin),
+):
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"product:import-preview:{client_ip}", limit=20, window_seconds=900)
+    file_bytes = await file.read()
+    _enforce_import_upload(file, file_bytes)
+    preview = _build_import_preview(_load_import_rows(file_bytes), db)
     return {"message": "Preview generated", **preview}
 
 
 @app.post("/products/import/apply")
 async def apply_product_import(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _admin=Depends(require_admin),
+    admin_claims: dict = Depends(require_admin),
 ):
-    if not file.filename or not file.filename.lower().endswith(".xlsx"):
-        raise HTTPException(status_code=400, detail="Upload an .xlsx file")
-    preview = _build_import_preview(_load_import_rows(await file.read()), db)
-    return _apply_import(preview, db)
+    client_ip = request.client.host if request.client else "unknown"
+    enforce_rate_limit(f"product:import-apply:{client_ip}", limit=10, window_seconds=900)
+    file_bytes = await file.read()
+    _enforce_import_upload(file, file_bytes)
+    preview = _build_import_preview(_load_import_rows(file_bytes), db)
+    created_by = admin_claims.get("email") or admin_claims.get("sub") or "admin"
+    return _apply_import(preview, db, filename=file.filename or "upload.xlsx", created_by=created_by)

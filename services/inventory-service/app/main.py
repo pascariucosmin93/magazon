@@ -10,7 +10,7 @@ from sqlalchemy import Column, DateTime, Integer, String
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from shared.auth import current_user_claims
+from shared.auth import current_user_claims, require_internal_api_token
 from shared.config import settings
 from shared.db import Base, SessionLocal, get_db
 from shared.kafka import consume_topics, get_current_event, publish_event
@@ -282,6 +282,7 @@ def bulk_seed_inventory(
 def internal_bulk_seed_inventory(
     payload: BulkInventorySeedRequest,
     db: Session = Depends(get_db),
+    _internal=Depends(require_internal_api_token),
 ):
     updated = 0
     for item in payload.items:

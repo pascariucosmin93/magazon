@@ -140,6 +140,17 @@ def test_password_reset_request_returns_token_for_existing_account(monkeypatch):
         assert published[0][1]["reset_token"] == response["reset_token"]
 
 
+def test_internal_api_token_dependency_accepts_only_configured_secret(monkeypatch):
+    from shared import auth as shared_auth
+
+    monkeypatch.setattr(shared_auth.settings, "internal_api_token", "internal-secret")
+    shared_auth.require_internal_api_token("internal-secret")
+
+    with pytest.raises(HTTPException) as exc:
+        shared_auth.require_internal_api_token("wrong-token")
+    assert exc.value.status_code == 401
+
+
 def test_product_serializers_include_category_name():
     product_module = load_module("product_main", "services/product-service/app/main.py")
 
@@ -311,8 +322,14 @@ def test_product_import_apply_updates_products_and_archives(monkeypatch):
             ],
         }
 
-        result = product_module._apply_import(preview, db)
+        result = product_module._apply_import(
+            preview,
+            db,
+            filename="import.xlsx",
+            created_by="admin@example.com",
+        )
         products = db.query(product_module.Product).order_by(product_module.Product.sku).all()
+        jobs = db.query(product_module.ProductImportJob).all()
 
         assert result["summary"]["created"] == 1
         assert result["summary"]["updated"] == 1
@@ -321,6 +338,32 @@ def test_product_import_apply_updates_products_and_archives(monkeypatch):
         archived = db.query(product_module.Product).filter(product_module.Product.sku == "KB-001").one()
         assert archived.archived_at is not None
         assert inventory_updates
+        assert len(jobs) == 1
+        assert jobs[0].filename == "import.xlsx"
+        assert jobs[0].created_by == "admin@example.com"
+
+
+def test_product_inventory_sync_uses_internal_token(monkeypatch):
+    product_module = load_module("product_main_internal_sync", "services/product-service/app/main.py")
+    captured = {}
+
+    class DummyResponse:
+        status_code = 200
+
+    def fake_post(url, json=None, timeout=None, headers=None):
+        captured["url"] = url
+        captured["json"] = json
+        captured["timeout"] = timeout
+        captured["headers"] = headers
+        return DummyResponse()
+
+    monkeypatch.setattr(product_module.settings, "internal_api_token", "internal-secret")
+    monkeypatch.setattr(product_module.requests, "post", fake_post)
+
+    product_module._sync_inventory_bulk([{"product_id": 7, "stock": 12}])
+
+    assert captured["headers"]["X-Internal-Api-Token"] == "internal-secret"
+    assert captured["json"] == {"items": [{"product_id": 7, "stock": 12}]}
 
 
 def test_cart_response_includes_totals(monkeypatch):

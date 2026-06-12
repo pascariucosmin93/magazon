@@ -24,6 +24,7 @@ config:
 #     --from-literal=PAYMENT_POSTGRES_PASSWORD='...' \
 #     --from-literal=ADMIN_PASSWORD='...' \
 #     --from-literal=JWT_SECRET='...' \
+#     --from-literal=INTERNAL_API_TOKEN='...' \
 #     --from-literal=STRIPE_SECRET_KEY='sk_live_...' \
 #     --from-literal=STRIPE_WEBHOOK_SECRET='whsec_...'
 #   For automated injection use External Secrets Operator or Sealed Secrets.
@@ -34,6 +35,7 @@ config:
 #     --set secret.manage=true \
 #     --set secret.postgresPassword='...' \
 #     --set secret.jwtSecret='...' \
+#     --set secret.internalApiToken='...' \
 #     --set secret.stripeSecretKey='sk_live_...' \
 #     --set secret.stripeWebhookSecret='whsec_...'
 secret:
@@ -47,6 +49,7 @@ secret:
   paymentPostgresPassword: ""
   adminPassword: ""
   jwtSecret: ""
+  internalApiToken: ""
   stripeSecretKey: ""
   stripeWebhookSecret: ""
 

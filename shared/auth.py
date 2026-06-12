@@ -53,3 +53,13 @@ def require_user_id(user_id: int, claims: dict) -> None:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
     if token_user_id != user_id:
         raise HTTPException(status_code=403, detail="Token user does not match requested user")
+
+
+def require_internal_api_token(
+    x_internal_api_token: str | None = Header(default=None, alias="X-Internal-Api-Token"),
+) -> None:
+    configured_token = settings.internal_api_token
+    if not configured_token:
+        raise HTTPException(status_code=503, detail="Internal API token is not configured")
+    if x_internal_api_token != configured_token:
+        raise HTTPException(status_code=401, detail="Invalid internal API token")

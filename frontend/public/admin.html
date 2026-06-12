@@ -78,6 +78,7 @@
               <input id="admin-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
               <div class="admin-button-row">
                 <button class="secondary" type="button" onclick="downloadImportTemplate()">Descarcă template</button>
+                <button class="secondary" type="button" onclick="exportProductsExcel()">Exportă produse</button>
                 <button class="secondary" type="button" onclick="previewProductImport()">Preview import</button>
                 <button class="primary" type="button" onclick="applyProductImport()">Aplică importul</button>
               </div>
@@ -89,6 +90,16 @@
           </div>
           <pre class="admin-result" id="admin-output">Acțiunile admin vor apărea aici.</pre>
         </div>
+      </section>
+
+      <section class="panel admin-data-section">
+        <div class="panel-head">
+          <div>
+            <h2>Istoric importuri</h2>
+            <p class="panel-subtitle">Ultimele importuri aplicate în admin, cu sumar create/update/archive.</p>
+          </div>
+        </div>
+        <div class="admin-content" id="admin-import-jobs"><div class="empty">Se încarcă...</div></div>
       </section>
 
       <section class="panel admin-data-section">
