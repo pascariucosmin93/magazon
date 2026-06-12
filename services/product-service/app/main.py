@@ -1,6 +1,7 @@
 import os
 import json
 import re
+from typing import Any, cast
 from io import BytesIO
 from datetime import datetime
 from decimal import Decimal
@@ -166,18 +167,51 @@ def require_admin(claims: dict = Depends(current_user_claims)):
     return claims
 
 
+def _product_id(product: Product) -> int:
+    return cast(int, product.id)
+
+
+def _product_sku(product: Product) -> str:
+    return cast(str, product.sku)
+
+
+def _product_name(product: Product) -> str:
+    return cast(str, product.name)
+
+
+def _product_description(product: Product) -> str:
+    return cast(str, product.description)
+
+
+def _product_category_id(product: Product) -> int | None:
+    return cast(int | None, product.category_id)
+
+
+def _product_archived_at(product: Product) -> datetime | None:
+    return cast(datetime | None, product.archived_at)
+
+
+def _set_product_sku(product: Product, value: str) -> None:
+    cast(Any, product).sku = value
+
+
+def _set_product_archived_at(product: Product, value: datetime | None) -> None:
+    cast(Any, product).archived_at = value
+
+
 def serialize_product(product: Product, categories_by_id: dict[int, Category]) -> dict:
-    category = categories_by_id.get(product.category_id)
+    category = categories_by_id.get(_product_category_id(product))
+    archived_at = _product_archived_at(product)
     return {
-        "id": product.id,
-        "sku": product.sku,
-        "name": product.name,
-        "description": product.description,
+        "id": _product_id(product),
+        "sku": _product_sku(product),
+        "name": _product_name(product),
+        "description": _product_description(product),
         "price": money_json(product.price),
-        "category_id": product.category_id,
+        "category_id": _product_category_id(product),
         "category_name": category.name if category else None,
-        "archived": product.archived_at is not None,
-        "archived_at": product.archived_at.isoformat() if product.archived_at else None,
+        "archived": archived_at is not None,
+        "archived_at": archived_at.isoformat() if archived_at else None,
     }
 
 
@@ -189,7 +223,7 @@ def serialize_import_job(job: ProductImportJob) -> dict:
     return {
         "id": job.id,
         "filename": job.filename,
-        "summary": json.loads(job.summary_json),
+        "summary": json.loads(cast(str, job.summary_json)),
         "created_by": job.created_by,
         "created_at": job.created_at.isoformat() if job.created_at else None,
     }
@@ -325,7 +359,7 @@ def _build_import_preview(rows: list[dict], db: Session) -> dict:
         for category in db.query(Category).all()
     }
     existing_products = {
-        product.sku: product
+        _product_sku(product): product
         for product in db.query(Product).all()
     }
     preview_rows: list[dict] = []
@@ -422,9 +456,9 @@ def _apply_import(preview: dict, db: Session, *, filename: str, created_by: str)
         product = db.query(Product).filter(Product.sku == row["sku"]).first()
         if row["action"] == "archive":
             assert product is not None
-            product.archived_at = datetime.utcnow()
+            _set_product_archived_at(product, datetime.utcnow())
             db.add(product)
-            inventory_updates.append({"product_id": product.id, "stock": 0})
+            inventory_updates.append({"product_id": _product_id(product), "stock": 0})
             applied["archived"] += 1
             applied["stock_updates"] += 1
             continue
@@ -435,7 +469,7 @@ def _apply_import(preview: dict, db: Session, *, filename: str, created_by: str)
             product.description = row["description"]
             product.price = as_money(row["price"])
             product.category_id = category.id
-            product.archived_at = None
+            _set_product_archived_at(product, None)
             db.add(product)
             applied["updated"] += 1
             if restored:
@@ -454,7 +488,7 @@ def _apply_import(preview: dict, db: Session, *, filename: str, created_by: str)
             applied["created"] += 1
 
         if row["stock"] is not None:
-            inventory_updates.append({"product_id": product.id, "stock": int(row["stock"])})
+            inventory_updates.append({"product_id": _product_id(product), "stock": int(row["stock"])})
             applied["stock_updates"] += 1
 
     db.commit()
@@ -491,7 +525,7 @@ def list_products(
     if cached and not include_archived:
         return {"source": "cache", "items": json.loads(cached)}
 
-    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    categories_by_id = {cast(int, category.id): category for category in db.query(Category).all()}
     query = db.query(Product)
     if not include_archived:
         query = query.filter(Product.archived_at.is_(None))
@@ -509,7 +543,7 @@ def export_products_excel(
 ):
     from openpyxl import Workbook
 
-    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    categories_by_id = {cast(int, category.id): category for category in db.query(Category).all()}
     query = db.query(Product)
     if not include_archived:
         query = query.filter(Product.archived_at.is_(None))
@@ -529,16 +563,17 @@ def export_products_excel(
         ]
     )
     for product in query.order_by(Product.id).all():
-        category = categories_by_id.get(product.category_id)
+        category = categories_by_id.get(_product_category_id(product))
+        archived_at = _product_archived_at(product)
         sheet.append(
             [
-                product.sku,
-                product.name,
-                product.description,
+                _product_sku(product),
+                _product_name(product),
+                _product_description(product),
                 money_json(product.price),
                 category.name if category else "",
-                "true" if product.archived_at is None else "false",
-                product.archived_at.isoformat() if product.archived_at else "",
+                "true" if archived_at is None else "false",
+                archived_at.isoformat() if archived_at else "",
             ]
         )
 
@@ -557,7 +592,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product or product.archived_at is not None:
         raise HTTPException(status_code=404, detail="Product not found")
-    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    categories_by_id = {cast(int, category.id): category for category in db.query(Category).all()}
     return serialize_product(product, categories_by_id)
 
 
@@ -583,11 +618,11 @@ def create_product(
     db.add(product)
     db.flush()
     if not requested_sku:
-        product.sku = generate_sku(product.name, product.id)
+        _set_product_sku(product, generate_sku(_product_name(product), _product_id(product)))
     db.commit()
     db.refresh(product)
     redis_client.delete(PRODUCT_CACHE_KEY)
-    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    categories_by_id = {cast(int, category.id): category for category in db.query(Category).all()}
     return serialize_product(product, categories_by_id)
 
 
@@ -620,12 +655,12 @@ def update_product(
         values["sku"] = requested_sku
     for field, value in values.items():
         setattr(product, field, value)
-    product.archived_at = None
+    _set_product_archived_at(product, None)
     db.add(product)
     db.commit()
     db.refresh(product)
     redis_client.delete(PRODUCT_CACHE_KEY)
-    categories_by_id = {category.id: category for category in db.query(Category).all()}
+    categories_by_id = {cast(int, category.id): category for category in db.query(Category).all()}
     return serialize_product(product, categories_by_id)
 
 
