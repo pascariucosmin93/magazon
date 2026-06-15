@@ -19,22 +19,30 @@ if not __package__:
         sys.modules.pop(module_name, None)
 
 import inventory_logic as inventory_logic_module  # noqa: E402
-from inventory_logic import _mark_event_processed, _set_inventory_stock, handle_order_event, upsert_inventory_item  # noqa: E402
-from inventory_models import Inventory, InventoryReservation, ProcessedMessage  # noqa: E402
-from inventory_routes import (  # noqa: E402
-    bulk_seed_inventory,
-    get_inventory,
-    internal_bulk_seed_inventory,
-    list_inventory,
-    require_admin,
-    router,
-    seed_inventory,
-)
-from inventory_schemas import BulkInventorySeedItem, BulkInventorySeedRequest, InventorySeedRequest  # noqa: E402
+import inventory_models as inventory_models_module  # noqa: E402
+import inventory_routes as inventory_routes_module  # noqa: E402
+import inventory_schemas as inventory_schemas_module  # noqa: E402
 from shared.config import settings  # noqa: E402
 from shared.db import Base, SessionLocal  # noqa: E402
 from shared.kafka import consume_topics, publish_event  # noqa: E402
 from shared.service_app import create_base_app  # noqa: E402
+
+Inventory = inventory_models_module.Inventory
+InventoryReservation = inventory_models_module.InventoryReservation
+ProcessedMessage = inventory_models_module.ProcessedMessage
+InventorySeedRequest = inventory_schemas_module.InventorySeedRequest
+BulkInventorySeedItem = inventory_schemas_module.BulkInventorySeedItem
+BulkInventorySeedRequest = inventory_schemas_module.BulkInventorySeedRequest
+_set_inventory_stock = inventory_logic_module._set_inventory_stock
+_mark_event_processed = inventory_logic_module._mark_event_processed
+upsert_inventory_item = inventory_logic_module.upsert_inventory_item
+require_admin = inventory_routes_module.require_admin
+list_inventory = inventory_routes_module.list_inventory
+get_inventory = inventory_routes_module.get_inventory
+seed_inventory = inventory_routes_module.seed_inventory
+bulk_seed_inventory = inventory_routes_module.bulk_seed_inventory
+internal_bulk_seed_inventory = inventory_routes_module.internal_bulk_seed_inventory
+router = inventory_routes_module.router
 
 __all__ = [
     "Base",

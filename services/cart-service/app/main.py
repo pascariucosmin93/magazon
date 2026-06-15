@@ -13,21 +13,23 @@ if not __package__:
         sys.modules.pop(module_name, None)
 
 import cart_logic as cart_logic_module  # noqa: E402
-from cart_logic import PRODUCT_SERVICE_URL, cart_key  # noqa: E402
-from cart_routes import (  # noqa: E402
-    add_to_cart,
-    clear_cart,
-    remove_cart_item,
-    replace_cart,
-    router,
-)
-from cart_schemas import CartItemRequest  # noqa: E402
+import cart_routes as cart_routes_module  # noqa: E402
+import cart_schemas as cart_schemas_module  # noqa: E402
 from shared.auth import require_user_id  # noqa: E402
 from shared.money import as_money, money_json  # noqa: E402
 from shared.redis_client import redis_client  # noqa: E402
 from shared.service_app import create_base_app  # noqa: E402
 
 __all__ = ["CartItemRequest"]
+
+PRODUCT_SERVICE_URL = cart_logic_module.PRODUCT_SERVICE_URL
+CartItemRequest = cart_schemas_module.CartItemRequest
+cart_key = cart_logic_module.cart_key
+add_to_cart = cart_routes_module.add_to_cart
+clear_cart = cart_routes_module.clear_cart
+remove_cart_item = cart_routes_module.remove_cart_item
+replace_cart = cart_routes_module.replace_cart
+router = cart_routes_module.router
 
 
 def fetch_product(product_id: int):

@@ -19,63 +19,63 @@ if not __package__:
     ):
         sys.modules.pop(module_name, None)
 
-from product_import import (  # noqa: E402
-    CATEGORY_ALIASES,
-    IMPORT_HEADER_ALIASES,
-    IMPORT_REQUIRED_HEADERS,
-    INVENTORY_SERVICE_URL,
-    PRODUCT_CACHE_KEY,
-    _apply_import,
-    _build_import_preview,
-    _enforce_import_upload,
-    _load_import_rows,
-    _parse_import_active,
-    _parse_import_decimal,
-    _parse_import_operation,
-    _parse_import_stock,
-    _sync_inventory_bulk,
-    build_import_template,
-    build_products_export,
-    canonical_category_name,
-    generate_sku,
-    normalize_sku,
-)
 import product_import as product_import_module  # noqa: E402
-from product_models import Category, Product, ProductImportJob  # noqa: E402
-from product_routes import (  # noqa: E402
-    apply_product_import,
-    create_category,
-    create_product,
-    delete_product,
-    download_import_template,
-    export_products_excel,
-    get_product,
-    list_categories,
-    list_product_import_jobs,
-    list_products,
-    preview_product_import,
-    require_admin,
-    router,
-    update_product,
-)
-from product_schemas import CategoryRequest, ProductRequest  # noqa: E402
-from product_serializers import (  # noqa: E402
-    _product_archived_at,
-    _product_category_id,
-    _product_description,
-    _product_id,
-    _product_name,
-    _product_sku,
-    _set_product_archived_at,
-    _set_product_sku,
-    serialize_category,
-    serialize_import_job,
-    serialize_product,
-)
+import product_models as product_models_module  # noqa: E402
+import product_routes as product_routes_module  # noqa: E402
+import product_schemas as product_schemas_module  # noqa: E402
+import product_serializers as product_serializers_module  # noqa: E402
 from shared.config import settings  # noqa: E402
 from shared.db import Base, SessionLocal  # noqa: E402
 from shared.redis_client import redis_client  # noqa: E402
 from shared.service_app import create_base_app  # noqa: E402
+
+CATEGORY_ALIASES = product_import_module.CATEGORY_ALIASES
+IMPORT_HEADER_ALIASES = product_import_module.IMPORT_HEADER_ALIASES
+IMPORT_REQUIRED_HEADERS = product_import_module.IMPORT_REQUIRED_HEADERS
+INVENTORY_SERVICE_URL = product_import_module.INVENTORY_SERVICE_URL
+PRODUCT_CACHE_KEY = product_import_module.PRODUCT_CACHE_KEY
+_build_import_preview = product_import_module._build_import_preview
+_enforce_import_upload = product_import_module._enforce_import_upload
+_load_import_rows = product_import_module._load_import_rows
+_parse_import_active = product_import_module._parse_import_active
+_parse_import_decimal = product_import_module._parse_import_decimal
+_parse_import_operation = product_import_module._parse_import_operation
+_parse_import_stock = product_import_module._parse_import_stock
+build_import_template = product_import_module.build_import_template
+build_products_export = product_import_module.build_products_export
+canonical_category_name = product_import_module.canonical_category_name
+generate_sku = product_import_module.generate_sku
+normalize_sku = product_import_module.normalize_sku
+Category = product_models_module.Category
+Product = product_models_module.Product
+ProductImportJob = product_models_module.ProductImportJob
+apply_product_import = product_routes_module.apply_product_import
+create_category = product_routes_module.create_category
+create_product = product_routes_module.create_product
+delete_product = product_routes_module.delete_product
+download_import_template = product_routes_module.download_import_template
+export_products_excel = product_routes_module.export_products_excel
+get_product = product_routes_module.get_product
+list_categories = product_routes_module.list_categories
+list_product_import_jobs = product_routes_module.list_product_import_jobs
+list_products = product_routes_module.list_products
+preview_product_import = product_routes_module.preview_product_import
+require_admin = product_routes_module.require_admin
+update_product = product_routes_module.update_product
+router = product_routes_module.router
+CategoryRequest = product_schemas_module.CategoryRequest
+ProductRequest = product_schemas_module.ProductRequest
+_product_archived_at = product_serializers_module._product_archived_at
+_product_category_id = product_serializers_module._product_category_id
+_product_description = product_serializers_module._product_description
+_product_id = product_serializers_module._product_id
+_product_name = product_serializers_module._product_name
+_product_sku = product_serializers_module._product_sku
+_set_product_archived_at = product_serializers_module._set_product_archived_at
+_set_product_sku = product_serializers_module._set_product_sku
+serialize_category = product_serializers_module.serialize_category
+serialize_import_job = product_serializers_module.serialize_import_job
+serialize_product = product_serializers_module.serialize_product
 
 __all__ = [
     "Base",
@@ -96,7 +96,12 @@ def _run_migrations() -> None:
 
 
 def _sync_inventory_bulk(items: list[dict]) -> None:
-    product_import_module._sync_inventory_bulk(items)
+    original_requests = product_import_module.requests
+    product_import_module.requests = requests
+    try:
+        product_import_module._sync_inventory_bulk(items)
+    finally:
+        product_import_module.requests = original_requests
 
 
 def _apply_import(preview: dict, db, *, filename: str, created_by: str) -> dict:

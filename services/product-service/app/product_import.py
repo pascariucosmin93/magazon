@@ -3,7 +3,6 @@ import os
 import re
 from datetime import datetime
 from io import BytesIO
-from uuid import uuid4
 
 import requests
 from fastapi import HTTPException, UploadFile
