@@ -1,45 +1,42 @@
-import os
-from typing import Any
+import sys
+from pathlib import Path
 
-from fastapi import Depends, HTTPException
-from pydantic import BaseModel
-import requests
+APP_DIR = Path(__file__).resolve().parent
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
+if not __package__:
+    for module_name in (
+        "cart_logic",
+        "cart_routes",
+        "cart_schemas",
+    ):
+        sys.modules.pop(module_name, None)
 
-from shared.auth import current_user_claims, require_user_id
-from shared.money import as_money, money_json
-from shared.redis_client import redis_client
-from shared.service_app import create_base_app
+import cart_logic as cart_logic_module  # noqa: E402
+import cart_routes as cart_routes_module  # noqa: E402
+import cart_schemas as cart_schemas_module  # noqa: E402
+from shared.auth import require_user_id  # noqa: E402
+from shared.money import as_money, money_json  # noqa: E402
+from shared.redis_client import redis_client  # noqa: E402
+from shared.service_app import create_base_app  # noqa: E402
 
+__all__ = ["CartItemRequest"]
 
-app = create_base_app("cart-service", check_redis=True)
-PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL", "http://product-service:8000")
-
-
-class CartItemRequest(BaseModel):
-    user_id: int
-    product_id: int
-    quantity: int = 1
-
-
-def cart_key(user_id: int) -> str:
-    return f"cart:{user_id}"
-
-
-def fetch_product(product_id: int) -> dict[str, Any] | None:
-    try:
-        response = requests.get(
-            f"{PRODUCT_SERVICE_URL}/products/{product_id}",
-            timeout=3,
-        )
-        if response.status_code == 200:
-            return response.json()
-    except requests.RequestException:
-        return None
-    return None
+PRODUCT_SERVICE_URL = cart_logic_module.PRODUCT_SERVICE_URL
+CartItemRequest = cart_schemas_module.CartItemRequest
+cart_key = cart_logic_module.cart_key
+add_to_cart = cart_routes_module.add_to_cart
+clear_cart = cart_routes_module.clear_cart
+remove_cart_item = cart_routes_module.remove_cart_item
+replace_cart = cart_routes_module.replace_cart
+router = cart_routes_module.router
 
 
-@app.get("/cart/{user_id}")
-def get_cart(user_id: int, claims: dict = Depends(current_user_claims)):
+def fetch_product(product_id: int):
+    return cart_logic_module.fetch_product(product_id)
+
+
+def get_cart(user_id: int, claims: dict):
     require_user_id(user_id, claims)
     items = redis_client.hgetall(cart_key(user_id))
     result = []
@@ -65,39 +62,5 @@ def get_cart(user_id: int, claims: dict = Depends(current_user_claims)):
     return {"user_id": user_id, "items": result, "total": money_json(total)}
 
 
-@app.post("/cart/add")
-def add_to_cart(payload: CartItemRequest, claims: dict = Depends(current_user_claims)):
-    require_user_id(payload.user_id, claims)
-    if payload.quantity < 1:
-        raise HTTPException(status_code=400, detail="Quantity must be >= 1")
-
-    redis_client.hincrby(cart_key(payload.user_id), payload.product_id, payload.quantity)
-    redis_client.expire(cart_key(payload.user_id), 86400)
-    return {"message": "Item added to cart"}
-
-
-@app.delete("/cart/{user_id}")
-def clear_cart(user_id: int, claims: dict = Depends(current_user_claims)):
-    require_user_id(user_id, claims)
-    redis_client.delete(cart_key(user_id))
-    return {"message": "Cart cleared"}
-
-
-@app.post("/cart/replace")
-def replace_cart(payload: CartItemRequest, claims: dict = Depends(current_user_claims)):
-    require_user_id(payload.user_id, claims)
-    if payload.quantity < 1:
-        redis_client.hdel(cart_key(payload.user_id), payload.product_id)
-        redis_client.expire(cart_key(payload.user_id), 86400)
-        return {"message": "Item removed from cart"}
-    redis_client.hset(cart_key(payload.user_id), payload.product_id, payload.quantity)
-    redis_client.expire(cart_key(payload.user_id), 86400)
-    return {"message": "Cart updated"}
-
-
-@app.delete("/cart/{user_id}/items/{product_id}")
-def remove_cart_item(user_id: int, product_id: int, claims: dict = Depends(current_user_claims)):
-    require_user_id(user_id, claims)
-    redis_client.hdel(cart_key(user_id), product_id)
-    redis_client.expire(cart_key(user_id), 86400)
-    return {"message": "Item removed from cart"}
+app = create_base_app("cart-service", check_redis=True)
+app.include_router(router)
