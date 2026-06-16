@@ -126,7 +126,7 @@ GitHub Actions is used only for CI and container image publishing for Kubernetes
 - `.github/workflows/test.yaml`
   - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, and builds all container images without pushing
 - `.github/workflows/production.yaml`
-  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), updates `helm/microshop/values.yaml` to that version, and pushes all images to GHCR with that exact tag
+  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), pushes all images to GHCR with that exact tag, and updates the production Argo CD application and values in `pascariucosmin93/magazon-gitops`
 
 End-to-end critical flow tests:
 
@@ -139,7 +139,11 @@ End-to-end critical flow tests:
 - the suite starts local `uvicorn` processes for `auth-service`, `product-service`, `cart-service`, `order-service`, `inventory-service`, and `payment-service`, then verifies:
   `auth -> cart -> order -> inventory reservation -> payment -> Stripe webhook -> order paid`
 
-Argo CD should handle deployment by syncing this repo or a separate GitOps repo after images are published.
+Argo CD should handle deployment by syncing the separate GitOps repo after images are published:
+
+```text
+https://github.com/pascariucosmin93/magazon-gitops
+```
 
 Published image format:
 
@@ -157,18 +161,20 @@ ghcr.io/pascariucosmin93/magazon/frontend:0.0.2
 ### Argo CD Flow
 
 1. GitHub Actions builds and pushes images to GHCR.
-2. Helm values point to those published images.
-3. Kafka is installed separately with Helm.
-4. Argo CD syncs the Helm chart and pulls images from GHCR into the cluster.
+2. GitHub Actions updates `applications/microshop-prod.yaml` and `environments/prod/values.yaml` in `pascariucosmin93/magazon-gitops`.
+3. Helm values point to those published images.
+4. Kafka is installed separately with Helm.
+5. Argo CD syncs the Helm chart from this repo with production values from `magazon-gitops`, then pulls images from GHCR into the cluster.
 
 The version sequence is driven by Git tags already present in the repository. The first release becomes `0.0.1`, then `0.0.2`, and so on.
 
-Helm image values use explicit `repository` + `tag` pairs, and the production pipeline automatically bumps all image tags in `helm/microshop/values.yaml` to the new release version so Argo CD deploys that exact version instead of `latest`.
+Helm image values use explicit `repository` + `tag` pairs, and the production pipeline automatically pins the chart revision plus all image tags to the new release version so Argo CD deploys that exact version instead of `latest`.
 
 ### Required GitHub setup
 
 - enable GitHub Actions for the repository
 - allow `GITHUB_TOKEN` to write packages
+- create `GITOPS_REPO_TOKEN` with write access to `pascariucosmin93/magazon-gitops`
 
 ### Kubernetes with raw manifests
 
