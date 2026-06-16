@@ -49,9 +49,11 @@ def ask_ollama(payload: ChatRequest) -> str:
                 "model": OLLAMA_MODEL,
                 "messages": _ollama_messages(payload),
                 "stream": False,
+                "keep_alive": "30m",
                 "options": {
                     "temperature": 0.4,
-                    "num_ctx": 4096,
+                    "num_ctx": 1024,
+                    "num_predict": 160,
                 },
             },
             timeout=OLLAMA_TIMEOUT_SECONDS,
