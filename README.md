@@ -126,7 +126,7 @@ GitHub Actions is used only for CI and container image publishing for Kubernetes
 - `.github/workflows/test.yaml`
   - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, and builds all container images without pushing
 - `.github/workflows/production.yaml`
-  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), pushes all images to GHCR with that exact tag, and updates the production Argo CD application and values in `pascariucosmin93/magazon-gitops`
+  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), pushes all images to GHCR with that exact tag, updates the production Argo CD application and values in `pascariucosmin93/magazon-gitops`, then optionally runs post-deploy smoke checks
 
 End-to-end critical flow tests:
 
@@ -175,6 +175,11 @@ Helm image values use explicit `repository` + `tag` pairs, and the production pi
 - enable GitHub Actions for the repository
 - allow `GITHUB_TOKEN` to write packages
 - create `GITOPS_REPO_TOKEN` with write access to `pascariucosmin93/magazon-gitops`
+- optional post-deploy smoke checks:
+  - set repository variable `POST_DEPLOY_SMOKE_BASE_URL` to the public store URL, for example `http://192.168.1.8:8081`
+  - set repository variable `POST_DEPLOY_SMOKE_ADMIN_EMAIL` if it differs from `admin@microshop.local`
+  - set repository secret `POST_DEPLOY_SMOKE_ADMIN_PASSWORD` to also verify admin login
+  - if the URL is private/LAN-only, run the workflow on a self-hosted runner that can reach it
 
 ### Kubernetes with raw manifests
 
