@@ -1,8 +1,16 @@
 import os
+import sys
 import uuid
+from pathlib import Path
 
 from fastapi import HTTPException
 import requests
+
+APP_DIR = Path(__file__).resolve().parent
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
+if not __package__:
+    sys.modules.pop("chat_schemas", None)
 
 from chat_schemas import ChatRequest, ChatResponse
 from shared.service_app import create_base_app
