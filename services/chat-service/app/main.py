@@ -12,8 +12,10 @@ if str(APP_DIR) not in sys.path:
 if not __package__:
     sys.modules.pop("chat_schemas", None)
 
-from chat_schemas import ChatRequest, ChatResponse
+from chat_schemas import ChatMessage, ChatRequest, ChatResponse
 from shared.service_app import create_base_app
+
+__all__ = ["ChatMessage", "ChatRequest", "ChatResponse"]
 
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434").rstrip("/")
