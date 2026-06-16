@@ -315,6 +315,8 @@ jobs:
             dockerfile: services/payment-service/Dockerfile
           - name: notification-service
             dockerfile: services/notification-service/Dockerfile
+          - name: chat-service
+            dockerfile: services/chat-service/Dockerfile
           - name: frontend
             dockerfile: frontend/Dockerfile
     permissions:

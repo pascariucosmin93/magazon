@@ -264,8 +264,31 @@
       </footer>
     </div>
 
+    <div class="chat-widget" id="chat-widget">
+      <section class="chat-panel" id="chat-panel" hidden aria-label="Chat AI Magazon">
+        <header class="chat-head">
+          <div>
+            <strong>Asistent Magazon</strong>
+            <span>Recomandări rapide pentru cumpărături</span>
+          </div>
+          <button class="chat-close" type="button" onclick="toggleChat()" aria-label="Închide chat">×</button>
+        </header>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-message assistant">Salut. Te pot ajuta cu produse, coș, checkout sau cont.</div>
+        </div>
+        <form class="chat-form" onsubmit="sendChatMessage(); return false;">
+          <textarea id="chat-input" rows="1" placeholder="Scrie întrebarea..." onkeydown="handleChatKeydown(event)"></textarea>
+          <button id="chat-send" type="submit">Trimite</button>
+        </form>
+      </section>
+      <button class="chat-toggle" id="chat-toggle" type="button" onclick="toggleChat()" aria-expanded="false">
+        Chat AI
+      </button>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script type="module" src="/assets/js/storefront.js?v=6"></script>
+    <script type="module" src="/assets/js/chat/widget.js?v=1"></script>
   </body>
 </html>

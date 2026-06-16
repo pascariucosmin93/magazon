@@ -151,6 +151,29 @@ def test_internal_api_token_dependency_accepts_only_configured_secret(monkeypatc
     assert exc.value.status_code == 401
 
 
+def test_chat_service_builds_ollama_messages_and_returns_reply(monkeypatch):
+    chat_module = load_module("chat_main", "services/chat-service/app/main.py")
+
+    request = chat_module.ChatRequest(
+        message="Ai laptopuri pentru birou?",
+        history=[
+            chat_module.ChatMessage(role="user", content="Salut"),
+            chat_module.ChatMessage(role="assistant", content="Salut. Cu ce te ajut?"),
+        ],
+    )
+
+    messages = chat_module._ollama_messages(request)
+    assert messages[0]["role"] == "system"
+    assert messages[-1] == {"role": "user", "content": "Ai laptopuri pentru birou?"}
+
+    monkeypatch.setattr(chat_module, "ask_ollama", lambda _payload: "Da, verifica sectiunea Laptopuri.")
+    response = chat_module.create_chat_message(request)
+
+    assert response.reply == "Da, verifica sectiunea Laptopuri."
+    assert response.model == chat_module.OLLAMA_MODEL
+    assert response.conversation_id
+
+
 def test_product_serializers_include_category_name():
     product_module = load_module("product_main", "services/product-service/app/main.py")
 

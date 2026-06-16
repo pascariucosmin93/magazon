@@ -11,6 +11,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 - `inventory-service`: stock reservation and inventory updates
 - `payment-service`: Stripe payment/refund flow with a persistent Kafka outbox
 - `notification-service`: consumes Kafka events and logs notifications
+- `chat-service`: AI shopping assistant backed by Ollama
 - `frontend`: storefront, dedicated product pages and a role-protected admin UI for products, users, orders, inventory and payments
 
 ## Infrastructure
@@ -18,6 +19,7 @@ Microshop e-commerce platform built with FastAPI microservices, PostgreSQL, Redi
 - PostgreSQL: external persistent data source, configured per environment through Helm values overrides
 - Redis: cart storage and product cache
 - Kafka: external event bus installed separately with Helm
+- Ollama: internal AI model endpoint consumed by `chat-service`
 - Kubernetes manifests: raw `kubectl` deployment
 - Helm chart: reusable deployment into namespace `microshop`
 
@@ -83,6 +85,13 @@ Configure Stripe to send checkout and refund events to
 
 `INTERNAL_API_TOKEN` should be shared between services for internal-only calls
 such as the product import stock sync into `inventory-service`.
+
+`chat-service` uses Ollama through `OLLAMA_BASE_URL`. If Ollama runs in the
+`ollama` namespace as a ClusterIP service named `ollama`, use:
+
+```text
+OLLAMA_BASE_URL=http://ollama.ollama.svc.cluster.local:11434
+```
 
 ### Kubernetes with Helm
 

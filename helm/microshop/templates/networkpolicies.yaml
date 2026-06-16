@@ -221,6 +221,36 @@ spec:
           protocol: TCP
     {{- end }}
 ---
+# chat-service: called by frontend and then reaches Ollama through cluster DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: chat-service-ingress
+  namespace: {{ include "microshop.namespace" . }}
+spec:
+  podSelector:
+    matchLabels:
+      app: chat-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+      ports:
+        - port: 8000
+          protocol: TCP
+    {{- if .Values.networkPolicies.monitoringNamespace }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.networkPolicies.monitoringNamespace }}
+      ports:
+        - port: 8000
+          protocol: TCP
+    {{- end }}
+---
 # notification-service: no HTTP callers — only Kafka events
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
