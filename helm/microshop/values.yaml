@@ -12,6 +12,7 @@ config:
   PUBLIC_BASE_URL: "http://192.168.1.8:8081"
   OLLAMA_BASE_URL: "http://ollama.ollama.svc.cluster.local:11434"
   OLLAMA_MODEL: "llama3.2:1b"
+  OLLAMA_TIMEOUT_SECONDS: "180"
 
 # Secret management strategy:
 #

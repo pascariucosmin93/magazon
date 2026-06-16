@@ -14,3 +14,4 @@ data:
   PUBLIC_BASE_URL: {{ .Values.config.PUBLIC_BASE_URL | quote }}
   OLLAMA_BASE_URL: {{ .Values.config.OLLAMA_BASE_URL | quote }}
   OLLAMA_MODEL: {{ .Values.config.OLLAMA_MODEL | quote }}
+  OLLAMA_TIMEOUT_SECONDS: {{ .Values.config.OLLAMA_TIMEOUT_SECONDS | quote }}
