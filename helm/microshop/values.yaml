@@ -11,7 +11,7 @@ config:
   KAFKA_BOOTSTRAP_SERVERS: kafka.kafka.svc.cluster.local:9092
   PUBLIC_BASE_URL: "http://192.168.1.8:8081"
   OLLAMA_BASE_URL: "http://ollama.ollama.svc.cluster.local:11434"
-  OLLAMA_MODEL: "llama3.2:3b"
+  OLLAMA_MODEL: "llama3.2:1b"
 
 # Secret management strategy:
 #
