@@ -12,8 +12,8 @@ if str(APP_DIR) not in sys.path:
 if not __package__:
     sys.modules.pop("chat_schemas", None)
 
-from chat_schemas import ChatMessage, ChatRequest, ChatResponse
-from shared.service_app import create_base_app
+from chat_schemas import ChatMessage, ChatRequest, ChatResponse  # noqa: E402
+from shared.service_app import create_base_app  # noqa: E402
 
 __all__ = ["ChatMessage", "ChatRequest", "ChatResponse"]
 
