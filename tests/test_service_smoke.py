@@ -166,12 +166,52 @@ def test_chat_service_builds_ollama_messages_and_returns_reply(monkeypatch):
     assert messages[0]["role"] == "system"
     assert messages[-1] == {"role": "user", "content": "Ai laptopuri pentru birou?"}
 
+    monkeypatch.setattr(chat_module, "_catalog_reply", lambda _message: None)
     monkeypatch.setattr(chat_module, "ask_ollama", lambda _payload: "Da, verifica sectiunea Laptopuri.")
     response = chat_module.create_chat_message(request)
 
     assert response.reply == "Da, verifica sectiunea Laptopuri."
     assert response.model == chat_module.OLLAMA_MODEL
     assert response.conversation_id
+
+
+def test_chat_service_answers_product_stock_from_catalog(monkeypatch):
+    chat_module = load_module("chat_main_catalog", "services/chat-service/app/main.py")
+
+    monkeypatch.setattr(
+        chat_module,
+        "_fetch_products",
+        lambda: [
+            {
+                "id": 10,
+                "sku": "KB-001",
+                "name": "Mechanical Keyboard",
+                "description": "Tastatura mecanica pentru gaming",
+                "price": "199.99",
+                "category_name": "Periferice",
+                "archived": False,
+            },
+            {
+                "id": 11,
+                "sku": "MOUSE-001",
+                "name": "Wireless Mouse",
+                "description": "Mouse wireless",
+                "price": "89.99",
+                "category_name": "Periferice",
+                "archived": False,
+            },
+        ],
+    )
+    monkeypatch.setattr(chat_module, "_fetch_stock", lambda product_id: 7 if product_id == 10 else 0)
+
+    response = chat_module.create_chat_message(
+        chat_module.ChatRequest(message="Ce tastaturi aveti in stoc?")
+    )
+
+    assert response.model == "catalog"
+    assert "Mechanical Keyboard" in response.reply
+    assert "stoc: 7" in response.reply
+    assert "Wireless Mouse" not in response.reply
 
 
 def test_product_serializers_include_category_name():

@@ -85,6 +85,9 @@ spec:
         - podSelector:
             matchLabels:
               app: order-service
+        - podSelector:
+            matchLabels:
+              app: chat-service
       ports:
         - port: 8000
           protocol: TCP
@@ -161,7 +164,7 @@ spec:
           protocol: TCP
     {{- end }}
 ---
-# inventory-service: called by frontend for admin stock management.
+# inventory-service: called by frontend for admin stock management and chat-service for public stock answers.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -178,6 +181,9 @@ spec:
         - podSelector:
             matchLabels:
               app: frontend
+        - podSelector:
+            matchLabels:
+              app: chat-service
       ports:
         - port: 8000
           protocol: TCP
