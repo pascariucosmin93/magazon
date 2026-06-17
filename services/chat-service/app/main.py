@@ -79,6 +79,30 @@ def _is_product_question(message: str) -> bool:
     return bool(terms & product_words) or any(terms & synonyms for synonyms in PRODUCT_SYNONYMS.values())
 
 
+def _account_reply(message: str) -> str | None:
+    terms = _query_terms(message)
+    account_terms = {
+        "cont",
+        "account",
+        "login",
+        "logare",
+        "inregistrat",
+        "inregistrare",
+        "parola",
+        "utilizator",
+        "user",
+        "username",
+        "email",
+    }
+    if not terms & account_terms:
+        return None
+    return (
+        "Nu pot confirma daca un anumit username sau email are cont, din motive de confidentialitate. "
+        "Incearca sa te autentifici din Login / Cont. Daca nu mai stii parola, foloseste resetarea parolei. "
+        "Daca esti administrator, poti verifica utilizatorii in Panou admin."
+    )
+
+
 def _fetch_products() -> list[dict]:
     response = requests.get(f"{PRODUCT_SERVICE_URL}/products", timeout=SERVICE_TIMEOUT_SECONDS)
     response.raise_for_status()
@@ -202,6 +226,13 @@ def chat_info():
 @app.post("/chat/messages", response_model=ChatResponse)
 def create_chat_message(payload: ChatRequest):
     conversation_id = payload.conversation_id or str(uuid.uuid4())
+    account_reply = _account_reply(payload.message)
+    if account_reply:
+        return ChatResponse(
+            reply=account_reply,
+            model="account-help",
+            conversation_id=conversation_id,
+        )
     catalog_reply = _catalog_reply(payload.message)
     if catalog_reply:
         return ChatResponse(

@@ -214,6 +214,23 @@ def test_chat_service_answers_product_stock_from_catalog(monkeypatch):
     assert "Wireless Mouse" not in response.reply
 
 
+def test_chat_service_does_not_enumerate_accounts(monkeypatch):
+    chat_module = load_module("chat_main_account", "services/chat-service/app/main.py")
+    monkeypatch.setattr(
+        chat_module,
+        "ask_ollama",
+        lambda _payload: "should not be called",
+    )
+
+    response = chat_module.create_chat_message(
+        chat_module.ChatRequest(message="eu pascariucosmin am cont pe acest site?")
+    )
+
+    assert response.model == "account-help"
+    assert "Nu pot confirma" in response.reply
+    assert "resetarea parolei" in response.reply
+
+
 def test_product_serializers_include_category_name():
     product_module = load_module("product_main", "services/product-service/app/main.py")
 
