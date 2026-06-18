@@ -5,12 +5,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      smoke_only:
-        description: Run only the post-deploy smoke checks without building images or creating a release
-        required: false
-        type: boolean
-        default: false
 
 concurrency:
   group: production-release
@@ -175,7 +169,6 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           BEFORE_SHA: ${{ github.event.before }}
           CURRENT_SHA: ${{ github.sha }}
-          SMOKE_ONLY: ${{ github.event.inputs.smoke_only || 'false' }}
         run: |
           python3 - <<'PY'
           import json
@@ -186,7 +179,6 @@ jobs:
           before_sha = os.environ.get("BEFORE_SHA", "")
           current_sha = os.environ["CURRENT_SHA"]
           output_path = os.environ["GITHUB_OUTPUT"]
-          smoke_only = os.environ["SMOKE_ONLY"].lower() == "true"
 
           all_targets = [
               {"name": "auth-service", "dockerfile": "services/auth-service/Dockerfile"},
@@ -212,12 +204,10 @@ jobs:
               )
               return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
-          release_changed = event_name == "workflow_dispatch" and not smoke_only
+          release_changed = event_name == "workflow_dispatch"
 
-          if event_name == "workflow_dispatch" and not smoke_only:
+          if event_name == "workflow_dispatch":
               changed_targets = all_targets
-          elif event_name == "workflow_dispatch" and smoke_only:
-              changed_targets = []
           elif not before_sha or before_sha == "0000000000000000000000000000000000000000":
               changed_targets = all_targets
               release_changed = True
@@ -400,8 +390,7 @@ jobs:
       - smoke
     needs:
       - update-gitops
-      - detect-release-scope
-    if: ${{ vars.POST_DEPLOY_SMOKE_BASE_URL != '' && (needs.update-gitops.result == 'success' || (github.event_name == 'workflow_dispatch' && github.event.inputs.smoke_only == 'true')) }}
+    if: ${{ vars.POST_DEPLOY_SMOKE_BASE_URL != '' && needs.update-gitops.result == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
