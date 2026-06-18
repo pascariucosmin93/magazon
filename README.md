@@ -192,6 +192,7 @@ Helm image values use explicit `repository` + `tag` pairs, and the production pi
   - set repository variable `POST_DEPLOY_SMOKE_ADMIN_EMAIL` if it differs from `admin@microshop.local`
   - set repository secret `MAGAZON_SMOKE_ADMIN_PASSWORD` to also verify admin login
   - if the URL is private/LAN-only, run the workflow on a self-hosted runner that can reach it
+  - the smoke script validates frontend HTML, catalog API, chat-service reachability plus a deterministic chat reply path, and optionally admin login/session
 
 ### Kubernetes with raw manifests
 

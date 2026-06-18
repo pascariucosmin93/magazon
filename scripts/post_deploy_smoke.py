@@ -59,6 +59,22 @@ def _check_catalog() -> None:
         raise RuntimeError("catalog response does not contain an items list")
 
 
+def _check_chat() -> None:
+    info = _json("/api/chat/info")
+    if not info.get("model") or not info.get("provider"):
+        raise RuntimeError("chat info response is missing model/provider")
+
+    reply = _json(
+        "/api/chat/messages",
+        method="POST",
+        payload={"message": "Am cont pe acest site?"},
+    )
+    if reply.get("model") != "account-help":
+        raise RuntimeError("chat response did not use the expected deterministic account-help path")
+    if not reply.get("reply") or not reply.get("conversation_id"):
+        raise RuntimeError("chat response is missing reply or conversation_id")
+
+
 def _check_admin_login() -> None:
     if not ADMIN_PASSWORD:
         print("Skipping admin login smoke: MAGAZON_SMOKE_ADMIN_PASSWORD is not set")
@@ -80,6 +96,7 @@ def _check_admin_login() -> None:
 def run_once() -> None:
     _check_frontend()
     _check_catalog()
+    _check_chat()
     _check_admin_login()
 
 
