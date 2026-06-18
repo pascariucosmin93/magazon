@@ -2,6 +2,11 @@ name: post-deploy-smoke
 
 on:
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: Base URL for the deployed store, for example http://192.168.1.8:8081
+        required: false
+        type: string
 
 jobs:
   smoke:
@@ -9,14 +14,24 @@ jobs:
     runs-on:
       - self-hosted
       - smoke
-    if: ${{ vars.POST_DEPLOY_SMOKE_BASE_URL != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Resolve smoke target URL
+        env:
+          INPUT_BASE_URL: ${{ github.event.inputs.base_url }}
+          DEFAULT_BASE_URL: ${{ vars.POST_DEPLOY_SMOKE_BASE_URL }}
+        run: |
+          base_url="${INPUT_BASE_URL:-$DEFAULT_BASE_URL}"
+          if [[ -z "${base_url}" ]]; then
+            echo "POST_DEPLOY_SMOKE_BASE_URL is not set and no manual base_url was provided." >&2
+            exit 1
+          fi
+          echo "MAGAZON_SMOKE_BASE_URL=${base_url}" >> "${GITHUB_ENV}"
+
       - name: Run post-deploy smoke checks
         env:
-          MAGAZON_SMOKE_BASE_URL: ${{ vars.POST_DEPLOY_SMOKE_BASE_URL }}
           MAGAZON_SMOKE_ADMIN_EMAIL: ${{ vars.POST_DEPLOY_SMOKE_ADMIN_EMAIL }}
           MAGAZON_SMOKE_ADMIN_PASSWORD: ${{ secrets.POST_DEPLOY_SMOKE_ADMIN_PASSWORD }}
         run: python3 scripts/post_deploy_smoke.py

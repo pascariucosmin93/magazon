@@ -138,7 +138,7 @@ GitHub Actions is used only for CI and container image publishing for Kubernetes
   - on push to `main`: runs the same validation and security checks, detects which deployable targets changed, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...) only when deployable sources changed, pushes only the affected images to GHCR with that exact tag, updates the production Argo CD application and values in `pascariucosmin93/magazon-gitops`, and skips image publishing entirely for non-deployable-only changes such as `README`, tests, or GitHub workflow edits
   - on manual `workflow_dispatch`: runs the full production release flow
 - `.github/workflows/post-deploy-smoke.yaml`
-  - manual-only workflow that runs the post-deploy smoke checks on the self-hosted runner labeled `smoke`
+  - manual-only workflow that runs the post-deploy smoke checks on the self-hosted runner labeled `smoke`; it accepts an optional `base_url` input and falls back to `POST_DEPLOY_SMOKE_BASE_URL` when omitted
 
 End-to-end critical flow tests:
 
