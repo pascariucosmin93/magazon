@@ -223,6 +223,11 @@ def chat_info():
     return {"model": OLLAMA_MODEL, "provider": "ollama"}
 
 
+@app.get("/info")
+def chat_info_proxy():
+    return chat_info()
+
+
 @app.post("/chat/messages", response_model=ChatResponse)
 def create_chat_message(payload: ChatRequest):
     conversation_id = payload.conversation_id or str(uuid.uuid4())

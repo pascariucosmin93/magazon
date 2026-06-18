@@ -175,6 +175,12 @@ def test_chat_service_builds_ollama_messages_and_returns_reply(monkeypatch):
     assert response.conversation_id
 
 
+def test_chat_service_info_proxy_matches_public_info():
+    chat_module = load_module("chat_main_info", "services/chat-service/app/main.py")
+
+    assert chat_module.chat_info_proxy() == chat_module.chat_info()
+
+
 def test_chat_service_answers_product_stock_from_catalog(monkeypatch):
     chat_module = load_module("chat_main_catalog", "services/chat-service/app/main.py")
 
