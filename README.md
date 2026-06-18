@@ -190,7 +190,7 @@ Helm image values use explicit `repository` + `tag` pairs, and the production pi
 - optional post-deploy smoke checks:
   - set repository variable `POST_DEPLOY_SMOKE_BASE_URL` to the public store URL, for example `http://192.168.1.8:8081`
   - set repository variable `POST_DEPLOY_SMOKE_ADMIN_EMAIL` if it differs from `admin@microshop.local`
-  - set repository secret `POST_DEPLOY_SMOKE_ADMIN_PASSWORD` to also verify admin login
+  - set repository secret `MAGAZON_SMOKE_ADMIN_PASSWORD` to also verify admin login
   - if the URL is private/LAN-only, run the workflow on a self-hosted runner that can reach it
 
 ### Kubernetes with raw manifests

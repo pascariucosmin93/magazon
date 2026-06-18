@@ -33,5 +33,5 @@ jobs:
       - name: Run post-deploy smoke checks
         env:
           MAGAZON_SMOKE_ADMIN_EMAIL: ${{ vars.POST_DEPLOY_SMOKE_ADMIN_EMAIL }}
-          MAGAZON_SMOKE_ADMIN_PASSWORD: ${{ secrets.POST_DEPLOY_SMOKE_ADMIN_PASSWORD }}
+          MAGAZON_SMOKE_ADMIN_PASSWORD: ${{ secrets.MAGAZON_SMOKE_ADMIN_PASSWORD }}
         run: python3 scripts/post_deploy_smoke.py
