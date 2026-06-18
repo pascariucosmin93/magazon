@@ -135,7 +135,7 @@ GitHub Actions is used only for CI and container image publishing for Kubernetes
 - `.github/workflows/test.yaml`
   - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, and builds all container images without pushing
 - `.github/workflows/production.yaml`
-  - on push to `main`: runs the same validation and security checks, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...), pushes all images to GHCR with that exact tag, updates the production Argo CD application and values in `pascariucosmin93/magazon-gitops`, then optionally runs post-deploy smoke checks
+  - on push to `main`: runs the same validation and security checks, detects which deployable targets changed, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...) only when deployable sources changed, pushes only the affected images to GHCR with that exact tag, updates the production Argo CD application and values in `pascariucosmin93/magazon-gitops`, and skips image publishing entirely for non-deployable-only changes such as `README`, tests, or GitHub workflow edits
 
 End-to-end critical flow tests:
 

@@ -148,10 +148,114 @@ jobs:
           category: trivy-filesystem
         continue-on-error: true
 
+  detect-release-scope:
+    name: Detect Release Scope
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      has_release_changes: ${{ steps.scope.outputs.has_release_changes }}
+      has_image_changes: ${{ steps.scope.outputs.has_image_changes }}
+      matrix: ${{ steps.scope.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute impacted deployable targets
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          event_name = os.environ["EVENT_NAME"]
+          before_sha = os.environ.get("BEFORE_SHA", "")
+          current_sha = os.environ["CURRENT_SHA"]
+          output_path = os.environ["GITHUB_OUTPUT"]
+
+          all_targets = [
+              {"name": "auth-service", "dockerfile": "services/auth-service/Dockerfile"},
+              {"name": "product-service", "dockerfile": "services/product-service/Dockerfile"},
+              {"name": "cart-service", "dockerfile": "services/cart-service/Dockerfile"},
+              {"name": "order-service", "dockerfile": "services/order-service/Dockerfile"},
+              {"name": "inventory-service", "dockerfile": "services/inventory-service/Dockerfile"},
+              {"name": "payment-service", "dockerfile": "services/payment-service/Dockerfile"},
+              {"name": "notification-service", "dockerfile": "services/notification-service/Dockerfile"},
+              {"name": "chat-service", "dockerfile": "services/chat-service/Dockerfile"},
+              {"name": "frontend", "dockerfile": "frontend/Dockerfile"},
+          ]
+
+          backend_services = [target for target in all_targets if target["name"] != "frontend"]
+          targets_by_name = {target["name"]: target for target in all_targets}
+
+          def git_diff_files(base_ref: str, head_ref: str) -> list[str]:
+              result = subprocess.run(
+                  ["git", "diff", "--name-only", f"{base_ref}..{head_ref}"],
+                  check=True,
+                  text=True,
+                  capture_output=True,
+              )
+              return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+          release_changed = event_name == "workflow_dispatch"
+
+          if event_name == "workflow_dispatch":
+              changed_targets = all_targets
+          elif not before_sha or before_sha == "0000000000000000000000000000000000000000":
+              changed_targets = all_targets
+              release_changed = True
+          else:
+              changed_files = git_diff_files(before_sha, current_sha)
+              selected: dict[str, dict[str, str]] = {}
+
+              for path in changed_files:
+                  if path.startswith("helm/"):
+                      release_changed = True
+                      continue
+
+                  if path.startswith("shared/"):
+                      release_changed = True
+                      for target in backend_services:
+                          selected[target["name"]] = target
+                      continue
+
+                  if path.startswith("frontend/"):
+                      release_changed = True
+                      selected["frontend"] = targets_by_name["frontend"]
+                      continue
+
+                  if path.startswith("services/"):
+                      parts = path.split("/")
+                      if len(parts) >= 2:
+                          service_name = parts[1]
+                          if service_name in targets_by_name:
+                              release_changed = True
+                              selected[service_name] = targets_by_name[service_name]
+
+              changed_targets = [selected[name] for name in targets_by_name if name in selected]
+
+          has_release_changes = "true" if release_changed else "false"
+          has_image_changes = "true" if changed_targets else "false"
+          matrix = json.dumps({"include": changed_targets})
+
+          with open(output_path, "a", encoding="utf-8") as fh:
+              fh.write(f"has_release_changes={has_release_changes}\n")
+              fh.write(f"has_image_changes={has_image_changes}\n")
+              fh.write(f"matrix={matrix}\n")
+          PY
+
   determine-version:
     name: Determine Release Version
     runs-on: ubuntu-latest
-    needs: [validate, e2e]
+    needs: [validate, e2e, detect-release-scope]
+    if: ${{ needs.detect-release-scope.outputs.has_release_changes == 'true' }}
     permissions:
       contents: read
     outputs:
@@ -181,6 +285,8 @@ jobs:
     needs:
       - determine-version
       - build-images
+      - detect-release-scope
+    if: ${{ needs.determine-version.result == 'success' && (needs.build-images.result == 'success' || needs.build-images.result == 'skipped') }}
     permissions:
       contents: write
     steps:
@@ -199,13 +305,18 @@ jobs:
       - name: Update production service tags in GitOps values
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
+          HAS_IMAGE_CHANGES: ${{ needs.detect-release-scope.outputs.has_image_changes }}
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import os
 
           version = os.environ["VERSION"]
+          has_image_changes = os.environ["HAS_IMAGE_CHANGES"] == "true"
           path = Path("magazon-gitops/environments/prod/values.yaml")
+          if not has_image_changes:
+              print("No image changes detected; keeping existing production image tags.")
+              raise SystemExit(0)
           lines = path.read_text().splitlines()
           updated = []
           for line in lines:
@@ -279,7 +390,7 @@ jobs:
       - smoke
     needs:
       - update-gitops
-    if: ${{ vars.POST_DEPLOY_SMOKE_BASE_URL != '' }}
+    if: ${{ needs.update-gitops.result == 'success' && vars.POST_DEPLOY_SMOKE_BASE_URL != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -298,29 +409,12 @@ jobs:
       - validate
       - e2e
       - determine-version
+      - detect-release-scope
+    if: ${{ needs.detect-release-scope.outputs.has_image_changes == 'true' }}
     strategy:
       fail-fast: false
       max-parallel: 3
-      matrix:
-        include:
-          - name: auth-service
-            dockerfile: services/auth-service/Dockerfile
-          - name: product-service
-            dockerfile: services/product-service/Dockerfile
-          - name: cart-service
-            dockerfile: services/cart-service/Dockerfile
-          - name: order-service
-            dockerfile: services/order-service/Dockerfile
-          - name: inventory-service
-            dockerfile: services/inventory-service/Dockerfile
-          - name: payment-service
-            dockerfile: services/payment-service/Dockerfile
-          - name: notification-service
-            dockerfile: services/notification-service/Dockerfile
-          - name: chat-service
-            dockerfile: services/chat-service/Dockerfile
-          - name: frontend
-            dockerfile: frontend/Dockerfile
+      matrix: ${{ fromJson(needs.detect-release-scope.outputs.matrix) }}
     permissions:
       contents: read
       packages: write
