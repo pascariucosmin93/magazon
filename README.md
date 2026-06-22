@@ -135,7 +135,7 @@ GitHub Actions is used only for CI and container image publishing for Kubernetes
 - `.github/workflows/test.yaml`
   - on pull requests: runs pytest, compile checks, script linting, Bandit, pip-audit, Trivy, and builds all container images without pushing
 - `.github/workflows/production.yaml`
-  - on push to `main`: runs the same validation and security checks, detects which deployable targets changed, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...) only when deployable sources changed, pushes only the affected images to GHCR with that exact tag, updates the production Argo CD application and values in `pascariucosmin93/magazon-gitops`, and skips image publishing entirely for non-deployable-only changes such as `README`, tests, or GitHub workflow edits
+  - on push to `main`: runs the same validation and security checks, detects which deployable targets changed, creates the next Git tag in sequence (`0.0.1`, `0.0.2`, ...) only when deployable sources changed, pushes only the affected images to GHCR with that exact tag, updates the production Argo CD application and only the published image tags in `pascariucosmin93/magazon-gitops`, and skips image publishing entirely for non-deployable-only changes such as `README`, tests, or GitHub workflow edits
   - on manual `workflow_dispatch`: runs the full production release flow
 - `.github/workflows/post-deploy-smoke.yaml`
   - manual-only workflow that runs the post-deploy smoke checks on the self-hosted runner labeled `smoke`; it accepts an optional `base_url` input and falls back to `POST_DEPLOY_SMOKE_BASE_URL` when omitted
@@ -180,7 +180,7 @@ ghcr.io/pascariucosmin93/magazon/frontend:0.0.2
 
 The version sequence is driven by Git tags already present in the repository. The first release becomes `0.0.1`, then `0.0.2`, and so on.
 
-Helm image values use explicit `repository` + `tag` pairs, and the production pipeline automatically pins the chart revision plus all image tags to the new release version so Argo CD deploys that exact version instead of `latest`.
+Helm image values use explicit `repository` + `tag` pairs, and the production pipeline automatically pins the chart revision plus only the image tags that were published in that release so Argo CD never references a tag that was not pushed to GHCR.
 
 ### Required GitHub setup
 

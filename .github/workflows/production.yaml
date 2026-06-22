@@ -156,6 +156,7 @@ jobs:
     outputs:
       has_release_changes: ${{ steps.scope.outputs.has_release_changes }}
       has_image_changes: ${{ steps.scope.outputs.has_image_changes }}
+      image_target_names: ${{ steps.scope.outputs.image_target_names }}
       matrix: ${{ steps.scope.outputs.matrix }}
     steps:
       - name: Checkout
@@ -243,11 +244,13 @@ jobs:
 
           has_release_changes = "true" if release_changed else "false"
           has_image_changes = "true" if changed_targets else "false"
+          image_target_names = json.dumps([target["name"] for target in changed_targets])
           matrix = json.dumps({"include": changed_targets})
 
           with open(output_path, "a", encoding="utf-8") as fh:
               fh.write(f"has_release_changes={has_release_changes}\n")
               fh.write(f"has_image_changes={has_image_changes}\n")
+              fh.write(f"image_target_names={image_target_names}\n")
               fh.write(f"matrix={matrix}\n")
           PY
 
@@ -306,8 +309,10 @@ jobs:
         env:
           VERSION: ${{ needs.determine-version.outputs.version }}
           HAS_IMAGE_CHANGES: ${{ needs.detect-release-scope.outputs.has_image_changes }}
+          IMAGE_TARGET_NAMES: ${{ needs.detect-release-scope.outputs.image_target_names }}
         run: |
           python3 - <<'PY'
+          import json
           from pathlib import Path
           import os
 
@@ -317,10 +322,18 @@ jobs:
           if not has_image_changes:
               print("No image changes detected; keeping existing production image tags.")
               raise SystemExit(0)
+          image_target_names = set(json.loads(os.environ["IMAGE_TARGET_NAMES"]))
+          if not image_target_names:
+              print("No image targets were published; keeping existing production image tags.")
+              raise SystemExit(0)
           lines = path.read_text().splitlines()
           updated = []
+          current_service = None
           for line in lines:
-              if line.strip().startswith("tag: "):
+              stripped = line.strip()
+              if line.startswith("  ") and not line.startswith("    ") and stripped.endswith(":"):
+                  current_service = stripped[:-1]
+              if current_service in image_target_names and stripped.startswith("tag: "):
                   indent = line[:len(line) - len(line.lstrip())]
                   updated.append(f"{indent}tag: {version}")
               else:
