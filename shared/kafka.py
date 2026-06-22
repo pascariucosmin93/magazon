@@ -150,21 +150,43 @@ def get_current_event() -> dict[str, Any] | None:
     return current_event_envelope.get()
 
 
-async def start_producer():
+def _should_retry(attempt: int, max_attempts: int | None) -> bool:
+    return max_attempts is None or attempt < max_attempts
+
+
+async def start_producer(max_attempts: int | None = None):
     global producer
+    max_attempts = settings.kafka_startup_max_retries if max_attempts is None else max_attempts
     if producer is None:
-        candidate = AIOKafkaProducer(
-            bootstrap_servers=settings.kafka_bootstrap_servers,
-            value_serializer=lambda value: json.dumps(value).encode("utf-8"),
-        )
-        try:
-            await candidate.start()
-        except Exception:
-            with suppress(Exception):
-                await candidate.stop()
-            raise
-        producer = candidate
-        logger.info("Kafka producer started")
+        attempt = 0
+        while True:
+            attempt += 1
+            candidate = AIOKafkaProducer(
+                bootstrap_servers=settings.kafka_bootstrap_servers,
+                value_serializer=lambda value: json.dumps(value).encode("utf-8"),
+            )
+            try:
+                await candidate.start()
+            except asyncio.CancelledError:
+                with suppress(Exception):
+                    await candidate.stop()
+                raise
+            except Exception as exc:
+                with suppress(Exception):
+                    await candidate.stop()
+                if not _should_retry(attempt, max_attempts):
+                    raise
+                logger.warning(
+                    "Kafka producer startup failed attempt=%s/%s: %s",
+                    attempt,
+                    max_attempts,
+                    exc,
+                )
+                await asyncio.sleep(settings.kafka_startup_retry_backoff_seconds)
+                continue
+            producer = candidate
+            logger.info("Kafka producer started")
+            return
 
 
 async def stop_producer():
@@ -189,23 +211,44 @@ async def consume_topics(
     service_name: str,
     topics: list[str],
     handler: Callable[[str, dict], Awaitable[None]],
+    *,
+    max_start_attempts: int | None = None,
 ):
-    consumer = AIOKafkaConsumer(
-        *topics,
-        bootstrap_servers=settings.kafka_bootstrap_servers,
-        group_id=f"{service_name}-group",
-        value_deserializer=lambda value: json.loads(value.decode("utf-8")),
-        auto_offset_reset="earliest",
-        enable_auto_commit=False,
+    attempt = 0
+    max_start_attempts = (
+        settings.kafka_startup_max_retries if max_start_attempts is None else max_start_attempts
     )
-    await consumer.start()
-    logger.info("%s consumer started for topics=%s", service_name, topics)
-    try:
-        async for message in consumer:
-            await process_event_with_retries(service_name, message.topic, message.value, handler)
-            await consumer.commit()
-    except asyncio.CancelledError:
-        logger.info("%s consumer cancelled", service_name)
-        raise
-    finally:
-        await consumer.stop()
+
+    while True:
+        attempt += 1
+        consumer = AIOKafkaConsumer(
+            *topics,
+            bootstrap_servers=settings.kafka_bootstrap_servers,
+            group_id=f"{service_name}-group",
+            value_deserializer=lambda value: json.loads(value.decode("utf-8")),
+            auto_offset_reset="earliest",
+            enable_auto_commit=False,
+        )
+        try:
+            await consumer.start()
+            attempt = 0
+            logger.info("%s consumer started for topics=%s", service_name, topics)
+            async for message in consumer:
+                await process_event_with_retries(service_name, message.topic, message.value, handler)
+                await consumer.commit()
+        except asyncio.CancelledError:
+            logger.info("%s consumer cancelled", service_name)
+            raise
+        except Exception as exc:
+            if not _should_retry(attempt, max_start_attempts):
+                raise
+            logger.warning(
+                "%s consumer failed attempt=%s/%s: %s",
+                service_name,
+                attempt,
+                max_start_attempts,
+                exc,
+            )
+            await asyncio.sleep(settings.kafka_startup_retry_backoff_seconds)
+        finally:
+            await consumer.stop()

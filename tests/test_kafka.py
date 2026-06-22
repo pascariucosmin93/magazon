@@ -112,3 +112,72 @@ def test_process_event_with_retries_exposes_current_event(monkeypatch):
         "payload": {"order_id": 42, "status": "completed"},
         "event_id": "evt-42",
     }
+
+
+def test_start_producer_stops_candidate_after_start_failure(monkeypatch):
+    calls = []
+
+    class FailingProducer:
+        def __init__(self, **kwargs):
+            calls.append(("init", kwargs))
+
+        async def start(self):
+            calls.append(("start", None))
+            raise RuntimeError("no kafka")
+
+        async def stop(self):
+            calls.append(("stop", None))
+
+    monkeypatch.setattr(kafka, "AIOKafkaProducer", FailingProducer)
+    monkeypatch.setattr(kafka, "producer", None)
+
+    try:
+        asyncio.run(kafka.start_producer(max_attempts=1))
+    except RuntimeError as exc:
+        assert str(exc) == "no kafka"
+    else:
+        raise AssertionError("start_producer should raise after max attempts")
+
+    assert calls[0][0] == "init"
+    assert calls[0][1]["bootstrap_servers"] == kafka.settings.kafka_bootstrap_servers
+    assert callable(calls[0][1]["value_serializer"])
+    assert calls[1:] == [("start", None), ("stop", None)]
+    assert kafka.producer is None
+
+
+def test_consume_topics_stops_consumer_after_start_failure(monkeypatch):
+    calls = []
+
+    class FailingConsumer:
+        def __init__(self, *topics, **kwargs):
+            calls.append(("init", topics, kwargs))
+
+        async def start(self):
+            calls.append(("start",))
+            raise RuntimeError("no kafka")
+
+        async def stop(self):
+            calls.append(("stop",))
+
+    async def handler(topic, payload):
+        raise AssertionError("handler should not run")
+
+    monkeypatch.setattr(kafka, "AIOKafkaConsumer", FailingConsumer)
+
+    try:
+        asyncio.run(
+            kafka.consume_topics(
+                "test-service",
+                ["topic.one"],
+                handler,
+                max_start_attempts=1,
+            )
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "no kafka"
+    else:
+        raise AssertionError("consume_topics should raise after max attempts")
+
+    assert calls[0][0] == "init"
+    assert calls[0][1] == ("topic.one",)
+    assert calls[1:] == [("start",), ("stop",)]

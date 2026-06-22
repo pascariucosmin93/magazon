@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     kafka_bootstrap_servers: str = "kafka:9092"
     kafka_consumer_max_retries: int = 3
     kafka_retry_backoff_seconds: float = 1.0
+    kafka_startup_max_retries: int = 12
+    kafka_startup_retry_backoff_seconds: float = 5.0
     kafka_event_version: int = 1
     kafka_dlq_suffix: str = ".dlq"
     public_base_url: str | None = None
