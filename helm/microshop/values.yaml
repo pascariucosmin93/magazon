@@ -259,8 +259,9 @@ services:
   frontend:
     repository: ghcr.io/pascariucosmin93/magazon/frontend
     tag: 0.0.73
-    containerPort: 80
+    containerPort: 8080
     servicePort: 80
+    runAsUser: 101
     serviceType: LoadBalancer
     externalTrafficPolicy: Local
     loadBalancerIP: 10.10.2.50
