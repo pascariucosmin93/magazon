@@ -415,9 +415,23 @@ jobs:
           MAGAZON_SMOKE_ADMIN_PASSWORD: ${{ secrets.MAGAZON_SMOKE_ADMIN_PASSWORD }}
         run: python3 scripts/post_deploy_smoke.py
 
-      - name: Rollback on smoke failure
+      - name: Revert GitOps on smoke failure
         if: failure()
-        run: helm rollback microshop --namespace microshop --wait --timeout 5m0s
+        env:
+          GITOPS_REPO_TOKEN: ${{ secrets.GITOPS_REPO_TOKEN }}
+          GITOPS_REPOSITORY: ${{ env.GITOPS_REPOSITORY }}
+        run: |
+          git clone "https://x-access-token:${GITOPS_REPO_TOKEN}@github.com/${GITOPS_REPOSITORY}.git" magazon-gitops-rollback
+          cd magazon-gitops-rollback
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git log --oneline -1 | grep -q "^[0-9a-f]* Deploy microshop "; then
+            git revert --no-edit HEAD
+            git push origin HEAD:main
+            echo "GitOps rollback committed — ArgoCD will resync to the previous image tags."
+          else
+            echo "Last GitOps commit is not a deploy commit; skipping automatic revert." >&2
+          fi
 
   build-images:
     name: Build and Publish Images
