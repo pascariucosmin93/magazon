@@ -7,6 +7,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 FROM public.ecr.aws/docker/library/python:3.12-slim AS runtime
 
+# Rebuild trigger: CVE-2026-45447 openssl-provider-legacy fixed in 3.5.6-1deb13u2
 RUN apt-get update && \
     apt-get upgrade -y && \
     rm -rf /var/lib/apt/lists/* && \

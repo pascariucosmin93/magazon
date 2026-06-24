@@ -1,0 +1,116 @@
+name: microshop-rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: |
+          Version to rollback to (e.g. 0.0.71).
+          Leave blank to list the last 5 deployed versions and stop.
+        required: false
+        type: string
+
+env:
+  GITOPS_REPOSITORY: pascariucosmin93/magazon-gitops
+
+jobs:
+  rollback:
+    name: GitOps Rollback
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.GITOPS_REPOSITORY }}
+          path: magazon-gitops
+          token: ${{ secrets.GITOPS_REPO_TOKEN }}
+          fetch-depth: 20
+
+      - name: List recent deployed versions
+        id: list
+        run: |
+          echo "=== Last 5 deployed versions ==="
+          git -C magazon-gitops log --oneline --grep="^Deploy microshop " -n 5 \
+            --pretty=format:"%h  %s  (%cr)" | cat
+          echo ""
+
+          versions=$(git -C magazon-gitops log --oneline --grep="^Deploy microshop " -n 5 \
+            --pretty=format:"%s" | sed 's/Deploy microshop //')
+          echo "available_versions<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$versions" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Stop if no version provided
+        if: ${{ inputs.version == '' }}
+        run: |
+          echo ""
+          echo "No version specified — re-run this workflow with one of the versions above."
+          exit 1
+
+      - name: Validate requested version exists in GitOps history
+        env:
+          TARGET: ${{ inputs.version }}
+        run: |
+          if ! git -C magazon-gitops log --oneline --grep="Deploy microshop ${TARGET}$" -n 1 | grep -q .; then
+            echo "Version '${TARGET}' not found in the last 20 GitOps deploy commits." >&2
+            echo "Available recent versions:"
+            git -C magazon-gitops log --oneline --grep="^Deploy microshop " -n 5 \
+              --pretty=format:"  %s" | cat
+            exit 1
+          fi
+          echo "Version ${TARGET} found in GitOps history."
+
+      - name: Apply rollback
+        env:
+          TARGET: ${{ inputs.version }}
+        run: |
+          cd magazon-gitops
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          target = os.environ["TARGET"]
+
+          values = Path("environments/prod/values.yaml")
+          lines = values.read_text().splitlines()
+          updated = []
+          for line in lines:
+              stripped = line.strip()
+              if stripped.startswith("tag: "):
+                  indent = line[: len(line) - len(line.lstrip())]
+                  updated.append(f"{indent}tag: {target}")
+              else:
+                  updated.append(line)
+          values.write_text("\n".join(updated) + "\n")
+
+          app = Path("applications/microshop-prod.yaml")
+          lines = app.read_text().splitlines()
+          updated = []
+          awaiting = False
+          for line in lines:
+              if line.strip() == "repoURL: https://github.com/pascariucosmin93/magazon.git":
+                  awaiting = True
+                  updated.append(line)
+                  continue
+              if awaiting and line.strip().startswith("targetRevision: "):
+                  indent = line[: len(line) - len(line.lstrip())]
+                  updated.append(f"{indent}targetRevision: {target}")
+                  awaiting = False
+                  continue
+              updated.append(line)
+          app.write_text("\n".join(updated) + "\n")
+          PY
+
+          git add environments/prod/values.yaml applications/microshop-prod.yaml
+          if git diff --cached --quiet; then
+            echo "GitOps already at version ${TARGET}; nothing to do."
+          else
+            git commit -m "Rollback microshop to ${TARGET}"
+            git push origin HEAD:main
+            echo "Rollback to ${TARGET} committed — ArgoCD will resync shortly."
+          fi

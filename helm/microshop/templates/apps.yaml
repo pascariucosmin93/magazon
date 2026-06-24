@@ -27,11 +27,9 @@ spec:
     spec:
       serviceAccountName: {{ $name }}
       securityContext:
-        {{- if ne $name "frontend" }}
         runAsNonRoot: true
-        runAsUser: 1000
-        {{- end }}
-        fsGroup: 1000
+        runAsUser: {{ default 1000 $svc.runAsUser }}
+        fsGroup: {{ default 1000 $svc.runAsUser }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -49,12 +47,10 @@ spec:
             - containerPort: {{ $svc.containerPort }}
           resources:
             {{- toYaml $svc.resources | nindent 12 }}
-          {{- if ne $name "frontend" }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-          {{- end }}
           {{- if ne $name "frontend" }}
           env:
             - name: SERVICE_NAME
