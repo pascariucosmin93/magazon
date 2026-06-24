@@ -93,11 +93,41 @@ def _check_admin_login() -> None:
         raise RuntimeError("admin session check did not return role=admin")
 
 
+def _check_secure_cookie() -> None:
+    """Verify the auth Set-Cookie has Secure+HttpOnly — confirms Cloudflare forwards X-Forwarded-Proto: https."""
+    if not BASE_URL.startswith("https://"):
+        print("Skipping Secure-cookie check: BASE_URL is not HTTPS")
+        return
+    if not ADMIN_PASSWORD:
+        print("Skipping Secure-cookie check: MAGAZON_SMOKE_ADMIN_PASSWORD is not set")
+        return
+
+    data = json.dumps({"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD}).encode("utf-8")
+    request = Request(
+        urljoin(BASE_URL, "/api/auth/login"),
+        data=data,
+        headers={"Accept": "application/json", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with opener.open(request, timeout=TIMEOUT_SECONDS) as response:
+        set_cookie = response.info().get("Set-Cookie") or ""
+
+    parts = {p.strip().lower() for p in set_cookie.split(";")}
+    if "secure" not in parts:
+        raise RuntimeError(
+            "auth Set-Cookie is missing the Secure flag — "
+            "check that Cloudflare forwards X-Forwarded-Proto: https"
+        )
+    if "httponly" not in parts:
+        raise RuntimeError("auth Set-Cookie is missing the HttpOnly flag")
+
+
 def run_once() -> None:
     _check_frontend()
     _check_catalog()
     _check_chat()
     _check_admin_login()
+    _check_secure_cookie()
 
 
 def main() -> int:

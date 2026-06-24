@@ -415,6 +415,10 @@ jobs:
           MAGAZON_SMOKE_ADMIN_PASSWORD: ${{ secrets.MAGAZON_SMOKE_ADMIN_PASSWORD }}
         run: python3 scripts/post_deploy_smoke.py
 
+      - name: Rollback on smoke failure
+        if: failure()
+        run: helm rollback microshop --namespace microshop --wait --timeout 5m0s
+
   build-images:
     name: Build and Publish Images
     runs-on: ubuntu-latest
