@@ -11,7 +11,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository }}
   PYTHON_VERSION: "3.12"
@@ -80,7 +79,7 @@ jobs:
         run: bash -n deploy.sh
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
 
       - name: Lint and render Helm chart
         run: |
