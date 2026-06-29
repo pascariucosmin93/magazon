@@ -72,12 +72,6 @@ redis:
       cpu: 250m
       memory: 256Mi
 
-networkPolicies:
-  enabled: true
-  # Set to the namespace where Prometheus is deployed to allow scraping.
-  # Leave empty to skip the monitoring allow rule.
-  monitoringNamespace: monitoring
-
 services:
   auth-service:
     repository: ghcr.io/pascariucosmin93/magazon/auth-service
